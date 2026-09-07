@@ -1,31 +1,31 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { getPlayers } from "../dota/lib/get-players";
-import { getHeroNameOrColor } from "../dota/lib/heroes";
-import type { RosterPlayer } from "../dota/lib/matchData";
+import { getPlayers } from '../dota/lib/get-players'
+import { getHeroNameOrColor } from '../dota/lib/heroes'
+import type { RosterPlayer } from '../dota/lib/matchData'
 
 export const smurfs = async function smurfs(
   locale: string,
   currentMatchId?: string,
-  players?: RosterPlayer[],
+  players?: RosterPlayer[]
 ): Promise<string> {
-  const { matchPlayers, cards } = await getPlayers({ currentMatchId, locale, players });
+  const { matchPlayers, cards } = await getPlayers({ currentMatchId, locale, players })
 
-  const result: { heroName: string; lifetime_games?: number }[] = [];
+  const result: { heroName: string; lifetime_games?: number }[] = []
   matchPlayers.forEach((player, i: number) => {
     result.push({
       heroName: getHeroNameOrColor(player.heroId ?? 0, i),
       lifetime_games: cards[i]?.lifetime_games,
-    });
-  });
+    })
+  })
   const results = result
     .toSorted((a, b) => (a.lifetime_games ?? 0) - (b.lifetime_games ?? 0))
     .map((m) =>
-      typeof m.lifetime_games === "number" && m.lifetime_games > 0
+      typeof m.lifetime_games === 'number' && m.lifetime_games > 0
         ? `${m.heroName}: ${m.lifetime_games.toLocaleString()}`
-        : undefined,
+        : undefined
     )
     .filter(Boolean)
-    .join(" · ");
-  return `${t("lifetime", { lng: locale })}: ${results || t("unknown", { lng: locale })}`;
-};
+    .join(' · ')
+  return `${t('lifetime', { lng: locale })}: ${results || t('unknown', { lng: locale })}`
+}

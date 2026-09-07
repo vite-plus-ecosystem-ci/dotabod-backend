@@ -1,13 +1,13 @@
-import { logger } from "@dotabod/shared-utils";
+import { logger } from '@dotabod/shared-utils'
 
-import { createHealthApp } from "./health-app";
-import { isEventsIOConnected } from "./socket-utils";
+import { createHealthApp } from './health-app'
+import { isEventsIOConnected } from './socket-utils'
 
 // Preserve the module-load env guard that lived in the deleted webhookUtils.ts.
 // BotApiSingleton silently falls back to `?? ''` if this is unset, which masks
 // a misconfigured deploy until the first real Twitch API call returns 401.
 if (process.env.TWITCH_CLIENT_ID === undefined || process.env.TWITCH_CLIENT_ID.length === 0) {
-  throw new Error("TWITCH_CLIENT_ID is not defined");
+  throw new Error('TWITCH_CLIENT_ID is not defined')
 }
 
 // Slim HTTP liveness endpoint. Replaces the legacy webhookUtils.ts which
@@ -20,13 +20,13 @@ if (process.env.TWITCH_CLIENT_ID === undefined || process.env.TWITCH_CLIENT_ID.l
 // Keeping the path `/webhook` for backwards compatibility with existing
 // monitor configurations.
 export const setupHealthServer = (): void => {
-  const app = createHealthApp(isEventsIOConnected);
+  const app = createHealthApp(isEventsIOConnected)
 
   const server = app.listen(5011, () => {
-    logger.info("[TWITCHEVENTS] Health server listening on port 5011");
-  });
-  server.on("error", (error) => {
-    logger.error("[TWITCHEVENTS] Health server failed to bind port 5011", { error });
-    throw error;
-  });
-};
+    logger.info('[TWITCHEVENTS] Health server listening on port 5011')
+  })
+  server.on('error', (error) => {
+    logger.error('[TWITCHEVENTS] Health server failed to bind port 5011', { error })
+    throw error
+  })
+}

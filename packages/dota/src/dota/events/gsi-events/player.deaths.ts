@@ -1,73 +1,73 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { redisClient } from "../../../db/redis-instance";
-import type { Item } from "../../../types";
-import type { GSIHandlerType } from "../../gsi-handler-types";
-import { findItem } from "../../lib/find-item";
-import handleGetHero from "../../lib/get-hero";
-import type { HeroNames } from "../../lib/get-hero";
-import { isPlayingMatch } from "../../lib/is-playing-match";
-import { say } from "../../say";
-import eventHandler from "../event-handler";
+import { redisClient } from '../../../db/redis-instance'
+import type { Item } from '../../../types'
+import type { GSIHandlerType } from '../../gsi-handler-types'
+import { findItem } from '../../lib/find-item'
+import handleGetHero from '../../lib/get-hero'
+import type { HeroNames } from '../../lib/get-hero'
+import { isPlayingMatch } from '../../lib/is-playing-match'
+import { say } from '../../say'
+import eventHandler from '../event-handler'
 
 const passiveItemNames = [
-  { charges: true, name: "item_magic_stick", title: "magic stick" },
-  { charges: true, name: "item_magic_wand", title: "magic wand" },
-  { name: "item_faerie_fire", title: "faerie fire" },
-  { name: "item_cheese", title: "cheese" },
-  { charges: true, name: "item_holy_locket", title: "holy locket" },
-  { name: "item_mekansm", title: "mek" },
-  { name: "item_satanic", title: "satanic" },
-  { name: "item_guardian_greaves", title: "greaves" },
-];
+  { charges: true, name: 'item_magic_stick', title: 'magic stick' },
+  { charges: true, name: 'item_magic_wand', title: 'magic wand' },
+  { name: 'item_faerie_fire', title: 'faerie fire' },
+  { name: 'item_cheese', title: 'cheese' },
+  { charges: true, name: 'item_holy_locket', title: 'holy locket' },
+  { name: 'item_mekansm', title: 'mek' },
+  { name: 'item_satanic', title: 'satanic' },
+  { name: 'item_guardian_greaves', title: 'greaves' },
+]
 
-eventHandler.registerEvent("player:deaths", {
+eventHandler.registerEvent('player:deaths', {
   handler: async (dotaClient, deaths: number) => {
     if (!dotaClient.client.stream_online) {
-      return;
+      return
     }
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      return;
+      return
     }
     if (!deaths) {
-      return;
+      return
     }
 
     const playingHero = (await redisClient.client.get(
-      `${dotaClient.getToken()}:playingHero`,
-    )) as HeroNames | null;
+      `${dotaClient.getToken()}:playingHero`
+    )) as HeroNames | null
 
     const heroName =
-      handleGetHero(playingHero ?? dotaClient.client.gsi?.hero?.name)?.localized_name ?? "";
+      handleGetHero(playingHero ?? dotaClient.client.gsi?.hero?.name)?.localized_name ?? ''
 
-    await firstBloodChat(dotaClient, heroName);
-    passiveDeathChat(dotaClient, heroName);
+    await firstBloodChat(dotaClient, heroName)
+    passiveDeathChat(dotaClient, heroName)
   },
-});
+})
 
 const firstBloodChat = async function firstBloodChat(dotaClient: GSIHandlerType, heroName: string) {
   const playingTeam =
     (await redisClient.client.get(`${dotaClient.client.token}:playingTeam`)) ??
-    dotaClient.client.gsi?.player?.team_name;
+    dotaClient.client.gsi?.player?.team_name
 
-  if (playingTeam !== "radiant" && playingTeam !== "dire") {
-    return;
+  if (playingTeam !== 'radiant' && playingTeam !== 'dire') {
+    return
   }
-  const otherTeam = playingTeam === "radiant" ? "dire" : "radiant";
+  const otherTeam = playingTeam === 'radiant' ? 'dire' : 'radiant'
   const wasFirstBlood =
     dotaClient.client.gsi?.map?.[`${playingTeam}_score`] === 0 &&
-    dotaClient.client.gsi.map[`${otherTeam}_score`] === 1;
+    dotaClient.client.gsi.map[`${otherTeam}_score`] === 1
 
   if (!wasFirstBlood) {
-    return;
+    return
   }
 
   say(
     dotaClient.client,
-    t("chatters.firstBloodDeath", { emote: "PepeLaugh", heroName, lng: dotaClient.client.locale }),
-    { chattersKey: "firstBloodDeath" },
-  );
-};
+    t('chatters.firstBloodDeath', { emote: 'PepeLaugh', heroName, lng: dotaClient.client.locale }),
+    { chattersKey: 'firstBloodDeath' }
+  )
+}
 
 const cantCastItem = function cantCastItem(item: Item, dotaClient: GSIHandlerType) {
   return (
@@ -76,51 +76,51 @@ const cantCastItem = function cantCastItem(item: Item, dotaClient: GSIHandlerTyp
     dotaClient.client.gsi?.previously?.hero?.muted === true ||
     dotaClient.client.gsi?.previously?.hero?.hexed === true ||
     dotaClient.client.gsi?.previously?.hero?.stunned === true
-  );
-};
+  )
+}
 
 const passiveDeathChat = function passiveDeathChat(dotaClient: GSIHandlerType, heroName: string) {
   const couldHaveLivedWith = findItem({
     data: dotaClient.client.gsi,
     itemName: passiveItemNames.map((i) => i.name),
     searchStashAlso: false,
-  });
+  })
 
   // None found
   if (!Array.isArray(couldHaveLivedWith) || !couldHaveLivedWith.length) {
-    return;
+    return
   }
 
   const itemNames = couldHaveLivedWith
     .map((item) => {
       const found = passiveItemNames.find((i) => {
         if (i.name !== item.name) {
-          return false;
+          return false
         }
         if (cantCastItem(item, dotaClient)) {
-          return false;
+          return false
         }
 
         if (i.charges === true) {
-          return Number(item.charges) >= 10;
+          return Number(item.charges) >= 10
         }
-        return true;
-      });
+        return true
+      })
       if (found !== undefined) {
-        return found.title;
+        return found.title
       }
-      return null;
+      return null
     })
     .flatMap((f) => f ?? [])
-    .join(", ");
+    .join(', ')
 
   if (itemNames.length === 0) {
-    return;
+    return
   }
 
   say(
     dotaClient.client,
-    t("chatters.died", { emote: "ICANT", heroName, itemNames, lng: dotaClient.client.locale }),
-    { chattersKey: "passiveDeath" },
-  );
-};
+    t('chatters.died', { emote: 'ICANT', heroName, itemNames, lng: dotaClient.client.locale }),
+    { chattersKey: 'passiveDeath' }
+  )
+}

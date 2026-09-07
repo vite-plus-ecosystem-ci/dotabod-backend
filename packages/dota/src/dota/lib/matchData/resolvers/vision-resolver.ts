@@ -1,8 +1,8 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-import type { Players } from "../../../../types";
-import { RosterResolver } from "./roster-resolver";
-import type { RawRoster, ResolverContext } from "./roster-resolver";
+import type { Players } from '../../../../types'
+import { RosterResolver } from './roster-resolver'
+import type { RawRoster, ResolverContext } from './roster-resolver'
 
 const visionApiHeroSchema = z.object({
   hero_id: z.number(),
@@ -15,40 +15,40 @@ const visionApiHeroSchema = z.object({
   rank: z.number().optional(),
   team: z.string(),
   variant: z.string(),
-});
+})
 const visionApiResponseSchema = z.object({
   draft_player_order: z.array(z.string().nullable()).optional(),
   heroes: z.array(visionApiHeroSchema),
-  heroes_status: z.enum(["waiting", "failed"]).optional(),
+  heroes_status: z.enum(['waiting', 'failed']).optional(),
   match_id: z.string(),
-});
+})
 
-type VisionApiHero = z.infer<typeof visionApiHeroSchema>;
-type VisionApiResponse = z.infer<typeof visionApiResponseSchema>;
+type VisionApiHero = z.infer<typeof visionApiHeroSchema>
+type VisionApiResponse = z.infer<typeof visionApiResponseSchema>
 
 // Fetcher injected for testability — tests pass a stub directly (no `globalThis.fetch` clobbering
 // required). Returns null on any error / non-OK response.
-export type VisionFetcher = (matchId: string) => Promise<VisionApiResponse | null>;
+export type VisionFetcher = (matchId: string) => Promise<VisionApiResponse | null>
 
 // Default fetcher: hits `${VISION_API_HOST}/match/${matchId}` with the API key from env.
 const defaultVisionFetcher: VisionFetcher = async (matchId) => {
-  const host = process.env.VISION_API_HOST;
+  const host = process.env.VISION_API_HOST
   if (host === undefined || host.length === 0) {
-    return null;
+    return null
   }
   try {
     const res = await fetch(`https://${host}/match/${matchId}`, {
-      headers: { "X-API-Key": process.env.VISION_API_KEY ?? "" },
-    });
+      headers: { 'X-API-Key': process.env.VISION_API_KEY ?? '' },
+    })
     if (!res.ok) {
-      return null;
+      return null
     }
-    const response: unknown = await res.json();
-    return visionApiResponseSchema.parse(response);
+    const response: unknown = await res.json()
+    return visionApiResponseSchema.parse(response)
   } catch {
-    return null;
+    return null
   }
-};
+}
 
 // The streamer's own hero is known for certain from GSI, so if the OCR roster doesn't contain
 // it, exactly one slot was misread. Rather than publish a confident wrong hero, rewrite the
@@ -62,48 +62,48 @@ const defaultVisionFetcher: VisionFetcher = async (matchId) => {
 // kills good ones. Anchoring on GSI is exact where a threshold is a guess.
 const correctSelfHeroWithGsi = function correctSelfHeroWithGsi(
   heroes: VisionApiHero[],
-  selfHeroId: number | undefined,
+  selfHeroId: number | undefined
 ) {
   if (selfHeroId === undefined || selfHeroId <= 0) {
-    return heroes;
+    return heroes
   }
   if (heroes.some((h) => h.hero_id === selfHeroId)) {
-    return heroes;
+    return heroes
   }
 
-  let weakest = 0;
+  let weakest = 0
   for (let i = 1; i < heroes.length; i += 1) {
     if ((heroes[i].match_score ?? 1) < (heroes[weakest].match_score ?? 1)) {
-      weakest = i;
+      weakest = i
     }
   }
-  return heroes.map((h, i) => (i === weakest ? { ...h, hero_id: selfHeroId } : h));
-};
+  return heroes.map((h, i) => (i === weakest ? { ...h, hero_id: selfHeroId } : h))
+}
 
 // Handles both vision-derived sources:
 //   - `vision-heroes` when the API returned a non-empty `heroes[]`
 //   - `vision-draft`  when only `draft_player_order` is present (heroes_status: 'waiting' | 'failed')
 // One fetch covers both — `source` is decided by the payload, not by the caller.
 export class VisionResolver extends RosterResolver {
-  private readonly fetcher: VisionFetcher;
-  readonly name = "vision" as const;
+  private readonly fetcher: VisionFetcher
+  readonly name = 'vision' as const
 
   constructor(fetcher: VisionFetcher = defaultVisionFetcher) {
-    super();
-    this.fetcher = fetcher;
+    super()
+    this.fetcher = fetcher
   }
 
   async resolve({ matchId, gsi }: ResolverContext): Promise<RawRoster | null> {
     if (matchId === undefined || matchId.length === 0) {
-      return null;
+      return null
     }
-    const data = await this.fetcher(matchId);
+    const data = await this.fetcher(matchId)
     if (data === null) {
-      return null;
+      return null
     }
 
     if (Array.isArray(data.heroes) && data.heroes.length > 0) {
-      const heroes = correctSelfHeroWithGsi(data.heroes, gsi?.hero?.id);
+      const heroes = correctSelfHeroWithGsi(data.heroes, gsi?.hero?.id)
       const matchPlayers: Players = heroes.map((hero) => ({
         accountid: hero.hero_id === gsi?.hero?.id ? Number(gsi?.player?.accountid) : 0,
         heroid: hero.hero_id,
@@ -111,21 +111,21 @@ export class VisionResolver extends RosterResolver {
         playerid:
           hero.hero_id === gsi?.hero?.id ? Number(gsi?.player?.id) : (hero.player_id ?? null),
         rank: hero.rank,
-      }));
+      }))
       // Pass heroes_status through so a pick-screen roster (sentinel hero_ids, real names/ranks)
       // can render without a (?) suffix while hero identity is still unknown.
-      const roster: RawRoster = { matchPlayers, source: "vision-heroes" };
+      const roster: RawRoster = { matchPlayers, source: 'vision-heroes' }
       if (data.heroes_status !== undefined) {
-        roster.heroesStatus = data.heroes_status;
+        roster.heroesStatus = data.heroes_status
       }
-      return roster;
+      return roster
     }
 
     const draftNames = (data.draft_player_order ?? []).filter(
-      (name): name is string => name !== null && name.trim().length > 0,
-    );
+      (name): name is string => name !== null && name.trim().length > 0
+    )
     if (draftNames.length === 0) {
-      return null;
+      return null
     }
 
     const matchPlayers: Players = draftNames.map((name) => ({
@@ -133,11 +133,11 @@ export class VisionResolver extends RosterResolver {
       heroid: 0,
       player_name: name,
       playerid: null,
-    }));
+    }))
     return {
-      heroesStatus: data.heroes_status ?? "waiting",
+      heroesStatus: data.heroes_status ?? 'waiting',
       matchPlayers,
-      source: "vision-draft",
-    };
+      source: 'vision-draft',
+    }
   }
 }

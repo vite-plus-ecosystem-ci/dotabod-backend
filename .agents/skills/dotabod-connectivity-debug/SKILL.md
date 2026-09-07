@@ -33,13 +33,13 @@ Prefer the persisted setup signals over grepping for the username. Successful GS
 POSTs are not logged per packet, so a missing username in the Dota logs proves
 nothing.
 
-| Signal                                       | What it proves                                                                                 |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `overlay_page_last_seen_at`                  | The OBS/browser overlay page reached the frontend                                              |
-| `overlay_socket_last_seen_at`                | The overlay opened an authenticated live socket to `gsi.dotabod.com`                           |
-| `gsi_last_seen_at`                           | A valid authenticated Dota GSI packet reached the backend, even if the stream was offline      |
-| `stream_online` plus Twitch event lines      | Whether the Twitch online/offline pipeline updated the account                                 |
-| latest `matches.created_at`                  | Corroborating history only; no match is expected if the user did not play                      |
+| Signal | What it proves |
+| --- | --- |
+| `overlay_page_last_seen_at` | The OBS/browser overlay page reached the frontend |
+| `overlay_socket_last_seen_at` | The overlay opened an authenticated live socket to `gsi.dotabod.com` |
+| `gsi_last_seen_at` | A valid authenticated Dota GSI packet reached the backend, even if the stream was offline |
+| `stream_online` plus Twitch event lines | Whether the Twitch online/offline pipeline updated the account |
+| latest `matches.created_at` | Corroborating history only; no match is expected if the user did not play |
 | New Relic token-scoped Vercel request counts | Whether Vercel served this overlay/account during the incident without printing its secret URL |
 
 `gsi_last_seen_at`, `overlay_page_last_seen_at`, and
@@ -54,15 +54,15 @@ internal.
 
 Use the smallest conclusion supported by the evidence:
 
-| Evidence                                                                                                                                                                                               | Likely issue                                                                                                                                                                                                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Evidence | Likely issue |
+| --- | --- |
 | Config endpoint is `200`, GSI health is `200`, the diagnostic payload is `200/65536`, global users are processing, but both user socket and GSI signals are stale; installer reports it cannot connect | The user's PC/ISP/system proxy cannot reliably route to `gsi.dotabod.com`. Manual config installation will not help because Dota and OBS use the same route. Recommend system-wide Cloudflare WARP, zapret where appropriate, or another system-wide VPN; browser extensions do not cover Dota or OBS. |
-| New Relic shows token-scoped Vercel requests returning `2xx` while the overlay socket remains stale                                                                                                    | The overlay reached Vercel, but its separate live connection to `gsi.dotabod.com` did not. This rules against a general Vercel/page-delivery failure and strengthens the GSI route diagnosis.                                                                                                          |
-| Overlay page is fresh but overlay socket is stale                                                                                                                                                      | OBS loaded the page but cannot establish the GSI live connection. Treat as a network route/proxy block.                                                                                                                                                                                                |
-| Overlay socket is fresh but GSI is stale                                                                                                                                                               | OBS is connected; Dota is not sending. Check that the cfg is installed in the active Steam library, restart Dota, and test hero demo.                                                                                                                                                                  |
-| GSI is fresh but `stream_online=false` while Twitch is actually live                                                                                                                                   | Twitch EventSub/account-state problem. Inspect online/offline events and subscription health. Do not blame the cfg.                                                                                                                                                                                    |
-| Config endpoint is not `200` for an existing account                                                                                                                                                   | Account/install API problem. Diagnose the frontend install route.                                                                                                                                                                                                                                      |
-| GSI health/payload fail, the Dota container restarted or is unhealthy, and global GSI business events stop in the same incident window                                                                 | Platform-side outage.                                                                                                                                                                                                                                                                                  |
+| New Relic shows token-scoped Vercel requests returning `2xx` while the overlay socket remains stale | The overlay reached Vercel, but its separate live connection to `gsi.dotabod.com` did not. This rules against a general Vercel/page-delivery failure and strengthens the GSI route diagnosis. |
+| Overlay page is fresh but overlay socket is stale | OBS loaded the page but cannot establish the GSI live connection. Treat as a network route/proxy block. |
+| Overlay socket is fresh but GSI is stale | OBS is connected; Dota is not sending. Check that the cfg is installed in the active Steam library, restart Dota, and test hero demo. |
+| GSI is fresh but `stream_online=false` while Twitch is actually live | Twitch EventSub/account-state problem. Inspect online/offline events and subscription health. Do not blame the cfg. |
+| Config endpoint is not `200` for an existing account | Account/install API problem. Diagnose the frontend install route. |
+| GSI health/payload fail, the Dota container restarted or is unhealthy, and global GSI business events stop in the same incident window | Platform-side outage. |
 
 Do not call a platform outage from Cloudflare tunnel messages alone. `EOF`, closed
 connection, and `context canceled` entries are noisy under normal GSI traffic. At

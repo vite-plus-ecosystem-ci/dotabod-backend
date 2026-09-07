@@ -1,22 +1,22 @@
-import { supabase } from "@dotabod/shared-utils";
-import { t } from "i18next";
-import { z } from "zod";
+import { supabase } from '@dotabod/shared-utils'
+import { t } from 'i18next'
+import { z } from 'zod'
 
-import { LOBBY_TYPE_RANKED } from "../../db/get-wl";
-import getHero from "../../dota/lib/get-hero";
-import { DBSettings } from "../../settings";
-import { dotabodMatchHistoryUrl } from "../../utils/index";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
+import { LOBBY_TYPE_RANKED } from '../../db/get-wl'
+import getHero from '../../dota/lib/get-hero'
+import { DBSettings } from '../../settings'
+import { dotabodMatchHistoryUrl } from '../../utils/index'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
 
 const matchKdaSchema = z.object({
   assists: z.number().nullable(),
   deaths: z.number().nullable(),
   kills: z.number().nullable(),
-});
+})
 
-commandHandler.registerCommand("lgs", {
-  aliases: ["lastgamescore", "lgscore", "lgwl"],
+commandHandler.registerCommand('lgs', {
+  aliases: ['lastgamescore', 'lgscore', 'lgwl'],
   dbkey: DBSettings.commandLGS,
   handler: async (message) => {
     if (message.channel.client.steam32Id === null || message.channel.client.steam32Id === 0) {
@@ -24,19 +24,19 @@ commandHandler.registerCommand("lgs", {
         message.channel.name,
         message.channel.client.multiAccount !== undefined &&
           message.channel.client.multiAccount !== 0
-          ? t("multiAccount", {
+          ? t('multiAccount', {
               lng: message.channel.client.locale,
-              url: "dotabod.com/dashboard/features",
+              url: 'dotabod.com/dashboard/features',
             })
-          : t("unknownSteam", { lng: message.channel.client.locale }),
-        message.user.messageId,
-      );
-      return;
+          : t('unknownSteam', { lng: message.channel.client.locale }),
+        message.user.messageId
+      )
+      return
     }
 
-    const { steam32Id } = message.channel.client;
+    const { steam32Id } = message.channel.client
     const { data: lg } = await supabase
-      .from("matches")
+      .from('matches')
       .select(
         `
           won,
@@ -47,69 +47,69 @@ commandHandler.registerCommand("lgs", {
           hero_name,
           created_at,
           updated_at
-        `,
+        `
       )
-      .eq("steam32Id", steam32Id)
-      .not("won", "is", null)
-      .order("created_at", { ascending: false })
+      .eq('steam32Id', steam32Id)
+      .not('won', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .single()
 
     if (!lg) {
       chatClient.say(
         message.channel.name,
-        t("noLastMatch", { emote: "PauseChamp", lng: message.channel.client.locale }),
-        message.user.messageId,
-      );
-      return;
+        t('noLastMatch', { emote: 'PauseChamp', lng: message.channel.client.locale }),
+        message.user.messageId
+      )
+      return
     }
 
-    const returnMsg: string[] = [];
+    const returnMsg: string[] = []
 
     returnMsg.push(
       lg.won
-        ? t("lastgamescore.won", { lng: message.channel.client.locale })
-        : t("lastgamescore.lost", { lng: message.channel.client.locale }),
-    );
+        ? t('lastgamescore.won', { lng: message.channel.client.locale })
+        : t('lastgamescore.lost', { lng: message.channel.client.locale })
+    )
 
-    const parsedKda = matchKdaSchema.safeParse(lg.kda);
+    const parsedKda = matchKdaSchema.safeParse(lg.kda)
     if (parsedKda.success) {
-      const kda = parsedKda.data;
-      const kdaMsg = `${kda.kills ?? 0}/${kda.deaths ?? 0}/${kda.assists ?? 0}`;
+      const kda = parsedKda.data
+      const kdaMsg = `${kda.kills ?? 0}/${kda.deaths ?? 0}/${kda.assists ?? 0}`
       returnMsg.push(
-        t("lastgamescore.kda", {
+        t('lastgamescore.kda', {
           heroName:
             getHero(lg.hero_name)?.localized_name ??
-            t("unknown", { lng: message.channel.client.locale }),
+            t('unknown', { lng: message.channel.client.locale }),
           kdavalue: kdaMsg,
           lng: message.channel.client.locale,
-        }),
-      );
+        })
+      )
     }
 
     // calculate the time difference in minutes between created_at and updated_at
     const lasted = Math.floor(
-      (new Date(lg.updated_at).getTime() - new Date(lg.created_at).getTime()) / 1000 / 60,
-    );
+      (new Date(lg.updated_at).getTime() - new Date(lg.created_at).getTime()) / 1000 / 60
+    )
 
     returnMsg.push(
-      t("lastgamescore.duration", { lng: message.channel.client.locale, minutes: lasted }),
-    );
+      t('lastgamescore.duration', { lng: message.channel.client.locale, minutes: lasted })
+    )
 
     if (lg.is_party) {
-      returnMsg.push(t("lastgamescore.party", { lng: message.channel.client.locale }));
+      returnMsg.push(t('lastgamescore.party', { lng: message.channel.client.locale }))
     }
     if (lg.is_doubledown) {
-      returnMsg.push(t("lastgamescore.double", { lng: message.channel.client.locale }));
+      returnMsg.push(t('lastgamescore.double', { lng: message.channel.client.locale }))
     }
     if (lg.lobby_type !== LOBBY_TYPE_RANKED) {
-      returnMsg.push(t("lastgamescore.unranked", { lng: message.channel.client.locale }));
+      returnMsg.push(t('lastgamescore.unranked', { lng: message.channel.client.locale }))
     }
-    const url = dotabodMatchHistoryUrl(message.channel.client);
+    const url = dotabodMatchHistoryUrl(message.channel.client)
     if (url) {
-      returnMsg.push(url);
+      returnMsg.push(url)
     }
 
-    chatClient.say(message.channel.name, returnMsg.join(" · "), message.user.messageId);
+    chatClient.say(message.channel.name, returnMsg.join(' · '), message.user.messageId)
   },
-});
+})

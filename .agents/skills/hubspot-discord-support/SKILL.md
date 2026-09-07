@@ -124,12 +124,12 @@ fix — keep the parsed body _and_ the raw bytes:
 ```ts
 app.use(
   json({
-    limit: "1mb",
+    limit: '1mb',
     verify: (req, _res, buf) => {
-      (req as any).rawBody = buf.toString();
+      ;(req as any).rawBody = buf.toString()
     },
   }),
-);
+)
 ```
 
 Proven locally: a valid signature returns `200 {"type":1}` and a tampered one

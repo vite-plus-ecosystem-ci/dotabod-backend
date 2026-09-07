@@ -1,9 +1,9 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import type { RosterPlayer } from "../../dota/lib/matchData";
-import { DBSettings, getValueOrDefault } from "../../settings";
-import type { SocketClient } from "../../types";
-import { is8500Plus } from "../../utils/index";
+import type { RosterPlayer } from '../../dota/lib/matchData'
+import { DBSettings, getValueOrDefault } from '../../settings'
+import type { SocketClient } from '../../types'
+import { is8500Plus } from '../../utils/index'
 
 // 8500+/Immortal games have no Valve realtime roster, so commands like !np, !gm
 // and !avg get their hero & rank data solely from the auto-clip vision pipeline
@@ -12,15 +12,15 @@ import { is8500Plus } from "../../utils/index";
 // viewer-facing note explaining why; otherwise ''.
 export const clippingDisabledNote = function clippingDisabledNote(
   client: SocketClient,
-  matchPlayers: RosterPlayer[],
+  matchPlayers: RosterPlayer[]
 ): string {
   const disabled = getValueOrDefault(
     DBSettings.disableAutoClipping,
     client.settings,
-    client.subscription,
-  );
+    client.subscription
+  )
   if (!disabled || !is8500Plus(client)) {
-    return "";
+    return ''
   }
 
   // Only count OTHER players' heroes: when no roster is available
@@ -28,11 +28,11 @@ export const clippingDisabledNote = function clippingDisabledNote(
   // streamer's own hero id, which would otherwise look like a real roster and
   // wrongly suppress the note (the exact no-clips case this note is for).
   const hasOtherPlayers = matchPlayers.some(
-    (player) => (player.heroId ?? 0) > 0 && player.accountId !== client.steam32Id,
-  );
+    (player) => (player.heroId ?? 0) > 0 && player.accountId !== client.steam32Id
+  )
   if (hasOtherPlayers) {
-    return "";
+    return ''
   }
 
-  return t("clippingDisabled", { lng: client.locale });
-};
+  return t('clippingDisabled', { lng: client.locale })
+}

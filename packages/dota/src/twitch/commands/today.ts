@@ -1,144 +1,144 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { getTodayHeroStats } from "../../db/get-today-hero-stats";
-import { DBSettings } from "../../settings";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
+import { getTodayHeroStats } from '../../db/get-today-hero-stats'
+import { DBSettings } from '../../settings'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
 
 // Twitch chat limit is 500 characters
-const TWITCH_CHAR_LIMIT = 500;
+const TWITCH_CHAR_LIMIT = 500
 
 // Format a single hero stat: "Hero 3W 1L", "Hero 2W", or "Hero 1L"
 const formatHeroStat = function formatHeroStat(
   heroName: string,
   wins: number,
-  losses: number,
+  losses: number
 ): string {
   if (wins && losses) {
-    return `${heroName} ${wins}W ${losses}L`;
+    return `${heroName} ${wins}W ${losses}L`
   }
   if (wins) {
-    return `${heroName} ${wins}W`;
+    return `${heroName} ${wins}W`
   }
-  return `${heroName} ${losses}L`;
-};
+  return `${heroName} ${losses}L`
+}
 
 // Split message into chunks that fit within Twitch's character limit
 const splitIntoMessages = function splitIntoMessages(
   parts: string[],
   separator: string,
-  limit: number,
+  limit: number
 ): string[] {
-  const messages: string[] = [];
-  let current = "";
+  const messages: string[] = []
+  let current = ''
 
   for (const part of parts) {
-    const wouldBe = current ? `${current}${separator}${part}` : part;
+    const wouldBe = current ? `${current}${separator}${part}` : part
     if (wouldBe.length <= limit) {
-      current = wouldBe;
+      current = wouldBe
     } else {
       if (current) {
-        messages.push(current);
+        messages.push(current)
       }
-      current = part;
+      current = part
     }
   }
 
   if (current) {
-    messages.push(current);
+    messages.push(current)
   }
-  return messages;
-};
+  return messages
+}
 
-commandHandler.registerCommand("today", {
-  aliases: ["td"],
+commandHandler.registerCommand('today', {
+  aliases: ['td'],
   dbkey: DBSettings.commandToday,
   handler: async (message: MessageType) => {
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
 
     if (client.steam32Id === null || client.steam32Id === 0) {
       chatClient.say(
         channel,
         client.multiAccount !== undefined && client.multiAccount !== 0
-          ? t("multiAccount", {
+          ? t('multiAccount', {
               lng: client.locale,
-              url: "dotabod.com/dashboard/features",
+              url: 'dotabod.com/dashboard/features',
             })
-          : t("unknownSteam", { lng: client.locale }),
-        message.user.messageId,
-      );
-      return;
+          : t('unknownSteam', { lng: client.locale }),
+        message.user.messageId
+      )
+      return
     }
 
-    const heroStats = await getTodayHeroStats({ token: client.token });
+    const heroStats = await getTodayHeroStats({ token: client.token })
 
     if (!heroStats.length) {
-      chatClient.say(channel, t("today.noGames", { lng: client.locale }), message.user.messageId);
-      return;
+      chatClient.say(channel, t('today.noGames', { lng: client.locale }), message.user.messageId)
+      return
     }
 
     // A single hero makes the summary a verbatim repeat of the breakdown, so collapse to one line
     if (heroStats.length === 1) {
-      const [stat] = heroStats;
+      const [stat] = heroStats
       chatClient.say(
         channel,
-        t("today.single", {
+        t('today.single', {
           heroName: stat.heroName,
           lng: client.locale,
           losses: stat.losses,
           wins: stat.wins,
         }),
-        message.user.messageId,
-      );
-      return;
+        message.user.messageId
+      )
+      return
     }
 
     // Format each hero stat
     const formattedStats = heroStats.map((stat) =>
-      formatHeroStat(stat.heroName, stat.wins, stat.losses),
-    );
+      formatHeroStat(stat.heroName, stat.wins, stat.losses)
+    )
 
     // Calculate totals
-    const totalWins = heroStats.reduce((sum, stat) => sum + stat.wins, 0);
-    const totalLosses = heroStats.reduce((sum, stat) => sum + stat.losses, 0);
-    const totalGames = totalWins + totalLosses;
+    const totalWins = heroStats.reduce((sum, stat) => sum + stat.wins, 0)
+    const totalLosses = heroStats.reduce((sum, stat) => sum + stat.losses, 0)
+    const totalGames = totalWins + totalLosses
 
     // Build the message parts
-    const separator = " | ";
+    const separator = ' | '
 
     // Try to fit everything in one message first
-    const heroStatsStr = formattedStats.join(separator);
-    const summaryStr = t("today.summary", {
+    const heroStatsStr = formattedStats.join(separator)
+    const summaryStr = t('today.summary', {
       count: totalGames,
       lng: client.locale,
       losses: totalLosses,
       total: totalGames,
       wins: totalWins,
-    });
+    })
 
-    const fullMessage = `${heroStatsStr} · ${summaryStr}`;
+    const fullMessage = `${heroStatsStr} · ${summaryStr}`
 
     if (fullMessage.length <= TWITCH_CHAR_LIMIT) {
-      chatClient.say(channel, fullMessage, message.user.messageId);
-      return;
+      chatClient.say(channel, fullMessage, message.user.messageId)
+      return
     }
 
     // If too long, split hero stats across messages
     // Reserve space for potential continuation indicator
-    const effectiveLimit = TWITCH_CHAR_LIMIT - 10;
+    const effectiveLimit = TWITCH_CHAR_LIMIT - 10
 
-    const chunks = splitIntoMessages(formattedStats, separator, effectiveLimit);
+    const chunks = splitIntoMessages(formattedStats, separator, effectiveLimit)
 
     // Send hero stat chunks
     for (let i = 0; i < chunks.length; i += 1) {
-      const isLast = i === chunks.length - 1;
-      const msg = isLast ? `${chunks[i]} · ${summaryStr}` : chunks[i];
+      const isLast = i === chunks.length - 1
+      const msg = isLast ? `${chunks[i]} · ${summaryStr}` : chunks[i]
 
       // Only include messageId for first message to avoid spam
-      chatClient.say(channel, msg, i === 0 ? message.user.messageId : undefined);
+      chatClient.say(channel, msg, i === 0 ? message.user.messageId : undefined)
     }
   },
-});
+})

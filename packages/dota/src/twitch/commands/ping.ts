@@ -1,15 +1,15 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
 
-commandHandler.registerCommand("ping", {
+commandHandler.registerCommand('ping', {
   handler: (message: MessageType) => {
     chatClient.say(
       message.channel.name,
-      t("ping", { emote: "EZ Clap", lng: message.channel.client.locale }),
-      message.user.messageId,
-    );
+      t('ping', { emote: 'EZ Clap', lng: message.channel.client.locale }),
+      message.user.messageId
+    )
   },
-});
+})

@@ -1,8 +1,8 @@
-import type { Packet } from "../../types";
+import type { Packet } from '../../types'
 
 export const isArcade = function isArcade(gsi?: Packet) {
   if (!gsi) {
-    return false;
+    return false
   }
-  return gsi.map?.customgamename !== "" && gsi.map?.customgamename !== undefined;
-};
+  return gsi.map?.customgamename !== '' && gsi.map?.customgamename !== undefined
+}

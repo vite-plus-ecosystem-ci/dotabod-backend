@@ -1,42 +1,42 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { getHeroNameOrColor } from "../../dota/lib/heroes";
-import { DBSettings } from "../../settings";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import { findAccountFromCmd } from "../lib/find-gsi-by-account-id";
+import { getHeroNameOrColor } from '../../dota/lib/heroes'
+import { DBSettings } from '../../settings'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import { findAccountFromCmd } from '../lib/find-gsi-by-account-id'
 
-commandHandler.registerCommand("xpm", {
+commandHandler.registerCommand('xpm', {
   dbkey: DBSettings.commandXPM,
   handler: async (message, args, command) => {
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
 
     try {
       const { player, playerIdx, hero } = await findAccountFromCmd(
         client,
         args,
         client.locale,
-        command,
-      );
+        command
+      )
       const heroName =
-        player && "xpm" in player
+        player && 'xpm' in player
           ? getHeroNameOrColor(hero?.id ?? 0, playerIdx)
-          : getHeroNameOrColor(client?.gsi?.hero?.id ?? 0);
-      const xpm = player && "xpm" in player ? player.xpm : (client.gsi?.player?.xpm ?? 0);
+          : getHeroNameOrColor(client?.gsi?.hero?.id ?? 0)
+      const xpm = player && 'xpm' in player ? player.xpm : (client.gsi?.player?.xpm ?? 0)
       chatClient.say(
         channel,
-        t("xpm", { heroName, lng: client.locale, num: xpm }),
-        message.user.messageId,
-      );
+        t('xpm', { heroName, lng: client.locale, num: xpm }),
+        message.user.messageId
+      )
     } catch (error) {
       chatClient.say(
         message.channel.name,
-        error instanceof Error ? error.message : t("gameNotFound", { lng: client.locale }),
-        message.user.messageId,
-      );
+        error instanceof Error ? error.message : t('gameNotFound', { lng: client.locale }),
+        message.user.messageId
+      )
     }
   },
   onlyOnline: true,
-});
+})

@@ -1,3 +1,3 @@
-import { createAppLogger } from "./logger-impl";
+import { createAppLogger } from './logger-impl'
 
-export const logger = createAppLogger();
+export const logger = createAppLogger()

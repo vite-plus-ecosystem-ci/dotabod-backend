@@ -1,116 +1,116 @@
-import type { Tables } from "@dotabod/shared-utils";
-import { getAuthProvider, getTwitchAPI, logger, supabase } from "@dotabod/shared-utils";
-import { t } from "i18next";
+import type { Tables } from '@dotabod/shared-utils'
+import { getAuthProvider, getTwitchAPI, logger, supabase } from '@dotabod/shared-utils'
+import { t } from 'i18next'
 
-import { clearCacheForUser } from "../dota/clear-cache-for-user";
-import findUser from "../dota/lib/connected-streamers";
-import { gsiHandlers, invalidTokens, twitchIdToToken, twitchNameToToken } from "../dota/lib/consts";
-import { getRankDetail } from "../dota/lib/ranks";
-import { server } from "../dota/server";
-import { DBSettings } from "../settings";
-import { twitchChat } from "../steam/ws";
-import { chatClient } from "../twitch/chat-client";
-import { toggleDotabod } from "../twitch/toggle-dotabod";
-import { isSubscriptionActive } from "../types/subscription";
-import getDBUser from "./get-db-user";
-import { handleUserOnlineMessages } from "./handle-scheduled-messages";
-import { handleStreamStatusTransition } from "./handle-stream-status-transition";
+import { clearCacheForUser } from '../dota/clear-cache-for-user'
+import findUser from '../dota/lib/connected-streamers'
+import { gsiHandlers, invalidTokens, twitchIdToToken, twitchNameToToken } from '../dota/lib/consts'
+import { getRankDetail } from '../dota/lib/ranks'
+import { server } from '../dota/server'
+import { DBSettings } from '../settings'
+import { twitchChat } from '../steam/ws'
+import { chatClient } from '../twitch/chat-client'
+import { toggleDotabod } from '../twitch/toggle-dotabod'
+import { isSubscriptionActive } from '../types/subscription'
+import getDBUser from './get-db-user'
+import { handleUserOnlineMessages } from './handle-scheduled-messages'
+import { handleStreamStatusTransition } from './handle-stream-status-transition'
 
 const isNonEmptyString = function isNonEmptyString(
-  value: string | null | undefined,
+  value: string | null | undefined
 ): value is string {
-  return value !== null && value !== undefined && value.length > 0;
-};
+  return value !== null && value !== undefined && value.length > 0
+}
 
 class SetupSupabase {
-  channel: ReturnType<typeof supabase.channel>;
-  IS_DEV: boolean;
+  channel: ReturnType<typeof supabase.channel>
+  IS_DEV: boolean
 
   constructor() {
-    this.IS_DEV = process.env.DOTABOD_ENV !== "production";
-    this.channel = supabase.channel(`${this.IS_DEV ? "dev-" : ""}dota`);
+    this.IS_DEV = process.env.DOTABOD_ENV !== 'production'
+    this.channel = supabase.channel(`${this.IS_DEV ? 'dev-' : ''}dota`)
 
-    logger.info("Starting watcher for", {
+    logger.info('Starting watcher for', {
       dev: this.IS_DEV,
-    });
+    })
   }
 
   toggleHandler = async (userId: string, enable: boolean) => {
-    const { result: client } = await getDBUser({ token: userId });
+    const { result: client } = await getDBUser({ token: userId })
     if (!client) {
-      return;
+      return
     }
 
-    toggleDotabod(userId, enable, client.name, client.locale);
-  };
+    toggleDotabod(userId, enable, client.name, client.locale)
+  }
 
   clearSteamUsers = async (userIds: Iterable<string>) => {
     for (const userId of new Set(userIds)) {
       if (!userId) {
-        continue;
+        continue
       }
 
-      const client = findUser(userId);
-      const accountIds = new Set<string>();
+      const client = findUser(userId)
+      const accountIds = new Set<string>()
       if (isNonEmptyString(client?.Account?.providerAccountId)) {
-        accountIds.add(client.Account.providerAccountId);
+        accountIds.add(client.Account.providerAccountId)
       }
       for (const [accountId, token] of twitchIdToToken) {
         if (token === userId) {
-          accountIds.add(accountId);
+          accountIds.add(accountId)
         }
       }
 
       if (client) {
-        await clearCacheForUser(client);
+        await clearCacheForUser(client)
       }
 
-      invalidTokens.delete(userId);
+      invalidTokens.delete(userId)
       for (const accountId of accountIds) {
-        twitchIdToToken.delete(accountId);
-        invalidTokens.delete(accountId);
+        twitchIdToToken.delete(accountId)
+        invalidTokens.delete(accountId)
       }
       for (const [name, token] of twitchNameToToken) {
         if (token === userId) {
-          twitchNameToToken.delete(name);
+          twitchNameToToken.delete(name)
         }
       }
     }
-  };
+  }
 
   init() {
     this.channel
       .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "users" },
-        async (payload: { old: Partial<Tables<"users">> }) => {
-          logger.info("Removing user", payload);
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'users' },
+        async (payload: { old: Partial<Tables<'users'>> }) => {
+          logger.info('Removing user', payload)
 
-          const oldObj = payload.old;
-          const client = findUser(oldObj.id ?? "");
+          const oldObj = payload.old
+          const client = findUser(oldObj.id ?? '')
           if (client) {
-            logger.info("[WATCHER USER] Deleting user", { name: client.name });
-            const accountId = client.Account?.providerAccountId;
-            await clearCacheForUser(client);
+            logger.info('[WATCHER USER] Deleting user', { name: client.name })
+            const accountId = client.Account?.providerAccountId
+            await clearCacheForUser(client)
             // User row is gone — allow a future re-onboarding under the same
             // id to bypass the negative cache.
-            invalidTokens.delete(client.token);
+            invalidTokens.delete(client.token)
             if (isNonEmptyString(accountId)) {
-              invalidTokens.delete(accountId);
+              invalidTokens.delete(accountId)
             }
-            return;
+            return
           }
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "subscriptions" },
-        (payload: { new: Tables<"subscriptions"> }) => {
-          const newObj = payload.new;
-          const client = findUser(newObj.userId);
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'subscriptions' },
+        (payload: { new: Tables<'subscriptions'> }) => {
+          const newObj = payload.new
+          const client = findUser(newObj.userId)
 
           if (!client) {
-            return;
+            return
           }
 
           if (isSubscriptionActive(newObj)) {
@@ -119,25 +119,25 @@ class SetupSupabase {
               isGift: newObj.isGift,
               status: newObj.status,
               tier: newObj.tier,
-            };
+            }
           }
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "subscriptions" },
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'subscriptions' },
         async (payload: {
-          new: Tables<"subscriptions">;
-          old: Partial<Tables<"subscriptions">>;
+          new: Tables<'subscriptions'>
+          old: Partial<Tables<'subscriptions'>>
         }) => {
-          const newObj = payload.new;
-          const client = findUser(newObj.userId);
+          const newObj = payload.new
+          const client = findUser(newObj.userId)
 
           if (!client) {
-            return;
+            return
           }
 
-          const isNewActive = isSubscriptionActive(newObj);
+          const isNewActive = isSubscriptionActive(newObj)
           if (isNewActive) {
             // Update with new details
             client.subscription = {
@@ -145,28 +145,28 @@ class SetupSupabase {
               isGift: newObj.isGift,
               status: newObj.status,
               tier: newObj.tier,
-            };
-            return;
+            }
+            return
           }
 
           // If current active but new is inactive
-          const isCurrentActive = isSubscriptionActive(client.subscription);
+          const isCurrentActive = isSubscriptionActive(client.subscription)
           if (isCurrentActive && !isNewActive && client.subscription?.id !== newObj.id) {
-            return;
+            return
           }
 
           // If this subscription became inactive and it was the active one
           if (!isNewActive && client.subscription?.id === newObj.id) {
             // Check if user has any other active subscriptions
             const activeSubscription = await supabase
-              .from("subscriptions")
-              .select("*")
-              .eq("userId", newObj.userId)
-              .neq("isGift", true)
-              .in("status", ["ACTIVE", "TRIALING"])
-              .order("transactionType", { ascending: false })
+              .from('subscriptions')
+              .select('*')
+              .eq('userId', newObj.userId)
+              .neq('isGift', true)
+              .in('status', ['ACTIVE', 'TRIALING'])
+              .order('transactionType', { ascending: false })
               .limit(1)
-              .single();
+              .single()
 
             if (activeSubscription.data) {
               // Set the other active subscription
@@ -175,42 +175,42 @@ class SetupSupabase {
                 isGift: activeSubscription.data.isGift,
                 status: activeSubscription.data.status,
                 tier: activeSubscription.data.tier,
-              };
+              }
             } else {
               // No other active subscriptions found
-              client.subscription = undefined;
+              client.subscription = undefined
             }
-            return;
+            return
           }
-        },
+        }
       )
       // Needs `ALTER TABLE subscriptions REPLICA IDENTITY FULL;` to receive full object on DELETE
       .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "subscriptions" },
-        async (payload: { old: Partial<Tables<"subscriptions">> }) => {
-          const oldObj = payload.old;
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'subscriptions' },
+        async (payload: { old: Partial<Tables<'subscriptions'>> }) => {
+          const oldObj = payload.old
           if (!isNonEmptyString(oldObj.userId) || !isNonEmptyString(oldObj.id)) {
-            return;
+            return
           }
-          const client = findUser(oldObj.userId);
+          const client = findUser(oldObj.userId)
 
           if (!client) {
-            return;
+            return
           }
 
           if (client.subscription?.id === oldObj.id) {
             // Check if user has any other active subscriptions
             const activeSubscription = await supabase
-              .from("subscriptions")
-              .select("*")
-              .eq("userId", oldObj.userId)
-              .neq("id", oldObj.id)
-              .neq("isGift", true)
-              .in("status", ["ACTIVE", "TRIALING"])
-              .order("transactionType", { ascending: false })
+              .from('subscriptions')
+              .select('*')
+              .eq('userId', oldObj.userId)
+              .neq('id', oldObj.id)
+              .neq('isGift', true)
+              .in('status', ['ACTIVE', 'TRIALING'])
+              .order('transactionType', { ascending: false })
               .limit(1)
-              .single();
+              .single()
 
             if (activeSubscription.data) {
               // Set the other active subscription
@@ -219,36 +219,36 @@ class SetupSupabase {
                 isGift: activeSubscription.data.isGift,
                 status: activeSubscription.data.status,
                 tier: activeSubscription.data.tier,
-              };
+              }
             } else {
               // No other active subscriptions found
-              client.subscription = undefined;
+              client.subscription = undefined
             }
           }
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "accounts" },
-        async (payload: { new: Tables<"accounts">; old: Partial<Tables<"accounts">> }) => {
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'accounts' },
+        async (payload: { new: Tables<'accounts'>; old: Partial<Tables<'accounts'>> }) => {
           // watch the accounts table for requires_refresh to change from true to false
           // if it does, add the user to twurple authprovider again via addUser()
-          const newObj = payload.new;
-          const oldObj = payload.old;
+          const newObj = payload.new
+          const oldObj = payload.old
 
           if (newObj.requires_refresh === true && oldObj.requires_refresh === false) {
-            const client = findUser(newObj.userId);
+            const client = findUser(newObj.userId)
             if (client) {
-              await clearCacheForUser(client);
+              await clearCacheForUser(client)
             }
             // Persist both keyspaces: getDBUser is called with either the user.id
             // (GSI path) or the providerAccountId (Twitch chat / tooltips path).
             // Add AFTER clearCacheForUser — see ban branch for rationale.
-            invalidTokens.add(newObj.userId);
+            invalidTokens.add(newObj.userId)
             if (newObj.providerAccountId) {
-              invalidTokens.add(newObj.providerAccountId);
+              invalidTokens.add(newObj.providerAccountId)
             }
-            return;
+            return
           }
 
           if (
@@ -256,70 +256,70 @@ class SetupSupabase {
             (newObj.requires_refresh === false && oldObj.requires_refresh === true) ||
             newObj.access_token !== oldObj.access_token
           ) {
-            const client = findUser(newObj.userId);
+            const client = findUser(newObj.userId)
             if (client?.Account) {
-              client.Account.scope = newObj.scope;
-              client.Account.access_token = newObj.access_token;
-              client.Account.refresh_token = newObj.refresh_token;
-              client.Account.expires_at = newObj.expires_at;
-              client.Account.expires_in = newObj.expires_in;
-              client.Account.obtainment_timestamp = new Date(newObj.obtainment_timestamp ?? "");
-              const twitchId = newObj.providerAccountId;
-              const authProvider = getAuthProvider();
-              authProvider.removeUser(twitchId);
+              client.Account.scope = newObj.scope
+              client.Account.access_token = newObj.access_token
+              client.Account.refresh_token = newObj.refresh_token
+              client.Account.expires_at = newObj.expires_at
+              client.Account.expires_in = newObj.expires_in
+              client.Account.obtainment_timestamp = new Date(newObj.obtainment_timestamp ?? '')
+              const twitchId = newObj.providerAccountId
+              const authProvider = getAuthProvider()
+              authProvider.removeUser(twitchId)
               getTwitchAPI(twitchId).catch((error) => {
-                logger.error("[TWITCHAPI] Error updating twurple token", {
+                logger.error('[TWITCHAPI] Error updating twurple token', {
                   error,
                   twitchId,
-                });
-              });
+                })
+              })
             }
           }
 
           // The frontend will set it to false when they relogin
           // Which allows us to update the authProvider object
           if (newObj.requires_refresh === false && oldObj.requires_refresh === true) {
-            invalidTokens.delete(newObj.userId);
+            invalidTokens.delete(newObj.userId)
             if (newObj.providerAccountId) {
-              invalidTokens.delete(newObj.providerAccountId);
+              invalidTokens.delete(newObj.providerAccountId)
             }
-            logger.info("[WATCHER ACCOUNT] Refreshing account", {
+            logger.info('[WATCHER ACCOUNT] Refreshing account', {
               twitchId: newObj.providerAccountId,
-            });
+            })
 
-            const client = findUser(newObj.userId);
+            const client = findUser(newObj.userId)
             if (client) {
-              await clearCacheForUser(client);
+              await clearCacheForUser(client)
             }
           }
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "users" },
-        async (payload: { new: Tables<"users">; old: Partial<Tables<"users">> }) => {
-          const newObj: Tables<"users"> = payload.new;
-          const oldObj = payload.old;
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'users' },
+        async (payload: { new: Tables<'users'>; old: Partial<Tables<'users'>> }) => {
+          const newObj: Tables<'users'> = payload.new
+          const oldObj = payload.old
 
           // Live ban: banned_at transitioned null → set. Invalidate cached
           // tokens for both keyspaces (user.id and providerAccountId) and
           // drop the in-memory GSIHandler so the next GSI POST hits
           // getDBUser's banned-check and is rejected.
           if (!isNonEmptyString(oldObj.banned_at) && isNonEmptyString(newObj.banned_at)) {
-            const client = findUser(newObj.id);
-            const accountId = client?.Account?.providerAccountId;
+            const client = findUser(newObj.id)
+            const accountId = client?.Account?.providerAccountId
             if (client) {
-              logger.info("[WATCHER USER] Banning user", { name: client.name });
-              await clearCacheForUser(client);
+              logger.info('[WATCHER USER] Banning user', { name: client.name })
+              await clearCacheForUser(client)
             }
             // Add AFTER clearCacheForUser so the token stays in the negative
             // cache. (Until clearCacheForUser stopped touching invalidTokens
             // these adds were silently undone.)
-            invalidTokens.add(newObj.id);
+            invalidTokens.add(newObj.id)
             if (isNonEmptyString(accountId)) {
-              invalidTokens.add(accountId);
+              invalidTokens.add(accountId)
             }
-            return;
+            return
           }
 
           // Unban: banned_at transitioned set → null. Drop the negative-cache
@@ -327,34 +327,34 @@ class SetupSupabase {
           // clearCacheForUser already ran on ban; the user just needs to be
           // allowed through again.
           if (isNonEmptyString(oldObj.banned_at) && !isNonEmptyString(newObj.banned_at)) {
-            invalidTokens.delete(newObj.id);
+            invalidTokens.delete(newObj.id)
             // We may not have a live client (it was cleared on ban). Look up
             // the providerAccountId so both keyspaces are cleared.
-            const client = findUser(newObj.id);
-            const accountId = client?.Account?.providerAccountId;
+            const client = findUser(newObj.id)
+            const accountId = client?.Account?.providerAccountId
             if (isNonEmptyString(accountId)) {
-              invalidTokens.delete(accountId);
+              invalidTokens.delete(accountId)
             }
-            logger.info("[WATCHER USER] Unbanning user", { userId: newObj.id });
-            return;
+            logger.info('[WATCHER USER] Unbanning user', { userId: newObj.id })
+            return
           }
 
-          const client = findUser(newObj.id);
+          const client = findUser(newObj.id)
           if (!client) {
-            return;
+            return
           }
 
-          client.name = newObj.name;
-          client.locale = newObj.locale;
-          client.beta_tester = newObj.beta_tester;
-          client.stream_online = newObj.stream_online;
-          if (typeof newObj.stream_start_date === "string") {
-            client.stream_start_date = new Date(newObj.stream_start_date);
+          client.name = newObj.name
+          client.locale = newObj.locale
+          client.beta_tester = newObj.beta_tester
+          client.stream_online = newObj.stream_online
+          if (typeof newObj.stream_start_date === 'string') {
+            client.stream_start_date = new Date(newObj.stream_start_date)
           } else {
-            client.stream_start_date = newObj.stream_start_date;
+            client.stream_start_date = newObj.stream_start_date
           }
 
-          const connectedUser = gsiHandlers.get(client.token);
+          const connectedUser = gsiHandlers.get(client.token)
 
           const streamStatusTransition = handleStreamStatusTransition({
             client,
@@ -362,247 +362,246 @@ class SetupSupabase {
             io: server.io,
             logger,
             oldStreamOnline: oldObj.stream_online ?? false,
-          });
+          })
 
           if (streamStatusTransition.wentOffline) {
-            return;
+            return
           }
 
           if (streamStatusTransition.cameOnline) {
             // Handle any pending scheduled messages for this user
-            await handleUserOnlineMessages(client.token, client.name);
-            connectedUser?.emitWLUpdate();
+            await handleUserOnlineMessages(client.token, client.name)
+            connectedUser?.emitWLUpdate()
           }
 
           // dont overwrite with 0 because we use this variable to track currently logged in mmr
           if (newObj.mmr !== 0 && client.mmr !== newObj.mmr && oldObj.mmr !== newObj.mmr) {
-            client.mmr = newObj.mmr;
+            client.mmr = newObj.mmr
 
             if (!client.stream_online) {
-              return;
+              return
             }
-            logger.info("[WATCHER MMR] Sending mmr to socket", {
+            logger.info('[WATCHER MMR] Sending mmr to socket', {
               mmr: newObj.mmr,
               name: client.name,
-            });
+            })
             try {
-              const deets = await getRankDetail(newObj.mmr, client.steam32Id);
-              server.io.to(client.token).emit("update-medal", deets);
+              const deets = await getRankDetail(newObj.mmr, client.steam32Id)
+              server.io.to(client.token).emit('update-medal', deets)
             } catch (error) {
-              logger.error("Error in watcher postgres update", { error });
+              logger.error('Error in watcher postgres update', { error })
             }
           }
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "gift_subscriptions" },
-        async (payload: { new: Tables<"gift_subscriptions"> }) => {
-          const newObj = payload.new;
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gift_subscriptions' },
+        async (payload: { new: Tables<'gift_subscriptions'> }) => {
+          const newObj = payload.new
           // Fetch the subscription details to get the userId
           const { data: subscriptionData, error: subError } = await supabase
-            .from("subscriptions")
-            .select("userId")
-            .eq("id", newObj.subscriptionId)
-            .eq("isGift", true)
+            .from('subscriptions')
+            .select('userId')
+            .eq('id', newObj.subscriptionId)
+            .eq('isGift', true)
             // Use maybeSingle to handle potential null result gracefully
-            .maybeSingle();
+            .maybeSingle()
 
           if (subError || !subscriptionData) {
-            logger.error("Error fetching subscription or subscription not found for gift", {
+            logger.error('Error fetching subscription or subscription not found for gift', {
               error: subError,
               giftId: newObj.id,
               subscriptionId: newObj.subscriptionId,
-            });
-            return;
+            })
+            return
           }
 
-          const client = findUser(subscriptionData.userId);
+          const client = findUser(subscriptionData.userId)
 
           // Only proceed if the client is found and currently considered online
           if (client === null || client.stream_online !== true) {
-            logger.info("Gift notification skipped: Client not found or not online", {
+            logger.info('Gift notification skipped: Client not found or not online', {
               found: client !== null,
               online: client?.stream_online,
               userId: subscriptionData.userId,
-            });
-            return;
+            })
+            return
           }
 
           try {
             // Calculate duration string
-            let durationString = "";
-            const giftQuantityRaw = newObj.giftQuantity;
+            let durationString = ''
+            const giftQuantityRaw = newObj.giftQuantity
 
             // Check if giftQuantityRaw is a valid number representation (string or number) and positive
-            const giftQuantityNum = Number(giftQuantityRaw);
-            const isValidQuantity = !Number.isNaN(giftQuantityNum) && giftQuantityNum > 0;
+            const giftQuantityNum = Number(giftQuantityRaw)
+            const isValidQuantity = !Number.isNaN(giftQuantityNum) && giftQuantityNum > 0
 
             if (isValidQuantity) {
-              const { giftType } = newObj;
+              const { giftType } = newObj
 
               if (giftType) {
-                if (giftType === "monthly") {
+                if (giftType === 'monthly') {
                   durationString =
-                    giftQuantityNum === 1 ? "(1 month)" : `(${giftQuantityNum} months)`;
-                } else if (giftType === "annual") {
-                  durationString =
-                    giftQuantityNum === 1 ? "(1 year)" : `(${giftQuantityNum} years)`;
-                } else if (giftType === "lifetime") {
-                  durationString = "(Lifetime)";
+                    giftQuantityNum === 1 ? '(1 month)' : `(${giftQuantityNum} months)`
+                } else if (giftType === 'annual') {
+                  durationString = giftQuantityNum === 1 ? '(1 year)' : `(${giftQuantityNum} years)`
+                } else if (giftType === 'lifetime') {
+                  durationString = '(Lifetime)'
                 }
                 // Add more gift types here if necessary
               } else {
-                logger.warn("Gift type missing, cannot determine duration string", {
+                logger.warn('Gift type missing, cannot determine duration string', {
                   giftId: newObj.id,
                   giftQuantity: giftQuantityNum,
-                });
+                })
               }
             } else if (giftQuantityRaw !== null && giftQuantityRaw !== undefined) {
               // Log only if it was provided but invalid
-              logger.warn("Gift quantity is invalid or not positive", {
+              logger.warn('Gift quantity is invalid or not positive', {
                 giftId: newObj.id,
                 giftQuantity: giftQuantityRaw,
-              });
+              })
             }
             // If quantity is null/undefined, we just don't add a duration string silently.
 
             // Construct the base message using translation keys
             const baseMessage = newObj.senderName
-              ? t("giftSub", {
+              ? t('giftSub', {
                   lng: client.locale,
                   senderName: newObj.senderName,
                 })
-              : t("giftSubAnonymous", {
+              : t('giftSubAnonymous', {
                   lng: client.locale,
-                });
+                })
 
             // Prepare optional details parts
-            const detailsParts: string[] = [];
+            const detailsParts: string[] = []
             if (durationString) {
-              detailsParts.push(durationString);
+              detailsParts.push(durationString)
             }
             if (isNonEmptyString(newObj.giftMessage)) {
               // Ensure message is trimmed and quoted
-              const trimmedMessage = String(newObj.giftMessage).trim();
+              const trimmedMessage = String(newObj.giftMessage).trim()
               if (trimmedMessage.length > 0) {
-                detailsParts.push(`"${trimmedMessage}"`);
+                detailsParts.push(`"${trimmedMessage}"`)
               }
             }
 
             // Combine base message and details with proper spacing
-            let fullMessage = baseMessage;
+            let fullMessage = baseMessage
             if (detailsParts.length > 0) {
-              fullMessage += ` ${detailsParts.join(" ")}`;
+              fullMessage += ` ${detailsParts.join(' ')}`
             }
 
             // Send notification message to chat
             // Add logging
-            logger.info(`Sending gift notification: ${fullMessage}`);
-            chatClient.say(client.name, fullMessage);
+            logger.info(`Sending gift notification: ${fullMessage}`)
+            chatClient.say(client.name, fullMessage)
           } catch (error) {
-            logger.error("Error constructing or sending gift notification to chat", {
+            logger.error('Error constructing or sending gift notification to chat', {
               error,
               giftId: newObj.id,
               userId: client.token,
-            });
+            })
           }
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "settings" },
-        (payload: { new: Partial<Tables<"settings">> }) => {
-          const newObj = payload.new;
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'settings' },
+        (payload: { new: Partial<Tables<'settings'>> }) => {
+          const newObj = payload.new
           if (!isNonEmptyString(newObj.userId) || !isNonEmptyString(newObj.key)) {
-            return;
+            return
           }
-          const client = findUser(newObj.userId);
+          const client = findUser(newObj.userId)
 
           if (newObj.key === DBSettings.commandDisable) {
-            const enabled = Boolean(newObj.value);
+            const enabled = Boolean(newObj.value)
             // Notify twitch-chat package to clear disable cache when user is manually re-enabled
             if (newObj.value === false) {
-              twitchChat.emit("clear-disable-cache", { userId: newObj.userId });
+              twitchChat.emit('clear-disable-cache', { userId: newObj.userId })
             }
 
             if (client) {
-              toggleDotabod(newObj.userId, enabled, client.name, client.locale);
+              toggleDotabod(newObj.userId, enabled, client.name, client.locale)
             } else {
               // in case they ban dotabod and we reboot server,
               // we'll never have the client cached, so we have to lookup the user again
               try {
-                void this.toggleHandler(newObj.userId, enabled);
+                void this.toggleHandler(newObj.userId, enabled)
               } catch (error) {
-                logger.error("Error in toggleHandler", { error });
+                logger.error('Error in toggleHandler', { error })
               }
             }
           }
 
           if (!client) {
-            return;
+            return
           }
 
           // replace the new setting with the one we have saved in cache
-          logger.debug("[WATCHER SETTING] Updating setting for", {
+          logger.debug('[WATCHER SETTING] Updating setting for', {
             name: client.name,
             newObj,
-          });
-          const setting = client.settings.find((s) => s.key === newObj.key);
+          })
+          const setting = client.settings.find((s) => s.key === newObj.key)
 
           if (setting) {
-            setting.value = newObj.value;
+            setting.value = newObj.value
           } else {
-            client.settings.push({ key: newObj.key, value: newObj.value });
+            client.settings.push({ key: newObj.key, value: newObj.value })
           }
 
           if (newObj.key === DBSettings.wlStatsDays || newObj.key === DBSettings.wlStatsStartDate) {
-            gsiHandlers.get(client.token)?.emitWLUpdate();
+            gsiHandlers.get(client.token)?.emitWLUpdate()
           }
 
           // Sending this one even when offline, because they might be testing locally
-          logger.debug("[WATCHER SETTING] Sending new setting value to socket", {
+          logger.debug('[WATCHER SETTING] Sending new setting value to socket', {
             key: newObj.key,
             name: client.name,
             value: newObj.value,
-          });
-          server.io.to(client.token).emit("refresh-settings", newObj.key);
-        },
+          })
+          server.io.to(client.token).emit('refresh-settings', newObj.key)
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "win_loss_adjustments" },
-        (payload: { new: Tables<"win_loss_adjustments"> }) => {
-          const client = findUser(payload.new.user_id);
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'win_loss_adjustments' },
+        (payload: { new: Tables<'win_loss_adjustments'> }) => {
+          const client = findUser(payload.new.user_id)
           if (!client) {
-            return;
+            return
           }
 
-          gsiHandlers.get(client.token)?.emitWLUpdate(true);
-        },
+          gsiHandlers.get(client.token)?.emitWLUpdate(true)
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "steam_accounts" },
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'steam_accounts' },
         async (payload: {
-          new: Partial<Tables<"steam_accounts">>;
-          old: Partial<Tables<"steam_accounts">>;
-          eventType: string;
+          new: Partial<Tables<'steam_accounts'>>
+          old: Partial<Tables<'steam_accounts'>>
+          eventType: string
         }) => {
-          const newObj = payload.new;
-          const oldObj = payload.old;
+          const newObj = payload.new
+          const oldObj = payload.old
 
-          if (payload.eventType === "DELETE") {
-            logger.info("[WATCHER STEAM] Deleting steam account for", {
+          if (payload.eventType === 'DELETE') {
+            logger.info('[WATCHER STEAM] Deleting steam account for', {
               userId: oldObj.userId,
-            });
+            })
 
             await this.clearSteamUsers([
-              oldObj.userId ?? "",
+              oldObj.userId ?? '',
               ...(Array.isArray(oldObj.connectedUserIds) ? oldObj.connectedUserIds : []),
-            ]);
+            ])
 
-            return;
+            return
           }
 
           if (
@@ -612,81 +611,81 @@ class SetupSupabase {
             newObj.name === undefined ||
             newObj.steam32Id === undefined
           ) {
-            return;
+            return
           }
 
-          if (payload.eventType === "UPDATE") {
-            const oldConnectedUserIds = new Set(oldObj.connectedUserIds ?? []);
-            const newConnectedUserIds = new Set(newObj.connectedUserIds ?? []);
-            const affectedUserIds = new Set<string>();
+          if (payload.eventType === 'UPDATE') {
+            const oldConnectedUserIds = new Set(oldObj.connectedUserIds ?? [])
+            const newConnectedUserIds = new Set(newObj.connectedUserIds ?? [])
+            const affectedUserIds = new Set<string>()
 
             for (const userId of oldConnectedUserIds) {
               if (!newConnectedUserIds.has(userId)) {
-                affectedUserIds.add(userId);
+                affectedUserIds.add(userId)
               }
             }
 
             if (oldObj.userId !== newObj.userId) {
               if (isNonEmptyString(oldObj.userId)) {
-                affectedUserIds.add(oldObj.userId);
+                affectedUserIds.add(oldObj.userId)
               }
-              affectedUserIds.add(newObj.userId);
+              affectedUserIds.add(newObj.userId)
             }
 
             if (affectedUserIds.size > 0) {
-              await this.clearSteamUsers(affectedUserIds);
+              await this.clearSteamUsers(affectedUserIds)
             }
           }
 
-          const client = findUser(newObj.userId);
+          const client = findUser(newObj.userId)
 
           // Just here to update local memory
           if (!client) {
-            return;
+            return
           }
 
-          logger.debug("[WATCHER STEAM] Updating steam accounts for", {
+          logger.debug('[WATCHER STEAM] Updating steam accounts for', {
             name: client.name,
-          });
+          })
 
           const currentSteamIdx = client.SteamAccount.findIndex(
-            (s) => s.steam32Id === newObj.steam32Id,
-          );
+            (s) => s.steam32Id === newObj.steam32Id
+          )
           if (currentSteamIdx === -1) {
             client.SteamAccount.push({
               leaderboard_rank: newObj.leaderboard_rank,
               mmr: newObj.mmr,
               name: newObj.name,
               steam32Id: newObj.steam32Id,
-            });
+            })
           } else {
-            client.SteamAccount[currentSteamIdx].name = newObj.name;
-            client.SteamAccount[currentSteamIdx].mmr = newObj.mmr;
-            client.SteamAccount[currentSteamIdx].leaderboard_rank = newObj.leaderboard_rank;
+            client.SteamAccount[currentSteamIdx].name = newObj.name
+            client.SteamAccount[currentSteamIdx].mmr = newObj.mmr
+            client.SteamAccount[currentSteamIdx].leaderboard_rank = newObj.leaderboard_rank
           }
 
           // Push an mmr update to overlay since it's the steam account rn
           if (client.steam32Id === newObj.steam32Id) {
-            client.mmr = newObj.mmr;
+            client.mmr = newObj.mmr
 
             if (!client.stream_online) {
-              return;
+              return
             }
 
             getRankDetail(newObj.mmr, newObj.steam32Id)
               .then((deets) => {
-                server.io.to(client.token).emit("update-medal", deets);
+                server.io.to(client.token).emit('update-medal', deets)
               })
               .catch((error) => {
-                logger.info("[WATCHER STEAM] Error getting rank detail", { error });
-              });
+                logger.info('[WATCHER STEAM] Error getting rank detail', { error })
+              })
           }
-        },
+        }
       )
       .subscribe((status: string, err?: Error) => {
-        logger.info("[SUPABASE] Subscription status on dota:", { err, status });
-      });
+        logger.info('[SUPABASE] Subscription status on dota:', { err, status })
+      })
   }
 }
 
-export default SetupSupabase;
+export default SetupSupabase

@@ -1,8 +1,8 @@
-import { supabase } from "@dotabod/shared-utils";
+import { supabase } from '@dotabod/shared-utils'
 
-import type { SocketClient } from "../../../types";
-import { MatchDataService } from "./match-data-service";
-import type { RosterPlayer } from "./types";
+import type { SocketClient } from '../../../types'
+import { MatchDataService } from './match-data-service'
+import type { RosterPlayer } from './types'
 
 // Counts distinct OTHER Dotabod users in the current match. Names are never returned — only an
 // anonymized count — to avoid cross-chat witch-hunts.
@@ -24,19 +24,19 @@ export const getStreamersInMatch = async function getStreamersInMatch({
   matchId = client?.gsi?.map?.matchid,
   excludeUserId,
 }: {
-  client?: SocketClient;
-  players?: RosterPlayer[];
-  matchId?: string;
-  excludeUserId: string;
+  client?: SocketClient
+  players?: RosterPlayer[]
+  matchId?: string
+  excludeUserId: string
 }): Promise<number> {
-  const userIds = new Set<string>();
+  const userIds = new Set<string>()
 
   // Source 1: live Dotabod streamers tracked in this exact match.
-  if (matchId !== undefined && matchId.length > 0 && matchId !== "0") {
-    const { data } = await supabase.from("matches").select("userId").eq("matchId", matchId);
+  if (matchId !== undefined && matchId.length > 0 && matchId !== '0') {
+    const { data } = await supabase.from('matches').select('userId').eq('matchId', matchId)
     for (const row of data ?? []) {
       if (row.userId !== null && row.userId.length > 0) {
-        userIds.add(row.userId);
+        userIds.add(row.userId)
       }
     }
   }
@@ -48,19 +48,19 @@ export const getStreamersInMatch = async function getStreamersInMatch({
       : client !== undefined
         ? await new MatchDataService(client).getAccountIds()
         : []
-  ).filter((id): id is number => id !== null && id !== 0 && !Number.isNaN(id));
+  ).filter((id): id is number => id !== null && id !== 0 && !Number.isNaN(id))
   if (accountIds.length) {
     const { data } = await supabase
-      .from("steam_accounts")
-      .select("userId")
-      .in("steam32Id", accountIds);
+      .from('steam_accounts')
+      .select('userId')
+      .in('steam32Id', accountIds)
     for (const row of data ?? []) {
       if (row.userId) {
-        userIds.add(row.userId);
+        userIds.add(row.userId)
       }
     }
   }
 
-  userIds.delete(excludeUserId);
-  return userIds.size;
-};
+  userIds.delete(excludeUserId)
+  return userIds.size
+}

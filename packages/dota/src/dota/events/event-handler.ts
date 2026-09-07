@@ -1,33 +1,33 @@
-import { events } from "../global-event-emitter";
-import type { GSIHandlerType } from "../gsi-handler-types";
-import { gsiHandlers } from "../lib/consts";
+import { events } from '../global-event-emitter'
+import type { GSIHandlerType } from '../gsi-handler-types'
+import { gsiHandlers } from '../lib/consts'
 
 interface EventOptions<T = unknown> {
-  handler: (dotaClient: GSIHandlerType, data: T) => Promise<void> | void;
-  allowMultiAccount?: boolean;
+  handler: (dotaClient: GSIHandlerType, data: T) => Promise<void> | void
+  allowMultiAccount?: boolean
 }
 
 class EventHandler {
   registerEvent = <T = unknown>(eventName: string, options: EventOptions<T>) => {
     events.on(eventName, (data: unknown, token: string) => {
       if (!gsiHandlers.has(token)) {
-        return;
+        return
       }
-      const client = gsiHandlers.get(token);
+      const client = gsiHandlers.get(token)
 
       if (!client) {
-        return;
+        return
       }
 
       // if we disabled the backend processing from somewhere else
       // we shouldn't process events
       if (client.disabled) {
-        return;
+        return
       }
 
       // if we r offline don't process events
       if (!client.client.stream_online) {
-        return;
+        return
       }
 
       // dont send events if someone is sharing a computer for another steam account
@@ -36,18 +36,18 @@ class EventHandler {
         client.client.multiAccount !== 0 &&
         options.allowMultiAccount !== true
       ) {
-        return;
+        return
       }
 
       // check if options.handler is a promise first
       // the global emitter is untyped; each registration declares the payload type
       options.handler(client, data as T)?.catch((error) => {
-        console.error("Error handling event:", { error, eventName, token });
-      });
-    });
-  };
+        console.error('Error handling event:', { error, eventName, token })
+      })
+    })
+  }
 }
 
-const eventHandler = new EventHandler();
+const eventHandler = new EventHandler()
 
-export default eventHandler;
+export default eventHandler

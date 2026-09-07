@@ -1,4 +1,4 @@
-import type { DotaEvent } from "../../../types";
+import type { DotaEvent } from '../../../types'
 
 // Deduplicates incoming GSI events against already-seen events by
 // `${game_time}-${event_type}`, returning only the unseen ones in input order.
@@ -11,12 +11,12 @@ import type { DotaEvent } from "../../../types";
 // that was never processed. Any pipeline change that skips/coalesces ticks must
 // still feed every tick's `events[]` through here, or one-shot events are lost.
 export const selectNewEvents = function selectNewEvents(
-  seen: readonly Pick<DotaEvent, "game_time" | "event_type">[],
-  incoming: readonly DotaEvent[] | undefined,
+  seen: readonly Pick<DotaEvent, 'game_time' | 'event_type'>[],
+  incoming: readonly DotaEvent[] | undefined
 ): DotaEvent[] {
   if (incoming === undefined || incoming.length === 0) {
-    return [];
+    return []
   }
-  const seenSet = new Set(seen.map((e) => `${e.game_time}-${e.event_type}`));
-  return incoming.filter((e) => !seenSet.has(`${e.game_time}-${e.event_type}`));
-};
+  const seenSet = new Set(seen.map((e) => `${e.game_time}-${e.event_type}`))
+  return incoming.filter((e) => !seenSet.has(`${e.game_time}-${e.event_type}`))
+}

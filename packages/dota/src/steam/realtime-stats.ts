@@ -1,22 +1,22 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import RedisClient from "../db/redis-client";
-import { MatchDataService } from "../dota/lib/matchData";
-import { ENABLE_SPECTATE_FRIEND_GAME } from "../settings";
-import type { DelayedGames, SocketClient } from "../types";
-import CustomError from "../utils/custom-error";
-import { is8500Plus } from "../utils/index";
-import { steamSocket } from "./ws";
+import RedisClient from '../db/redis-client'
+import { MatchDataService } from '../dota/lib/matchData'
+import { ENABLE_SPECTATE_FRIEND_GAME } from '../settings'
+import type { DelayedGames, SocketClient } from '../types'
+import CustomError from '../utils/custom-error'
+import { is8500Plus } from '../utils/index'
+import { steamSocket } from './ws'
 
 interface RealtimeStatsOptions {
-  client: SocketClient;
-  token: string;
-  locale: string;
-  forceRefetchAll?: boolean;
-  refetchCards?: boolean;
+  client: SocketClient
+  token: string
+  locale: string
+  forceRefetchAll?: boolean
+  refetchCards?: boolean
 }
 
-type RealtimePlayer = DelayedGames["teams"][number]["players"][number];
+type RealtimePlayer = DelayedGames['teams'][number]['players'][number]
 
 export const getRealtimeStats = async function getRealtimeStats({
   client,
@@ -25,46 +25,46 @@ export const getRealtimeStats = async function getRealtimeStats({
   forceRefetchAll = false,
   refetchCards = false,
 }: RealtimeStatsOptions): Promise<DelayedGames> {
-  const matchId = client.gsi?.map?.matchid;
+  const matchId = client.gsi?.map?.matchid
   if (matchId === undefined || matchId.length === 0) {
-    throw new CustomError(t("notPlaying", { emote: "PauseChamp", lng: locale }));
+    throw new CustomError(t('notPlaying', { emote: 'PauseChamp', lng: locale }))
   }
 
-  const matchData = new MatchDataService(client);
-  const roster = await matchData.resolveRoster();
-  let steamServerId: string | null = null;
+  const matchData = new MatchDataService(client)
+  const roster = await matchData.resolveRoster()
+  let steamServerId: string | null = null
 
-  if (roster.source === "sourcetv") {
-    const doc = await matchData.getDelayedGameDoc();
-    const sourceTvServerId = doc?.match?.server_steam_id;
-    if (sourceTvServerId !== undefined && sourceTvServerId.length > 0 && sourceTvServerId !== "0") {
-      steamServerId = sourceTvServerId;
+  if (roster.source === 'sourcetv') {
+    const doc = await matchData.getDelayedGameDoc()
+    const sourceTvServerId = doc?.match?.server_steam_id
+    if (sourceTvServerId !== undefined && sourceTvServerId.length > 0 && sourceTvServerId !== '0') {
+      steamServerId = sourceTvServerId
     }
   } else {
     // PRESERVED — ordinary pubs still depend on the disabled spectate-friend lookup. SourceTV
     // matches do not: Valve publishes their server_steam_id in the public GC feed.
     if (!ENABLE_SPECTATE_FRIEND_GAME) {
-      throw new CustomError(t("matchDataValveDisabled", { emote: "PoroSad", lng: locale }));
+      throw new CustomError(t('matchDataValveDisabled', { emote: 'PoroSad', lng: locale }))
     }
     if (is8500Plus(client)) {
-      throw new CustomError(t("matchData8500", { emote: "PoroSad", lng: locale }));
+      throw new CustomError(t('matchData8500', { emote: 'PoroSad', lng: locale }))
     }
 
-    const redisClient = RedisClient.getInstance();
-    steamServerId = await redisClient.client.get(`${matchId}:${token}:steamServerId`);
+    const redisClient = RedisClient.getInstance()
+    steamServerId = await redisClient.client.get(`${matchId}:${token}:steamServerId`)
   }
 
   if (steamServerId === null || steamServerId.length === 0) {
-    throw new CustomError(t("missingMatchData", { emote: "PauseChamp", lng: locale }));
+    throw new CustomError(t('missingMatchData', { emote: 'PauseChamp', lng: locale }))
   }
 
   return await new Promise<DelayedGames>((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      reject(new CustomError(t("matchData8500", { emote: "PoroSad", lng: locale })));
-    }, 10_000);
+      reject(new CustomError(t('matchData8500', { emote: 'PoroSad', lng: locale })))
+    }, 10_000)
 
     steamSocket.emit(
-      "getRealTimeStats",
+      'getRealTimeStats',
       {
         forceRefetchAll,
         match_id: matchId,
@@ -73,34 +73,34 @@ export const getRealtimeStats = async function getRealtimeStats({
         token,
       },
       (err: unknown, data: DelayedGames) => {
-        clearTimeout(timeoutId);
+        clearTimeout(timeoutId)
         if (err !== null && err !== undefined) {
-          reject(err);
+          reject(err)
         } else {
-          resolve(data);
+          resolve(data)
         }
-      },
-    );
-  });
-};
+      }
+    )
+  })
+}
 
 export const findRealtimePlayer = function findRealtimePlayer(
   game: DelayedGames,
   accountId: number | undefined,
-  playerIdx: number | undefined,
+  playerIdx: number | undefined
 ): RealtimePlayer | undefined {
   if (accountId !== undefined && accountId !== 0 && Number.isFinite(accountId)) {
     const accountPlayer = game.teams
       .flatMap((team) => team.players)
-      .find((player) => player.accountid === accountId);
+      .find((player) => player.accountid === accountId)
     if (accountPlayer !== undefined) {
-      return accountPlayer;
+      return accountPlayer
     }
   }
 
   if (playerIdx === undefined) {
-    return undefined;
+    return undefined
   }
-  const teamIndex = playerIdx > 4 ? 1 : 0;
-  return game.teams[teamIndex]?.players[playerIdx % 5];
-};
+  const teamIndex = playerIdx > 4 ? 1 : 0
+  return game.teams[teamIndex]?.players[playerIdx % 5]
+}

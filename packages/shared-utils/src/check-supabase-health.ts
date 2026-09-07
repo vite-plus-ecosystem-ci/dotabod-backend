@@ -1,4 +1,4 @@
-import supabase from "./db/supabase";
+import supabase from './db/supabase'
 
 // Dependency-aware health probe for Uptime Kuma heartbeats.
 //
@@ -12,27 +12,27 @@ import supabase from "./db/supabase";
 // This does a real round-trip through Supabase (kong -> postgrest), so
 // "can't reach Supabase" turns a heartbeat red instead of failing silently.
 
-const SUPABASE_HEALTH_TIMEOUT_MS = 8000;
+const SUPABASE_HEALTH_TIMEOUT_MS = 8000
 
 export const checkSupabaseHealth = async function checkSupabaseHealth(): Promise<{
-  up: boolean;
-  msg: string;
+  up: boolean
+  msg: string
 }> {
   try {
     const { error } = await supabase
-      .from("users")
-      .select("id")
+      .from('users')
+      .select('id')
       .limit(1)
-      .abortSignal(AbortSignal.timeout(SUPABASE_HEALTH_TIMEOUT_MS));
+      .abortSignal(AbortSignal.timeout(SUPABASE_HEALTH_TIMEOUT_MS))
 
     if (error) {
-      return { msg: `supabase error: ${error.message}`, up: false };
+      return { msg: `supabase error: ${error.message}`, up: false }
     }
-    return { msg: "supabase reachable", up: true };
+    return { msg: 'supabase reachable', up: true }
   } catch (error) {
     return {
       msg: `supabase unreachable: ${error instanceof Error ? error.message : String(error)}`,
       up: false,
-    };
+    }
   }
-};
+}

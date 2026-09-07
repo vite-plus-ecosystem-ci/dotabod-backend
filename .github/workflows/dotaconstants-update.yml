@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # Daily check; the create-pull-request step is a no-op unless patch-relevant files changed.
-    - cron: "30 6 * * *"
+    - cron: '30 6 * * *'
 
 permissions:
   contents: write
@@ -29,7 +29,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.x"
+          python-version: '3.x'
 
       - name: Detect patch-relevant changes
         id: scan
@@ -70,7 +70,7 @@ jobs:
           # PAT (not GITHUB_TOKEN) so the created PR triggers the CI + Autofix
           # workflows — pushes/PRs made with GITHUB_TOKEN don't fire workflows.
           token: ${{ secrets.GHA_PAT }}
-          title: "chore(dota): update dotaconstants for patch-relevant changes"
+          title: 'chore(dota): update dotaconstants for patch-relevant changes'
           body: |
             Automated dotaconstants refresh.
 
@@ -92,7 +92,7 @@ jobs:
             - Changed relevant files: `${{ steps.scan.outputs.changed_files }}`
           base: ${{ env.BASE_BRANCH }}
           branch: ${{ env.UPDATE_BRANCH }}
-          commit-message: "chore(dota): refresh dotaconstants pin"
+          commit-message: 'chore(dota): refresh dotaconstants pin'
           delete-branch: true
           add-paths: |
             packages/dota/package.json

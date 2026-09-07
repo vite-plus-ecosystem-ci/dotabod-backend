@@ -4,7 +4,7 @@ name: Dependabot Automerge
 # secrets. Never check out or execute the Dependabot PR's code in this workflow.
 on:
   workflow_run:
-    workflows: ["CI", "Docker Image CI"]
+    workflows: ['CI', 'Docker Image CI']
     types: [completed]
 
 permissions:

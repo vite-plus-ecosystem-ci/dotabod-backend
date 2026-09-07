@@ -65,14 +65,14 @@ Checks the input text for profanity across all layers and returns:
 - "\*\*\*" if profanity is detected
 
 ```typescript
-import { moderateText } from "./utils/moderation.js";
+import { moderateText } from './utils/moderation.js'
 
 // Example usage
-const result = await moderateText("Hello world");
-console.log(result); // "Hello world" (if clean)
+const result = await moderateText('Hello world')
+console.log(result) // "Hello world" (if clean)
 
-const profaneResult = await moderateText("f*ck this");
-console.log(profaneResult); // "***" (if profane)
+const profaneResult = await moderateText('f*ck this')
+console.log(profaneResult) // "***" (if profane)
 ```
 
 ### `getProfanityDetails(text: string): { isFlagged: boolean, source: string, matches?: string[], language?: string }`
@@ -84,11 +84,11 @@ Returns detailed information about why text was flagged, including:
 - The language detected (when available)
 
 ```typescript
-import { getProfanityDetails } from "./utils/moderation.js";
+import { getProfanityDetails } from './utils/moderation.js'
 
 // Example usage
-const details = getProfanityDetails("F*ck this");
-console.log(details);
+const details = getProfanityDetails('F*ck this')
+console.log(details)
 // Output: { isFlagged: true, source: 'obscenity', matches: ['F*ck'] }
 ```
 
@@ -107,8 +107,8 @@ To add support for additional languages or specific terms:
 1. Add new words to the existing libraries that support custom wordlists:
 
    ```typescript
-   badWords.addWords("custom", "words", "here");
-   leoProfanity.add(["custom", "words", "here"]);
+   badWords.addWords('custom', 'words', 'here')
+   leoProfanity.add(['custom', 'words', 'here'])
    ```
 
 2. Extend the custom wordlists in `profanity-wordlists.ts`

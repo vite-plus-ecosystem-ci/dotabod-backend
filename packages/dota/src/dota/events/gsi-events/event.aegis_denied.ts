@@ -1,30 +1,30 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { DotaEventTypes } from "../../../types";
-import type { AegisDeniedEvent } from "../../../types";
-import { is8500Plus } from "../../../utils/index";
-import { getHeroNameOrColor } from "../../lib/heroes";
-import { isPlayingMatch } from "../../lib/is-playing-match";
-import { MatchDataService } from "../../lib/matchData";
-import { say } from "../../say";
-import eventHandler from "../event-handler";
+import { DotaEventTypes } from '../../../types'
+import type { AegisDeniedEvent } from '../../../types'
+import { is8500Plus } from '../../../utils/index'
+import { getHeroNameOrColor } from '../../lib/heroes'
+import { isPlayingMatch } from '../../lib/is-playing-match'
+import { MatchDataService } from '../../lib/matchData'
+import { say } from '../../say'
+import eventHandler from '../event-handler'
 
 eventHandler.registerEvent(`event:${DotaEventTypes.AegisDenied}`, {
   handler: async (dotaClient, event: AegisDeniedEvent) => {
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      return;
+      return
     }
     if (!dotaClient.client.stream_online) {
-      return;
+      return
     }
 
-    const roster = await new MatchDataService(dotaClient.client).resolveRoster();
-    const { players } = roster;
+    const roster = await new MatchDataService(dotaClient.client).resolveRoster()
+    const { players } = roster
 
-    const foundIndex = players.findIndex((p) => p.slot === event.player_id);
-    const playerIdIndex = foundIndex === -1 ? event.player_id : foundIndex;
-    const heroId = players[playerIdIndex]?.heroId;
-    const high = is8500Plus(dotaClient.client);
+    const foundIndex = players.findIndex((p) => p.slot === event.player_id)
+    const playerIdIndex = foundIndex === -1 ? event.player_id : foundIndex
+    const heroId = players[playerIdIndex]?.heroId
+    const high = is8500Plus(dotaClient.client)
     // Same gating as event.aegis_picked_up: 8500+ only names a hero when we
     // positively matched the player by `slot` in the roster — indexing by
     // raw event.player_id is unreliable in reshuffled high-immortal games.
@@ -36,21 +36,21 @@ eventHandler.registerEvent(`event:${DotaEventTypes.AegisDenied}`, {
         !Number.isNaN(heroId)
         ? getHeroNameOrColor(heroId, playerIdIndex)
         : null
-      : getHeroNameOrColor(heroId ?? 0, playerIdIndex);
+      : getHeroNameOrColor(heroId ?? 0, playerIdIndex)
 
     say(
       dotaClient.client,
       heroName !== null && heroName.length > 0
-        ? t("aegis.denied", {
-            emote: "ICANT",
+        ? t('aegis.denied', {
+            emote: 'ICANT',
             heroName,
             lng: dotaClient.client.locale,
           })
-        : t("aegis.deniedUnknown", {
-            emote: "ICANT",
+        : t('aegis.deniedUnknown', {
+            emote: 'ICANT',
             lng: dotaClient.client.locale,
           }),
-      { chattersKey: "roshDeny" },
-    );
+      { chattersKey: 'roshDeny' }
+    )
   },
-});
+})

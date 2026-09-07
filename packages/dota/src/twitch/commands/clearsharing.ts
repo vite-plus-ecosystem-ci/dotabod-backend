@@ -1,44 +1,44 @@
-import { commandDisable } from "@dotabod/shared-utils";
-import { t } from "i18next";
+import { commandDisable } from '@dotabod/shared-utils'
+import { t } from 'i18next'
 
-import { redisClient } from "../../db/redis-instance";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
+import { redisClient } from '../../db/redis-instance'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
 
-commandHandler.registerCommand("clearsharing", {
-  aliases: ["forcelink"],
+commandHandler.registerCommand('clearsharing', {
+  aliases: ['forcelink'],
   cooldown: 30,
   handler: async (message) => {
     const {
       channel: { client },
-    } = message;
+    } = message
 
-    const userId = message.channel.client.token;
+    const userId = message.channel.client.token
 
     try {
       // Clear Redis tracking of active Steam accounts for this token
-      const redisKey = `token:${userId}:activeSteam32Ids`;
-      await redisClient.client.del(redisKey);
+      const redisKey = `token:${userId}:activeSteam32Ids`
+      await redisClient.client.del(redisKey)
 
       // Only resolve ACCOUNT_SHARING audit rows — leaves unrelated
       // CHAT_PERMISSION_DENIED / TOKEN_REVOKED notifications intact.
-      await commandDisable.enable(userId, { reason: "ACCOUNT_SHARING" });
+      await commandDisable.enable(userId, { reason: 'ACCOUNT_SHARING' })
 
       // Send success message with updated warning
-      const channel = message.channel.client.name;
+      const channel = message.channel.client.name
       chatClient.say(
         channel,
-        t("clearsharing.success", { lng: client.locale }),
-        message.user.messageId,
-      );
+        t('clearsharing.success', { lng: client.locale }),
+        message.user.messageId
+      )
     } catch {
-      const channel = message.channel.client.name;
+      const channel = message.channel.client.name
       chatClient.say(
         channel,
-        t("clearsharing.error", { lng: client.locale }),
-        message.user.messageId,
-      );
+        t('clearsharing.error', { lng: client.locale }),
+        message.user.messageId
+      )
     }
   },
   permission: 2,
-});
+})

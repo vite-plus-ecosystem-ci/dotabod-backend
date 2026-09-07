@@ -1,179 +1,179 @@
-import { logger, supabase } from "@dotabod/shared-utils";
-import { t } from "i18next";
-import { z } from "zod";
+import { logger, supabase } from '@dotabod/shared-utils'
+import { t } from 'i18next'
+import { z } from 'zod'
 
-import { MULTIPLIER_SOLO } from "../../db/get-wl";
-import RedisClient from "../../db/redis-client";
-import { steamSocket } from "../../steam/ws";
-import { leaderRanks, ranks } from "./consts";
+import { MULTIPLIER_SOLO } from '../../db/get-wl'
+import RedisClient from '../../db/redis-client'
+import { steamSocket } from '../../steam/ws'
+import { leaderRanks, ranks } from './consts'
 
-const leaderboardCardSchema = z.object({ leaderboard_rank: z.number() });
+const leaderboardCardSchema = z.object({ leaderboard_rank: z.number() })
 
 export const rankTierToMmr = function rankTierToMmr(rankTier: string | number) {
   if (!Number(rankTier)) {
-    return 0;
+    return 0
   }
-  const intRankTier = Number(rankTier);
+  const intRankTier = Number(rankTier)
 
   // Just gonna guess an immortal without standing is 6k mmr
   if (intRankTier > 77) {
-    return 6000;
+    return 6000
   }
 
   // Floor to 5
-  const stars = intRankTier % 10 > 5 ? 5 : intRankTier % 10;
+  const stars = intRankTier % 10 > 5 ? 5 : intRankTier % 10
   const matchedRank = ranks.find((candidate) =>
-    candidate.image.startsWith(`${Math.floor(intRankTier / 10)}${stars}`),
-  );
+    candidate.image.startsWith(`${Math.floor(intRankTier / 10)}${stars}`)
+  )
 
   // Middle of range
-  return ((matchedRank?.range[0] ?? 0) + (matchedRank?.range[1] ?? 0)) / 2;
-};
+  return ((matchedRank?.range[0] ?? 0) + (matchedRank?.range[1] ?? 0)) / 2
+}
 
 export const mmrToRankTier = function mmrToRankTier(mmr: number): number {
   if (mmr <= 0) {
-    return 0;
+    return 0
     // Uncalibrated
   }
 
   // Immortal rank (rank tier 80)
   // Get the highest MMR from the ranks array
-  const highestRankMMR = ranks.at(-1)?.range[1] ?? 5619;
+  const highestRankMMR = ranks.at(-1)?.range[1] ?? 5619
   if (mmr >= highestRankMMR) {
-    return 80;
+    return 80
   }
 
   // Find the rank based on MMR
   for (const rank of ranks) {
-    const [min, max] = rank.range;
+    const [min, max] = rank.range
 
     // If MMR falls within this rank's range
     if (mmr >= min && mmr <= max) {
       // Extract the medal number from the image (first digit)
-      const medal = Math.trunc(Number(rank.image.charAt(0)));
+      const medal = Math.trunc(Number(rank.image.charAt(0)))
       // Extract the stars from the image (second digit)
-      const stars = Math.trunc(Number(rank.image.charAt(1)));
+      const stars = Math.trunc(Number(rank.image.charAt(1)))
 
       // Calculate rank tier (medal * 10 + stars)
-      return medal * 10 + stars;
+      return medal * 10 + stars
     }
   }
 
   // Default to uncalibrated if no match found
-  return 0;
-};
+  return 0
+}
 
 export const getRankTitle = function getRankTitle(rankTier: string | number): string {
   if (!Number(rankTier) || Number(rankTier) <= 0) {
-    return "Uncalibrated";
+    return 'Uncalibrated'
   }
-  const intRankTier = Number(rankTier);
+  const intRankTier = Number(rankTier)
 
   // Immortal rank
   if (intRankTier > 77) {
-    return "Immortal";
+    return 'Immortal'
   }
 
   // Floor to 5
   // Extract the stars value from the rank tier (last digit of the number)
   // If the stars value is greater than 5, cap it at 5 since ranks only go up to 5 stars
   // For example: rank tier 53 means Legend 3, where 5 is the medal and 3 is the stars
-  const stars = intRankTier % 10 > 5 ? 5 : intRankTier % 10;
+  const stars = intRankTier % 10 > 5 ? 5 : intRankTier % 10
   const matchedRank = ranks.find((candidate) =>
-    candidate.image.startsWith(`${Math.floor(intRankTier / 10)}${stars}`),
-  );
+    candidate.image.startsWith(`${Math.floor(intRankTier / 10)}${stars}`)
+  )
 
-  return matchedRank?.title ?? "Unknown";
-};
+  return matchedRank?.title ?? 'Unknown'
+}
 
 interface LeaderRankData {
   myRank: {
-    range: number[];
-    image: string;
-    sparklingEffect: boolean;
-  };
-  mmr: number;
-  standing: number | null;
+    range: number[]
+    image: string
+    sparklingEffect: boolean
+  }
+  mmr: number
+  standing: number | null
 }
 
 const lookupLeaderRank = async function lookupLeaderRank(
   mmr: number,
-  steam32Id?: number | null,
+  steam32Id?: number | null
 ): Promise<LeaderRankData> {
-  const lowestLeaderRank = leaderRanks.at(-1);
+  const lowestLeaderRank = leaderRanks.at(-1)
   if (!lowestLeaderRank) {
-    throw new Error("Leader ranks must not be empty");
+    throw new Error('Leader ranks must not be empty')
   }
   const defaultNotFound: LeaderRankData = {
     mmr,
     myRank: lowestLeaderRank,
     standing: null,
-  };
+  }
 
   // Return default values if steam32Id is undefined or null
   if (steam32Id === null || steam32Id === undefined || steam32Id === 0) {
-    return defaultNotFound;
+    return defaultNotFound
   }
 
-  const cacheKey = `${steam32Id}:medal`;
-  let result: LeaderRankData;
+  const cacheKey = `${steam32Id}:medal`
+  let result: LeaderRankData
 
-  const redisClient = RedisClient.getInstance();
+  const redisClient = RedisClient.getInstance()
   // Try to get the cached result first
-  const medalCache = await redisClient.getJson<LeaderRankData>(cacheKey);
+  const medalCache = await redisClient.getJson<LeaderRankData>(cacheKey)
   if (medalCache) {
-    result = medalCache;
+    result = medalCache
   } else {
     try {
-      const response: unknown = await steamSocket.timeout(10_000).emitWithAck("getCard", steam32Id);
-      const { leaderboard_rank: standing } = leaderboardCardSchema.parse(response);
+      const response: unknown = await steamSocket.timeout(10_000).emitWithAck('getCard', steam32Id)
+      const { leaderboard_rank: standing } = leaderboardCardSchema.parse(response)
 
       // If the rank is not available, return default values
       if (standing === 0) {
-        return defaultNotFound;
+        return defaultNotFound
       }
 
       // Find the corresponding leaderboard rank for the given standing
-      const myRank = leaderRanks.find((rank) => standing <= rank.range[1]) ?? lowestLeaderRank;
+      const myRank = leaderRanks.find((rank) => standing <= rank.range[1]) ?? lowestLeaderRank
 
       // Construct the result object
-      result = { mmr, myRank, standing };
+      result = { mmr, myRank, standing }
 
       // Cache the result
-      await redisClient.setJson(cacheKey, result);
+      await redisClient.setJson(cacheKey, result)
     } catch {
-      return defaultNotFound;
+      return defaultNotFound
     }
   }
 
-  return result;
-};
+  return result
+}
 
 export const getRankDetail = async function getRankDetail(
   mmr: string | number,
-  steam32Id?: number | null,
+  steam32Id?: number | null
 ) {
-  const mmrNum = Number(mmr);
+  const mmrNum = Number(mmr)
 
   if (!mmrNum || mmrNum < 0) {
-    return null;
+    return null
   }
 
   // At or higher than max mmr? Lets check leaderboards
-  const highestRank = ranks.at(-1);
+  const highestRank = ranks.at(-1)
   if (!highestRank) {
-    return null;
+    return null
   }
   if (mmrNum >= highestRank.range[1]) {
-    return await lookupLeaderRank(mmrNum, steam32Id);
+    return await lookupLeaderRank(mmrNum, steam32Id)
   }
 
-  const [myRank, nextRank] = ranks.filter((rank) => mmrNum <= rank.range[1]);
+  const [myRank, nextRank] = ranks.filter((rank) => mmrNum <= rank.range[1])
 
   // Its not always truthy, nextRank can be beyond the range
-  const nextMMR = nextRank?.range[0] ?? myRank?.range[1];
-  const mmrToNextRank = nextMMR - mmrNum;
-  const winsToNextRank = Math.ceil(mmrToNextRank / MULTIPLIER_SOLO);
+  const nextMMR = nextRank?.range[0] ?? myRank?.range[1]
+  const mmrToNextRank = nextMMR - mmrNum
+  const winsToNextRank = Math.ceil(mmrToNextRank / MULTIPLIER_SOLO)
 
   return {
     mmr: mmrNum,
@@ -182,14 +182,14 @@ export const getRankDetail = async function getRankDetail(
     nextMMR,
     nextRank,
     winsToNextRank,
-  };
-};
+  }
+}
 
 interface RankDescription {
-  locale: string;
-  mmr: string | number;
-  steam32Id?: number;
-  showRankMmr?: boolean;
+  locale: string
+  mmr: string | number
+  steam32Id?: number
+  showRankMmr?: boolean
 }
 
 // Used for chatting !mmr
@@ -199,189 +199,189 @@ export const getRankDescription = async function getRankDescription({
   steam32Id,
   showRankMmr = true,
 }: RankDescription) {
-  const rankResponse = await getRankDetail(mmr, steam32Id);
+  const rankResponse = await getRankDetail(mmr, steam32Id)
 
   if (!rankResponse) {
-    return null;
+    return null
   }
 
-  if ("standing" in rankResponse) {
-    const rankTitle = "Immortal";
+  if ('standing' in rankResponse) {
+    const rankTitle = 'Immortal'
     const standing =
       rankResponse.standing === null || rankResponse.standing === 0
         ? null
-        : `#${rankResponse.standing}`;
-    const msgs: string[] = [];
+        : `#${rankResponse.standing}`
+    const msgs: string[] = []
 
     if (showRankMmr) {
-      msgs.push(`${mmr} MMR`);
+      msgs.push(`${mmr} MMR`)
     }
-    msgs.push(rankTitle);
+    msgs.push(rankTitle)
     if (standing !== null && standing.length > 0) {
-      msgs.push(standing);
+      msgs.push(standing)
     }
 
-    return msgs.join(" · ");
+    return msgs.join(' · ')
   }
 
-  const { myRank, nextMMR, mmrToNextRank, winsToNextRank } = rankResponse;
+  const { myRank, nextMMR, mmrToNextRank, winsToNextRank } = rankResponse
 
   if (!showRankMmr) {
-    return myRank.title;
+    return myRank.title
   }
 
-  const count = mmrToNextRank <= MULTIPLIER_SOLO ? 1 : winsToNextRank;
-  const nextAt = t("rank.nextRankAt", { lng: locale });
-  const nextIn = t("rank.nextRankIn", {
+  const count = mmrToNextRank <= MULTIPLIER_SOLO ? 1 : winsToNextRank
+  const nextAt = t('rank.nextRankAt', { lng: locale })
+  const nextIn = t('rank.nextRankIn', {
     count,
-    emote: "peepoClap",
+    emote: 'peepoClap',
     lng: locale,
-  });
+  })
 
-  const msgs: string[] = [];
-  const nextRankSuffix = count === 1 ? "" : ` ${nextIn}`;
-  msgs.push(String(mmr), myRank.title, `${nextAt} ${nextMMR}${nextRankSuffix}`);
+  const msgs: string[] = []
+  const nextRankSuffix = count === 1 ? '' : ` ${nextIn}`
+  msgs.push(String(mmr), myRank.title, `${nextAt} ${nextMMR}${nextRankSuffix}`)
   if (count === 1) {
-    msgs.push(nextIn);
+    msgs.push(nextIn)
   }
 
-  return msgs.join(" · ");
-};
+  return msgs.join(' · ')
+}
 
 type Region =
-  | "EUROPE"
-  | "US EAST"
-  | "SINGAPORE"
-  | "ARGENTINA"
-  | "STOCKHOLM"
-  | "AUSTRIA"
-  | "DUBAI"
-  | "PERU"
-  | "BRAZIL";
+  | 'EUROPE'
+  | 'US EAST'
+  | 'SINGAPORE'
+  | 'ARGENTINA'
+  | 'STOCKHOLM'
+  | 'AUSTRIA'
+  | 'DUBAI'
+  | 'PERU'
+  | 'BRAZIL'
 
 export const estimateMMR = function estimateMMR(leaderboardRank: number, region: Region): number {
   // Max leaderboard rank is 5000
   if (leaderboardRank <= 0 || leaderboardRank > 5000) {
-    return 8500;
+    return 8500
   }
 
-  let baseMMR: number;
-  const x = leaderboardRank;
+  let baseMMR: number
+  const x = leaderboardRank
 
-  if (region === "EUROPE") {
-    baseMMR = 15_300 - 8.2 * Math.log(x) * x ** 0.6;
-  } else if (region === "US EAST") {
-    baseMMR = 14_900 - 7.8 * Math.log(x) * x ** 0.6;
-  } else if (region === "SINGAPORE") {
-    baseMMR = 14_750 - 7.6 * Math.log(x) * x ** 0.58;
-  } else if (region === "ARGENTINA") {
-    baseMMR = 14_500 - 7.9 * Math.log(x) * x ** 0.6;
-  } else if (region === "STOCKHOLM") {
-    baseMMR = 14_650 - 7.5 * Math.log(x) * x ** 0.59;
-  } else if (region === "AUSTRIA") {
-    baseMMR = 14_400 - 7.7 * Math.log(x) * x ** 0.61;
-  } else if (region === "DUBAI") {
-    baseMMR = 14_200 - 7.3 * Math.log(x) * x ** 0.6;
-  } else if (region === "PERU") {
-    baseMMR = 14_300 - 7.6 * Math.log(x) * x ** 0.58;
-  } else if (region === "BRAZIL") {
-    baseMMR = 14_150 - 7.4 * Math.log(x) * x ** 0.57;
+  if (region === 'EUROPE') {
+    baseMMR = 15_300 - 8.2 * Math.log(x) * x ** 0.6
+  } else if (region === 'US EAST') {
+    baseMMR = 14_900 - 7.8 * Math.log(x) * x ** 0.6
+  } else if (region === 'SINGAPORE') {
+    baseMMR = 14_750 - 7.6 * Math.log(x) * x ** 0.58
+  } else if (region === 'ARGENTINA') {
+    baseMMR = 14_500 - 7.9 * Math.log(x) * x ** 0.6
+  } else if (region === 'STOCKHOLM') {
+    baseMMR = 14_650 - 7.5 * Math.log(x) * x ** 0.59
+  } else if (region === 'AUSTRIA') {
+    baseMMR = 14_400 - 7.7 * Math.log(x) * x ** 0.61
+  } else if (region === 'DUBAI') {
+    baseMMR = 14_200 - 7.3 * Math.log(x) * x ** 0.6
+  } else if (region === 'PERU') {
+    baseMMR = 14_300 - 7.6 * Math.log(x) * x ** 0.58
+  } else if (region === 'BRAZIL') {
+    baseMMR = 14_150 - 7.4 * Math.log(x) * x ** 0.57
   } else {
-    baseMMR = 14_000 - 7 * Math.log(x) * x ** 0.6;
+    baseMMR = 14_000 - 7 * Math.log(x) * x ** 0.6
   }
 
-  return Math.round(baseMMR);
-};
+  return Math.round(baseMMR)
+}
 // Cache for profile data with expiration
 const rankProfileCache = new Map<
   string,
   { data: { rank_tier: number; leaderboard_rank: number } | null; timestamp: number }
->();
+>()
 
 // 30 minutes in milliseconds for users with rank
-const RANK_CACHE_TTL = 30 * 60 * 1000;
+const RANK_CACHE_TTL = 30 * 60 * 1000
 // 30 seconds in milliseconds for users without rank
-const NO_RANK_CACHE_TTL = 30 * 1000;
+const NO_RANK_CACHE_TTL = 30 * 1000
 
 export const getDotabodRankProfile = async function getDotabodRankProfile(
-  twitchUsername: string,
+  twitchUsername: string
 ): Promise<{
-  rank_tier: number;
-  leaderboard_rank: number;
+  rank_tier: number
+  leaderboard_rank: number
 } | null> {
   // Check if we have a valid cached result
-  const cacheKey = twitchUsername.toLowerCase();
-  const cachedResult = rankProfileCache.get(cacheKey);
-  const now = Date.now();
+  const cacheKey = twitchUsername.toLowerCase()
+  const cachedResult = rankProfileCache.get(cacheKey)
+  const now = Date.now()
 
   if (cachedResult) {
     const hasRank =
       cachedResult.data !== null &&
-      (cachedResult.data.rank_tier > 0 || cachedResult.data.leaderboard_rank > 0);
-    const ttl = hasRank ? RANK_CACHE_TTL : NO_RANK_CACHE_TTL;
+      (cachedResult.data.rank_tier > 0 || cachedResult.data.leaderboard_rank > 0)
+    const ttl = hasRank ? RANK_CACHE_TTL : NO_RANK_CACHE_TTL
 
     if (now - cachedResult.timestamp < ttl) {
-      return cachedResult.data;
+      return cachedResult.data
     }
   }
 
   try {
     // Get user by Twitch username
     const { data: userData } = await supabase
-      .from("users")
-      .select("id, steam32Id")
-      .ilike("name", twitchUsername)
-      .single();
+      .from('users')
+      .select('id, steam32Id')
+      .ilike('name', twitchUsername)
+      .single()
 
     if (!userData) {
       // Cache null results for a short time
-      rankProfileCache.set(cacheKey, { data: null, timestamp: now });
-      return null;
+      rankProfileCache.set(cacheKey, { data: null, timestamp: now })
+      return null
     }
 
-    let steamAccount: { leaderboard_rank: number | null; mmr: number } | null = null;
+    let steamAccount: { leaderboard_rank: number | null; mmr: number } | null = null
 
     if (userData.steam32Id !== null && userData.steam32Id !== 0) {
       // If steam32Id exists directly on the user, use it
       const { data: account } = await supabase
-        .from("steam_accounts")
-        .select("leaderboard_rank, mmr")
-        .eq("steam32Id", userData.steam32Id)
-        .single();
+        .from('steam_accounts')
+        .select('leaderboard_rank, mmr')
+        .eq('steam32Id', userData.steam32Id)
+        .single()
 
-      steamAccount = account;
+      steamAccount = account
     } else if (userData.id) {
       // If no steam32Id on user, find their steam accounts through userId
       const { data: accounts } = await supabase
-        .from("steam_accounts")
-        .select("leaderboard_rank, mmr")
-        .eq("userId", userData.id)
-        .order("mmr", { ascending: false })
-        .limit(1);
+        .from('steam_accounts')
+        .select('leaderboard_rank, mmr')
+        .eq('userId', userData.id)
+        .order('mmr', { ascending: false })
+        .limit(1)
 
       // Get the account with the highest MMR
-      steamAccount = accounts?.[0] ?? null;
+      steamAccount = accounts?.[0] ?? null
     }
 
     if (!steamAccount) {
       // Cache null results for a short time
-      rankProfileCache.set(cacheKey, { data: null, timestamp: now });
-      return null;
+      rankProfileCache.set(cacheKey, { data: null, timestamp: now })
+      return null
     }
 
     // Return rank information
     const result = {
       leaderboard_rank: steamAccount.leaderboard_rank ?? 0,
       rank_tier: mmrToRankTier(steamAccount.mmr),
-    };
+    }
 
     // Cache the result (longer for users with rank, shorter for those without)
-    rankProfileCache.set(cacheKey, { data: result, timestamp: now });
-    return result;
+    rankProfileCache.set(cacheKey, { data: result, timestamp: now })
+    return result
   } catch (error) {
-    logger.error("Error fetching Dotabod rank profile:", error);
+    logger.error('Error fetching Dotabod rank profile:', error)
     // Cache errors briefly to avoid hammering the database.
-    rankProfileCache.set(cacheKey, { data: null, timestamp: now });
-    return null;
+    rankProfileCache.set(cacheKey, { data: null, timestamp: now })
+    return null
   }
-};
+}

@@ -1,5 +1,5 @@
-import { recordDisableNotification, trackDisableReason, trackResolveReason } from "./service";
-import type { DisableReason, DisableReasonMetadata } from "./types";
+import { recordDisableNotification, trackDisableReason, trackResolveReason } from './service'
+import type { DisableReason, DisableReasonMetadata } from './types'
 
 /**
  * Setting-specific facade for `commandDisable`, which has INVERTED semantics
@@ -14,11 +14,11 @@ export const commandDisable = {
   async disable(
     userId: string,
     reason: DisableReason,
-    metadata?: DisableReasonMetadata,
+    metadata?: DisableReasonMetadata
   ): Promise<void> {
-    await trackDisableReason(userId, "commandDisable", reason, metadata, {
+    await trackDisableReason(userId, 'commandDisable', reason, metadata, {
       disabledValue: true,
-    });
+    })
   },
 
   /**
@@ -32,12 +32,12 @@ export const commandDisable = {
    */
   async enable(
     userId: string,
-    opts: { reason?: DisableReason; autoResolved?: boolean } = {},
+    opts: { reason?: DisableReason; autoResolved?: boolean } = {}
   ): Promise<void> {
-    await trackResolveReason(userId, "commandDisable", opts.autoResolved ?? false, {
+    await trackResolveReason(userId, 'commandDisable', opts.autoResolved ?? false, {
       enabledValue: false,
       reason: opts.reason,
-    });
+    })
   },
 
   /**
@@ -48,8 +48,8 @@ export const commandDisable = {
   async recordNotification(
     userId: string,
     reason: DisableReason,
-    metadata?: DisableReasonMetadata,
+    metadata?: DisableReasonMetadata
   ): Promise<void> {
-    await recordDisableNotification(userId, "commandDisable", reason, metadata);
+    await recordDisableNotification(userId, 'commandDisable', reason, metadata)
   },
-};
+}

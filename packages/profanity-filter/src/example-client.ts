@@ -5,42 +5,42 @@
  * Run with: pnpm dlx tsx src/example-client.ts
  */
 
-import axios from "axios";
+import axios from 'axios'
 
-const API_URL = "http://localhost:3000";
+const API_URL = 'http://localhost:3000'
 
 interface CheckResponse {
   details: {
-    isFlagged: boolean;
-    language?: string;
-    matches?: string[];
-  };
+    isFlagged: boolean
+    language?: string
+    matches?: string[]
+  }
 }
 
 // Test cases to check
 const testCases = [
-  { description: "Normal text", text: "Hello world, this is a normal text." },
-  { description: "Starred profanity", text: "f*u*c*k" },
-  { description: "Russian profanity", text: "сука блять" },
-  { description: "Russian profanity 2", text: "пидор" },
-  { description: "Mixed Latin-Cyrillic Russian profanity", text: "пидop" },
-  { description: "Chinese profanity", text: "操你妈" },
-  { description: "Spanish profanity", text: "hijo de puta" },
-  { description: "German profanity", text: "scheiße" },
-];
+  { description: 'Normal text', text: 'Hello world, this is a normal text.' },
+  { description: 'Starred profanity', text: 'f*u*c*k' },
+  { description: 'Russian profanity', text: 'сука блять' },
+  { description: 'Russian profanity 2', text: 'пидор' },
+  { description: 'Mixed Latin-Cyrillic Russian profanity', text: 'пидop' },
+  { description: 'Chinese profanity', text: '操你妈' },
+  { description: 'Spanish profanity', text: 'hijo de puta' },
+  { description: 'German profanity', text: 'scheiße' },
+]
 
 const testAPI = async function testAPI() {
   // console.log('Testing Profanity Filter API...\n')
 
   // Check API info
   try {
-    const _response = await axios.get(API_URL);
+    const _response = await axios.get(API_URL)
     // console.log('API Info:')
     // console.log(response.data)
     // console.log('-------------------\n')
   } catch {
-    console.error("Error connecting to API. Is the server running?");
-    process.exit(1);
+    console.error('Error connecting to API. Is the server running?')
+    process.exit(1)
   }
 
   // Test moderation endpoint
@@ -49,13 +49,13 @@ const testAPI = async function testAPI() {
     try {
       const _response = await axios.post(`${API_URL}/moderate`, {
         text: testCase.text,
-      });
+      })
 
       // console.log(`\nInput (${testCase.description}): "${testCase.text}"`)
       // console.log(`Moderated: "${response.data.moderated}"`)
       // console.log(`Contains profanity: ${response.data.containsProfanity}`)
     } catch (error) {
-      console.error(`Error testing "${testCase.text}":`, error);
+      console.error(`Error testing "${testCase.text}":`, error)
     }
   }
 
@@ -67,7 +67,7 @@ const testAPI = async function testAPI() {
     try {
       const response = await axios.post<CheckResponse>(`${API_URL}/check`, {
         text: testCase.text,
-      });
+      })
 
       // console.log(`\nInput (${testCase.description}): "${testCase.text}"`)
       // console.log(`Contains profanity: ${response.data.containsProfanity}`)
@@ -87,11 +87,11 @@ const testAPI = async function testAPI() {
         }
       }
     } catch (error) {
-      console.error(`Error testing "${testCase.text}":`, error);
+      console.error(`Error testing "${testCase.text}":`, error)
     }
   }
-};
+}
 
 testAPI().catch((error) => {
-  console.error("Error running client test:", error);
-});
+  console.error('Error running client test:', error)
+})

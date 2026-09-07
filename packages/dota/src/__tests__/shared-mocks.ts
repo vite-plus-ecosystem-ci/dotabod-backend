@@ -1,4 +1,4 @@
-import { setTimeout as sleep } from "node:timers/promises";
+import { setTimeout as sleep } from 'node:timers/promises'
 
 import type {
   Json,
@@ -8,12 +8,12 @@ import type {
   resolveDisableNotifications,
   trackDisableReason,
   trackResolveReason,
-} from "@dotabod/shared-utils";
+} from '@dotabod/shared-utils'
 
-import type { GSIHandlerType } from "../dota/gsi-handler-types";
-import type { Packet, SocketClient } from "../types";
+import type { GSIHandlerType } from '../dota/gsi-handler-types'
+import type { Packet, SocketClient } from '../types'
 
-type TwitchAccount = NonNullable<SocketClient["Account"]>;
+type TwitchAccount = NonNullable<SocketClient['Account']>
 
 // Helpers shared across the package's test harnesses. Filename intentionally
 // not `.test.ts` so bun's runner ignores it.
@@ -28,13 +28,13 @@ type TwitchAccount = NonNullable<SocketClient["Account"]>;
 // Loose function signature so callers can supply any of the typical logger
 // shapes (message + optional meta, variadic args, etc.) without TS contravariance
 // rejecting them. Tests just care that the methods exist and capture calls.
-type LoggerMetadata = Record<string, Date | Error | Json | undefined>;
+type LoggerMetadata = Record<string, Date | Error | Json | undefined>
 
 interface LoggerLike {
-  info: (message: string, meta?: LoggerMetadata) => void;
-  error: (message: string, meta?: LoggerMetadata) => void;
-  warn: (message: string, meta?: LoggerMetadata) => void;
-  debug: (message: string, meta?: LoggerMetadata) => void;
+  info: (message: string, meta?: LoggerMetadata) => void
+  error: (message: string, meta?: LoggerMetadata) => void
+  warn: (message: string, meta?: LoggerMetadata) => void
+  debug: (message: string, meta?: LoggerMetadata) => void
 }
 
 type DeepPartial<Owner> = Owner extends Date
@@ -43,65 +43,65 @@ type DeepPartial<Owner> = Owner extends Date
     ? DeepPartial<Entry>[]
     : Owner extends object
       ? { [Key in keyof Owner]?: DeepPartial<Owner[Key]> }
-      : Owner;
+      : Owner
 
-type PacketOverride = DeepPartial<Packet>;
+type PacketOverride = DeepPartial<Packet>
 
 const createEntityData = function createEntityData() {
-  return { data: [], lastUpdate: 0, timeout: 0 };
-};
+  return { data: [], lastUpdate: 0, timeout: 0 }
+}
 
-export function createSocketClientStub(): SocketClient;
+export function createSocketClientStub(): SocketClient
 export function createSocketClientStub<T extends Partial<SocketClient>>(
-  overrides: T,
-): SocketClient & T;
+  overrides: T
+): SocketClient & T
 export function createSocketClientStub(overrides: Partial<SocketClient> = {}): SocketClient {
   const client: SocketClient = {
     Account: null,
     SteamAccount: [],
     beta_tester: false,
-    locale: "en",
+    locale: 'en',
     mmr: 0,
-    name: "test-user",
+    name: 'test-user',
     settings: [],
     steam32Id: null,
     stream_online: false,
     stream_start_date: null,
-    token: "test-token",
-  };
-  return Object.assign(client, overrides);
+    token: 'test-token',
+  }
+  return Object.assign(client, overrides)
 }
 
 export const createTwitchAccountStub = function createTwitchAccountStub(
-  overrides: Partial<TwitchAccount> = {},
+  overrides: Partial<TwitchAccount> = {}
 ): TwitchAccount {
   return {
-    access_token: "",
+    access_token: '',
     expires_at: null,
     expires_in: null,
     obtainment_timestamp: null,
-    providerAccountId: "test-channel",
-    refresh_token: "",
+    providerAccountId: 'test-channel',
+    refresh_token: '',
     requires_refresh: false,
     scope: null,
     ...overrides,
-  };
-};
+  }
+}
 
-export function createPacketStub(): Packet;
-export function createPacketStub<T extends PacketOverride>(overrides: T): Packet & T;
+export function createPacketStub(): Packet
+export function createPacketStub<T extends PacketOverride>(overrides: T): Packet & T
 export function createPacketStub(overrides: PacketOverride = {}): Packet {
   const packet: Packet = {
-    provider: { appid: 570, name: "Dota 2", timestamp: 0, version: 1 },
-  };
-  return Object.assign(packet, overrides);
+    provider: { appid: 570, name: 'Dota 2', timestamp: 0, version: 1 },
+  }
+  return Object.assign(packet, overrides)
 }
 
 export const createGsiHandlerStub = function createGsiHandlerStub(
   client: SocketClient,
-  overrides: Partial<GSIHandlerType> = {},
+  overrides: Partial<GSIHandlerType> = {}
 ): GSIHandlerType {
-  const completed = Promise.resolve();
+  const completed = Promise.resolve()
 
   return {
     addSecondsToNow: (seconds) => new Date(Date.now() + seconds * 1000),
@@ -110,23 +110,23 @@ export const createGsiHandlerStub = function createGsiHandlerStub(
     checkingEarlyDCWinner: false,
     client,
     closeBets: async () => {
-      await completed;
+      await completed
     },
     creatingSteamAccount: false,
     disable: () => {},
     disabled: false,
     emitBadgeUpdate: () => {},
     emitNotablePlayers: async () => {
-      await completed;
+      await completed
     },
     emitStreamersInMatch: async () => {
-      await completed;
+      await completed
     },
     emitWLUpdate: () => {},
     enable: () => {},
     endingBets: false,
     events: [],
-    getChannelId: () => client.Account?.providerAccountId ?? "",
+    getChannelId: () => client.Account?.providerAccountId ?? '',
     getMmr: () => client.mmr,
     getSteam32: () => client.steam32Id,
     getToken: () => client.token,
@@ -146,43 +146,43 @@ export const createGsiHandlerStub = function createGsiHandlerStub(
     },
     neutralItemTimer: {
       checkNeutralItems: async () => {
-        await completed;
+        await completed
       },
       reset: () => {},
     },
     noTpChatter: {},
     openBets: async () => {
-      await completed;
+      await completed
     },
     openTheBet: async () => {
-      await completed;
+      await completed
     },
     openingBets: false,
     resetClientState: async () => {
-      await completed;
+      await completed
     },
     setupOBSBlockers: async () => {
-      await completed;
+      await completed
     },
     treadsData: { manaAtLastToggle: 0, manaSaved: 0, treadToggles: 0 },
     updateSteam32Id: async () => {
-      await completed;
+      await completed
     },
     ...overrides,
-  };
-};
+  }
+}
 
 interface SharedUtilsMockOptions<Supabase, TwitchApi, AuthProvider> {
-  supabase: Supabase;
-  logger: LoggerLike;
-  getTwitchAPI?: () => Promise<TwitchApi>;
-  getAuthProvider?: () => AuthProvider;
-  checkBotStatus?: typeof checkBotStatus;
-  trackDisableReason?: typeof trackDisableReason;
-  trackResolveReason?: typeof trackResolveReason;
-  recordDisableNotification?: typeof recordDisableNotification;
-  resolveDisableNotifications?: typeof resolveDisableNotifications;
-  commandDisable?: typeof commandDisable;
+  supabase: Supabase
+  logger: LoggerLike
+  getTwitchAPI?: () => Promise<TwitchApi>
+  getAuthProvider?: () => AuthProvider
+  checkBotStatus?: typeof checkBotStatus
+  trackDisableReason?: typeof trackDisableReason
+  trackResolveReason?: typeof trackResolveReason
+  recordDisableNotification?: typeof recordDisableNotification
+  resolveDisableNotifications?: typeof resolveDisableNotifications
+  commandDisable?: typeof commandDisable
 }
 
 export const buildSharedUtilsMock = function buildSharedUtilsMock<
@@ -199,12 +199,12 @@ export const buildSharedUtilsMock = function buildSharedUtilsMock<
       recordNotification: async () => {},
     },
     default: opts.supabase,
-    fetchConduitId: async () => await Promise.resolve(""),
+    fetchConduitId: async () => await Promise.resolve(''),
     getAuthProvider: opts.getAuthProvider ?? (() => ({})),
     getSupabaseClient: () => opts.supabase,
     getTwitchAPI: opts.getTwitchAPI ?? (async () => await Promise.resolve({})),
     getTwitchHeaders: () => ({}),
-    getTwitchTokens: async () => await Promise.resolve({ access_token: "", refresh_token: "" }),
+    getTwitchTokens: async () => await Promise.resolve({ access_token: '', refresh_token: '' }),
     hasTokens: () => true,
     logger: opts.logger,
     recordDisableNotification: opts.recordDisableNotification ?? (async () => {}),
@@ -213,21 +213,21 @@ export const buildSharedUtilsMock = function buildSharedUtilsMock<
     trackDisableReason: opts.trackDisableReason ?? (async () => {}),
     trackResolveReason: opts.trackResolveReason ?? (async () => {}),
     updateConduitShard: async () => {},
-  };
-};
+  }
+}
 
 // Initialize i18next with the real English translation file so handlers that
 // call `t()` emit real strings (not the key) in test output. Idempotent so
 // multiple harnesses can call this safely.
 export const initTestI18n = async function initTestI18n() {
-  const i18nextModule = await import("i18next");
-  const translationModule = await import("../../locales/en/translation.json");
-  const i18next = i18nextModule.default;
-  const enTranslation = translationModule.default;
+  const i18nextModule = await import('i18next')
+  const translationModule = await import('../../locales/en/translation.json')
+  const i18next = i18nextModule.default
+  const enTranslation = translationModule.default
   if (!i18next.isInitialized) {
     await i18next.init({
-      fallbackLng: "en",
-      lng: "en",
+      fallbackLng: 'en',
+      lng: 'en',
       // Mirror the production runtime config (dota/src/dota/index.ts). With
       // returnEmptyString:false an empty i18next plural variant falls back to
       // the base key instead of resolving to "". This matters because the
@@ -239,34 +239,34 @@ export const initTestI18n = async function initTestI18n() {
       resources: { en: { translation: enTranslation } },
       returnEmptyString: false,
       returnNull: false,
-    });
-    return;
+    })
+    return
   }
   // i18next is a global singleton shared by every test file in the run. Another
   // file may have initialized it with a narrower resource set (e.g.
   // translationMessageFormat.test.ts), which would leave handlers here emitting
   // raw keys like "aegis.expired". Merge the full English bundle back in so
   // `t()` resolves real strings regardless of bun's file-execution order.
-  i18next.addResourceBundle("en", "translation", enTranslation, true, true);
+  i18next.addResourceBundle('en', 'translation', enTranslation, true, true)
   // Re-assert the prod options too: a prior initializer may have created the
   // singleton without them (see the narrow init in translationMessageFormat.test.ts).
-  i18next.options.returnEmptyString = false;
-  i18next.options.returnNull = false;
-};
+  i18next.options.returnEmptyString = false
+  i18next.options.returnNull = false
+}
 
 // A Pro subscription bypasses `canAccessFeature` gates everywhere settings/
 // chatters are checked. Tests that want to focus on dispatch/handler logic
 // (not billing) attach this to `client.subscription`.
 export const PRO_SUB = {
-  id: "sub-1",
+  id: 'sub-1',
   isGift: false,
-  status: "ACTIVE",
-  tier: "PRO",
-} satisfies NonNullable<SocketClient["subscription"]>;
+  status: 'ACTIVE',
+  tier: 'PRO',
+} satisfies NonNullable<SocketClient['subscription']>
 
 // Drain microtasks queued by fire-and-forget async handlers. `events.emit`
 // is synchronous, but handlers (and the `.then()` chains they spawn) run on
 // the microtask/macrotask queue — one macrotask boundary is enough.
 export const flushAsync = async () => {
-  await sleep(0);
-};
+  await sleep(0)
+}

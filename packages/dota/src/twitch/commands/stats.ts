@@ -1,15 +1,15 @@
-import { logger } from "@dotabod/shared-utils";
-import { t } from "i18next";
+import { logger } from '@dotabod/shared-utils'
+import { t } from 'i18next'
 
-import { getHeroNameOrColor } from "../../dota/lib/heroes";
-import { isSpectator } from "../../dota/lib/is-spectator";
-import { DBSettings } from "../../settings";
-import { findRealtimePlayer, getRealtimeStats } from "../../steam/realtime-stats";
-import type { SocketClient } from "../../types";
-import CustomError from "../../utils/custom-error";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import { profileLink } from "./profile-link";
+import { getHeroNameOrColor } from '../../dota/lib/heroes'
+import { isSpectator } from '../../dota/lib/is-spectator'
+import { DBSettings } from '../../settings'
+import { findRealtimePlayer, getRealtimeStats } from '../../steam/realtime-stats'
+import type { SocketClient } from '../../types'
+import CustomError from '../../utils/custom-error'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import { profileLink } from './profile-link'
 
 const getRealtimeStatsOrThrow = async function getRealtimeStatsOrThrow({
   client,
@@ -17,10 +17,10 @@ const getRealtimeStatsOrThrow = async function getRealtimeStatsOrThrow({
   matchId,
   token,
 }: {
-  client: SocketClient;
-  locale: string;
-  matchId?: string;
-  token: string;
+  client: SocketClient
+  locale: string
+  matchId?: string
+  token: string
 }): Promise<Awaited<ReturnType<typeof getRealtimeStats>>> {
   try {
     return await getRealtimeStats({
@@ -28,19 +28,19 @@ const getRealtimeStatsOrThrow = async function getRealtimeStatsOrThrow({
       forceRefetchAll: true,
       locale,
       token,
-    });
+    })
   } catch (error) {
-    logger.error("Error getting stats", {
+    logger.error('Error getting stats', {
       error,
-      match_id: matchId ?? "",
+      match_id: matchId ?? '',
       token,
-    });
+    })
     if (error instanceof CustomError) {
-      throw error;
+      throw error
     }
-    throw new CustomError(t("gameNotFound", { lng: locale }));
+    throw new CustomError(t('gameNotFound', { lng: locale }))
   }
-};
+}
 
 const getStats = async function getStats({
   client,
@@ -49,19 +49,19 @@ const getStats = async function getStats({
   locale,
   command,
 }: {
-  client: SocketClient;
-  token: string;
-  args: string[];
-  locale: string;
-  command: string;
+  client: SocketClient
+  token: string
+  args: string[]
+  locale: string
+  command: string
 }) {
-  const packet = client.gsi;
+  const packet = client.gsi
   const { accountIdFromArgs, hero, player, playerIdx } = await profileLink({
     args,
     client,
     command,
     locale,
-  });
+  })
 
   if (!isSpectator(packet)) {
     const delayedData = await getRealtimeStatsOrThrow({
@@ -69,11 +69,11 @@ const getStats = async function getStats({
       locale,
       matchId: packet?.map?.matchid,
       token,
-    });
+    })
 
-    const playerData = findRealtimePlayer(delayedData, accountIdFromArgs, playerIdx);
+    const playerData = findRealtimePlayer(delayedData, accountIdFromArgs, playerIdx)
     if (!playerData) {
-      throw new CustomError(t("missingMatchData", { emote: "PauseChamp", lng: locale }));
+      throw new CustomError(t('missingMatchData', { emote: 'PauseChamp', lng: locale }))
     }
 
     return {
@@ -84,14 +84,14 @@ const getStats = async function getStats({
       lasthits: playerData.lh_count,
       level: playerData.level,
       net_worth: playerData.net_worth,
-    };
+    }
   }
 
-  const playerData = player && "last_hits" in player ? player : undefined;
-  const heroData = hero && "level" in hero ? hero : undefined;
+  const playerData = player && 'last_hits' in player ? player : undefined
+  const heroData = hero && 'level' in hero ? hero : undefined
 
   if (!playerData || !heroData) {
-    throw new CustomError(t("matchData8500", { emote: "PoroSad", lng: locale }));
+    throw new CustomError(t('matchData8500', { emote: 'PoroSad', lng: locale }))
   }
 
   return {
@@ -102,25 +102,25 @@ const getStats = async function getStats({
     lasthits: playerData.last_hits,
     level: heroData.level,
     net_worth: playerData.net_worth,
-  };
-};
+  }
+}
 
-commandHandler.registerCommand("stats", {
-  aliases: ["stat", "kda", "lh", "gold", "networth", "level"],
+commandHandler.registerCommand('stats', {
+  aliases: ['stat', 'kda', 'lh', 'gold', 'networth', 'level'],
   dbkey: DBSettings.commandItems,
   handler: async (message, args, command) => {
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
 
-    const currentMatchId = client.gsi?.map?.matchid;
+    const currentMatchId = client.gsi?.map?.matchid
     if (currentMatchId === undefined || currentMatchId.length === 0) {
       chatClient.say(
         channel,
-        t("notPlaying", { emote: "PauseChamp", lng: message.channel.client.locale }),
-        message.user.messageId,
-      );
-      return;
+        t('notPlaying', { emote: 'PauseChamp', lng: message.channel.client.locale }),
+        message.user.messageId
+      )
+      return
     }
 
     try {
@@ -130,22 +130,21 @@ commandHandler.registerCommand("stats", {
         command,
         locale: client.locale,
         token: client.token,
-      });
-      const isSpec = isSpectator(client.gsi);
-      let msg = t("heroStats", {
+      })
+      const isSpec = isSpectator(client.gsi)
+      let msg = t('heroStats', {
         ...stats,
         lng: client.locale,
-      });
+      })
       if (!isSpec) {
-        msg = `${t("2mdelay", { lng: client.locale })} ${msg}`;
+        msg = `${t('2mdelay', { lng: client.locale })} ${msg}`
       }
 
-      chatClient.say(client.name, msg, message.user.messageId);
+      chatClient.say(client.name, msg, message.user.messageId)
     } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : t("gameNotFound", { lng: client.locale });
-      chatClient.say(client.name, msg, message.user.messageId);
+      const msg = error instanceof Error ? error.message : t('gameNotFound', { lng: client.locale })
+      chatClient.say(client.name, msg, message.user.messageId)
     }
   },
   onlyOnline: true,
-});
+})

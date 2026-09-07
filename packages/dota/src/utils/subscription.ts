@@ -1,23 +1,23 @@
-import type { Database } from "@dotabod/shared-utils";
+import type { Database } from '@dotabod/shared-utils'
 
-import type { ChatterSettingKeys, SettingKeys } from "../types/settings";
-import { isSubscriptionActive, SUBSCRIPTION_TIERS } from "../types/subscription";
-import type { SubscriptionRow } from "../types/subscription";
+import type { ChatterSettingKeys, SettingKeys } from '../types/settings'
+import { isSubscriptionActive, SUBSCRIPTION_TIERS } from '../types/subscription'
+import type { SubscriptionRow } from '../types/subscription'
 
-const TIER_LEVELS: Record<Database["public"]["Enums"]["SubscriptionTier"], number> = {
+const TIER_LEVELS: Record<Database['public']['Enums']['SubscriptionTier'], number> = {
   [SUBSCRIPTION_TIERS.FREE]: 0,
   [SUBSCRIPTION_TIERS.PRO]: 1,
-};
+}
 const FEATURE_TIERS: Record<
   SettingKeys | ChatterSettingKeys,
-  Database["public"]["Enums"]["SubscriptionTier"]
+  Database['public']['Enums']['SubscriptionTier']
 > = {
   advancedBets: SUBSCRIPTION_TIERS.PRO,
   discardZeroBets: SUBSCRIPTION_TIERS.PRO,
   // Free Tier Features
-  "minimap-blocker": SUBSCRIPTION_TIERS.FREE,
+  'minimap-blocker': SUBSCRIPTION_TIERS.FREE,
   chatter: SUBSCRIPTION_TIERS.FREE,
-  "only-block-ranked": SUBSCRIPTION_TIERS.PRO,
+  'only-block-ranked': SUBSCRIPTION_TIERS.PRO,
   commandCommands: SUBSCRIPTION_TIERS.FREE,
   commandMmr: SUBSCRIPTION_TIERS.FREE,
   commandDisable: SUBSCRIPTION_TIERS.FREE,
@@ -31,7 +31,7 @@ const FEATURE_TIERS: Record<
   commandMute: SUBSCRIPTION_TIERS.FREE,
   commandPing: SUBSCRIPTION_TIERS.FREE,
   commandDotabod: SUBSCRIPTION_TIERS.FREE,
-  "mmr-tracker": SUBSCRIPTION_TIERS.FREE,
+  'mmr-tracker': SUBSCRIPTION_TIERS.FREE,
 
   commandWon: SUBSCRIPTION_TIERS.FREE,
   commandLost: SUBSCRIPTION_TIERS.FREE,
@@ -47,7 +47,7 @@ const FEATURE_TIERS: Record<
 
   // Pro Tier Features
   bets: SUBSCRIPTION_TIERS.PRO,
-  "picks-blocker": SUBSCRIPTION_TIERS.PRO,
+  'picks-blocker': SUBSCRIPTION_TIERS.PRO,
   rosh: SUBSCRIPTION_TIERS.PRO,
   commandDelay: SUBSCRIPTION_TIERS.PRO,
   commandOnline: SUBSCRIPTION_TIERS.FREE,
@@ -56,24 +56,24 @@ const FEATURE_TIERS: Record<
   wlStatsStartDate: SUBSCRIPTION_TIERS.FREE,
   commandRanked: SUBSCRIPTION_TIERS.FREE,
   commandRosh: SUBSCRIPTION_TIERS.PRO,
-  "chatters.midas": SUBSCRIPTION_TIERS.PRO,
-  "chatters.pause": SUBSCRIPTION_TIERS.FREE,
-  "chatters.smoke": SUBSCRIPTION_TIERS.FREE,
-  "chatters.passiveDeath": SUBSCRIPTION_TIERS.PRO,
-  "chatters.roshPickup": SUBSCRIPTION_TIERS.PRO,
-  "chatters.roshDeny": SUBSCRIPTION_TIERS.PRO,
-  "chatters.roshanKilled": SUBSCRIPTION_TIERS.PRO,
-  "chatters.tip": SUBSCRIPTION_TIERS.FREE,
-  "chatters.bounties": SUBSCRIPTION_TIERS.FREE,
-  "chatters.powerTreads": SUBSCRIPTION_TIERS.PRO,
-  "chatters.killstreak": SUBSCRIPTION_TIERS.FREE,
-  "chatters.firstBloodDeath": SUBSCRIPTION_TIERS.PRO,
-  "chatters.noTp": SUBSCRIPTION_TIERS.FREE,
-  "chatters.matchOutcome": SUBSCRIPTION_TIERS.FREE,
-  "chatters.commandsReady": SUBSCRIPTION_TIERS.FREE,
-  "chatters.neutralItems": SUBSCRIPTION_TIERS.PRO,
-  "chatters.dotapatch": SUBSCRIPTION_TIERS.FREE,
-  "chatters.chattingSpamEmote": SUBSCRIPTION_TIERS.FREE,
+  'chatters.midas': SUBSCRIPTION_TIERS.PRO,
+  'chatters.pause': SUBSCRIPTION_TIERS.FREE,
+  'chatters.smoke': SUBSCRIPTION_TIERS.FREE,
+  'chatters.passiveDeath': SUBSCRIPTION_TIERS.PRO,
+  'chatters.roshPickup': SUBSCRIPTION_TIERS.PRO,
+  'chatters.roshDeny': SUBSCRIPTION_TIERS.PRO,
+  'chatters.roshanKilled': SUBSCRIPTION_TIERS.PRO,
+  'chatters.tip': SUBSCRIPTION_TIERS.FREE,
+  'chatters.bounties': SUBSCRIPTION_TIERS.FREE,
+  'chatters.powerTreads': SUBSCRIPTION_TIERS.PRO,
+  'chatters.killstreak': SUBSCRIPTION_TIERS.FREE,
+  'chatters.firstBloodDeath': SUBSCRIPTION_TIERS.PRO,
+  'chatters.noTp': SUBSCRIPTION_TIERS.FREE,
+  'chatters.matchOutcome': SUBSCRIPTION_TIERS.FREE,
+  'chatters.commandsReady': SUBSCRIPTION_TIERS.FREE,
+  'chatters.neutralItems': SUBSCRIPTION_TIERS.PRO,
+  'chatters.dotapatch': SUBSCRIPTION_TIERS.FREE,
+  'chatters.chattingSpamEmote': SUBSCRIPTION_TIERS.FREE,
   autoOptInNewFeatures: SUBSCRIPTION_TIERS.FREE,
   cosmeticsAnnounce: SUBSCRIPTION_TIERS.FREE,
   smokeActivated: SUBSCRIPTION_TIERS.FREE,
@@ -82,11 +82,11 @@ const FEATURE_TIERS: Record<
   customMmr: SUBSCRIPTION_TIERS.PRO,
   tellChatNewMMR: SUBSCRIPTION_TIERS.FREE,
   tellChatBets: SUBSCRIPTION_TIERS.PRO,
-  "obs-scene-switcher": SUBSCRIPTION_TIERS.PRO,
+  'obs-scene-switcher': SUBSCRIPTION_TIERS.PRO,
   streamDelay: SUBSCRIPTION_TIERS.PRO,
   livePolls: SUBSCRIPTION_TIERS.PRO,
-  "minimap-simple": SUBSCRIPTION_TIERS.PRO,
-  "minimap-xl": SUBSCRIPTION_TIERS.FREE,
+  'minimap-simple': SUBSCRIPTION_TIERS.PRO,
+  'minimap-xl': SUBSCRIPTION_TIERS.FREE,
   notablePlayersOverlay: SUBSCRIPTION_TIERS.PRO,
   notablePlayersOverlayFlags: SUBSCRIPTION_TIERS.PRO,
   notablePlayersOverlayFlagsCmd: SUBSCRIPTION_TIERS.PRO,
@@ -133,21 +133,21 @@ const FEATURE_TIERS: Record<
   autoTranslate: SUBSCRIPTION_TIERS.PRO,
   translationLanguage: SUBSCRIPTION_TIERS.PRO,
   onlyParty: SUBSCRIPTION_TIERS.PRO,
-  "obs-dc": SUBSCRIPTION_TIERS.PRO,
-  "obs-minimap": SUBSCRIPTION_TIERS.PRO,
-  "obs-picks": SUBSCRIPTION_TIERS.PRO,
+  'obs-dc': SUBSCRIPTION_TIERS.PRO,
+  'obs-minimap': SUBSCRIPTION_TIERS.PRO,
+  'obs-picks': SUBSCRIPTION_TIERS.PRO,
   queueBlockerFindMatchText: SUBSCRIPTION_TIERS.PRO,
   winProbabilityOverlayIntervalMinutes: SUBSCRIPTION_TIERS.PRO,
-  "minimap-opacity": SUBSCRIPTION_TIERS.PRO,
+  'minimap-opacity': SUBSCRIPTION_TIERS.PRO,
   showGiftAlerts: SUBSCRIPTION_TIERS.FREE,
   lastFmRefreshRate: SUBSCRIPTION_TIERS.PRO,
   disableAutoClipping: SUBSCRIPTION_TIERS.FREE,
   crypto_payment_interest: SUBSCRIPTION_TIERS.FREE,
   translateOnOverlay: SUBSCRIPTION_TIERS.PRO,
   autoCommandsOnMatchStart: SUBSCRIPTION_TIERS.PRO,
-} as const;
+} as const
 
-export type FeatureTier = keyof typeof FEATURE_TIERS;
+export type FeatureTier = keyof typeof FEATURE_TIERS
 
 // Add new mapping for generic features
 const GENERIC_FEATURE_TIERS = {
@@ -156,43 +156,43 @@ const GENERIC_FEATURE_TIERS = {
   autoModerator: SUBSCRIPTION_TIERS.PRO,
   autoOBS: SUBSCRIPTION_TIERS.PRO,
   managers: SUBSCRIPTION_TIERS.PRO,
-} as const;
+} as const
 
-export type GenericFeature = keyof typeof GENERIC_FEATURE_TIERS;
+export type GenericFeature = keyof typeof GENERIC_FEATURE_TIERS
 
 export const getRequiredTier = function getRequiredTier(
-  feature?: string,
-): Database["public"]["Enums"]["SubscriptionTier"] {
+  feature?: string
+): Database['public']['Enums']['SubscriptionTier'] {
   if (feature === undefined || feature.length === 0) {
-    return SUBSCRIPTION_TIERS.PRO;
+    return SUBSCRIPTION_TIERS.PRO
   }
 
   return (
     FEATURE_TIERS[feature as FeatureTier] ||
     GENERIC_FEATURE_TIERS[feature as GenericFeature] ||
     SUBSCRIPTION_TIERS.PRO
-  );
-};
+  )
+}
 
 // Add helper to check if a key is a chatter key
 export const isChatterKey = function isChatterKey(key: string): boolean {
-  return key.startsWith("chatters.");
-};
+  return key.startsWith('chatters.')
+}
 
-const GRACE_PERIOD_END = new Date("2025-04-30T23:59:59.999Z");
+const GRACE_PERIOD_END = new Date('2025-04-30T23:59:59.999Z')
 
 // Add a function to check if we're in the grace period
 export const isInGracePeriod = function isInGracePeriod(): boolean {
-  return new Date() < GRACE_PERIOD_END;
-};
+  return new Date() < GRACE_PERIOD_END
+}
 
 // Update canAccessFeature to handle chatter keys
 export const canAccessFeature = function canAccessFeature(
   feature: FeatureTier | GenericFeature,
-  subscription: SubscriptionRow | null | undefined,
-): { hasAccess: boolean; requiredTier: Database["public"]["Enums"]["SubscriptionTier"] } {
-  const requiredTier = getRequiredTier(feature);
-  const isFreeFeature = requiredTier === SUBSCRIPTION_TIERS.FREE;
+  subscription: SubscriptionRow | null | undefined
+): { hasAccess: boolean; requiredTier: Database['public']['Enums']['SubscriptionTier'] } {
+  const requiredTier = getRequiredTier(feature)
+  const isFreeFeature = requiredTier === SUBSCRIPTION_TIERS.FREE
 
   // Check if we're in the grace period (before April 30, 2025)
   // Grant Pro access to all users during this period
@@ -201,21 +201,21 @@ export const canAccessFeature = function canAccessFeature(
       // All features are accessible during grace period
       hasAccess: true,
       requiredTier,
-    };
+    }
   }
 
   if (isFreeFeature) {
     return {
       hasAccess: true,
       requiredTier,
-    };
+    }
   }
 
   if (!subscription?.tier) {
     return {
       hasAccess: false,
       requiredTier,
-    };
+    }
   }
 
   // Return early if feature is free or subscription is invalid
@@ -223,12 +223,12 @@ export const canAccessFeature = function canAccessFeature(
     return {
       hasAccess: isFreeFeature,
       requiredTier,
-    };
+    }
   }
 
   // Check if subscription tier level meets required tier level
   return {
     hasAccess: TIER_LEVELS[subscription.tier] >= TIER_LEVELS[requiredTier],
     requiredTier,
-  };
-};
+  }
+}

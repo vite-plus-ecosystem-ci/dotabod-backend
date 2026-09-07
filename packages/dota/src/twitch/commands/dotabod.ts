@@ -1,19 +1,19 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
 
-commandHandler.registerCommand("dotabod", {
+commandHandler.registerCommand('dotabod', {
   handler: (message: MessageType) => {
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
 
     chatClient.say(
       channel,
-      t("dotabod", { author: "@techleed ", lng: client.locale, url: "dotabod.com" }),
-      message.user.messageId,
-    );
+      t('dotabod', { author: '@techleed ', lng: client.locale, url: 'dotabod.com' }),
+      message.user.messageId
+    )
   },
-});
+})

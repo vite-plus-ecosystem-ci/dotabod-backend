@@ -1,8 +1,8 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-import { steamSocket } from "../../steam/ws";
-import { DotaGcTeam } from "../../types";
-import type { MatchClosingDetailsResponse } from "../../types";
+import { steamSocket } from '../../steam/ws'
+import { DotaGcTeam } from '../../types'
+import type { MatchClosingDetailsResponse } from '../../types'
 
 const matchPlayerSchema = z.object({
   account_id: z.number(),
@@ -12,7 +12,7 @@ const matchPlayerSchema = z.object({
   kills: z.number(),
   player_slot: z.number(),
   team_number: z.enum(DotaGcTeam),
-});
+})
 
 const matchMinimalSchema = z.object({
   dire_score: z.number(),
@@ -23,18 +23,18 @@ const matchMinimalSchema = z.object({
   }),
   players: z.array(matchPlayerSchema),
   radiant_score: z.number(),
-});
+})
 
 const matchMinimalDetailsResponseSchema = z.object({
   matches: z.array(matchMinimalSchema),
-});
+})
 
 export const getSteamMatchDetails = async function getSteamMatchDetails(
-  matchId: string,
+  matchId: string
 ): Promise<MatchClosingDetailsResponse> {
-  const response: unknown = await steamSocket.emitWithAck("getMatchMinimalDetails", {
+  const response: unknown = await steamSocket.emitWithAck('getMatchMinimalDetails', {
     match_id: Number(matchId),
-  });
-  const parsed = matchMinimalDetailsResponseSchema.parse(response);
-  return { matches: parsed.matches };
-};
+  })
+  const parsed = matchMinimalDetailsResponseSchema.parse(response)
+  return { matches: parsed.matches }
+}

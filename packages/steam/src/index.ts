@@ -1,87 +1,87 @@
-import { startHeartbeat } from "@dotabod/shared-utils";
-import type { Socket } from "socket.io";
+import { startHeartbeat } from '@dotabod/shared-utils'
+import type { Socket } from 'socket.io'
 
-import { initSpectatorProtobuff } from "./init-spectator-protobuff";
-import { getSocketIoServer } from "./socket-server";
-import Dota, { GetRealTimeStats } from "./steam";
-import type { MatchMinimalDetailsResponse } from "./types/match-minimal-details";
-import { logger } from "./utils/logger";
+import { initSpectatorProtobuff } from './init-spectator-protobuff'
+import { getSocketIoServer } from './socket-server'
+import Dota, { GetRealTimeStats } from './steam'
+import type { MatchMinimalDetailsResponse } from './types/match-minimal-details'
+import { logger } from './utils/logger'
 
-process.on("SIGTERM", () => process.exit(0));
-process.on("SIGINT", () => process.exit(0));
+process.on('SIGTERM', () => process.exit(0))
+process.on('SIGINT', () => process.exit(0))
 
-let _hasDotabodSocket = false;
-let isConnectedToSteam = false;
+let _hasDotabodSocket = false
+let isConnectedToSteam = false
 
-initSpectatorProtobuff();
+initSpectatorProtobuff()
 
-const socketIoServer = getSocketIoServer();
+const socketIoServer = getSocketIoServer()
 
 // Report liveness to the Uptime Kuma push monitor
-startHeartbeat();
+startHeartbeat()
 
 // Report whether the connection to the Steam/Dota game coordinator is live (separate monitor)
 startHeartbeat({
   debounceMs: 90_000,
   getStatus: () => ({
-    msg: isConnectedToSteam ? "connected" : "steam gc disconnected",
+    msg: isConnectedToSteam ? 'connected' : 'steam gc disconnected',
     up: isConnectedToSteam,
   }),
-  name: "steam gc heartbeat",
+  name: 'steam gc heartbeat',
   url: process.env.KUMA_PUSH_URL_GC,
-});
+})
 
-const dota = Dota.getInstance();
-dota.dota2.on("ready", () => {
-  logger.info("[SERVER] Connected to dota game server");
-  isConnectedToSteam = true;
-});
-dota.dota2.on("unready", () => {
-  logger.info("[SERVER] Disconnected from dota game server");
-  isConnectedToSteam = false;
-});
+const dota = Dota.getInstance()
+dota.dota2.on('ready', () => {
+  logger.info('[SERVER] Connected to dota game server')
+  isConnectedToSteam = true
+})
+dota.dota2.on('unready', () => {
+  logger.info('[SERVER] Disconnected from dota game server')
+  isConnectedToSteam = false
+})
 
-type callback = (err: string | null, response: unknown) => void;
+type callback = (err: string | null, response: unknown) => void
 
 const getErrorMessage = function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-};
+  return error instanceof Error ? error.message : String(error)
+}
 
 // Store active sockets with cleanup capability
-const activeSockets = new Set();
+const activeSockets = new Set()
 
-socketIoServer.on("connection", (socket) => {
-  console.log("Found a connection!");
+socketIoServer.on('connection', (socket) => {
+  console.log('Found a connection!')
 
-  activeSockets.add(socket);
+  activeSockets.add(socket)
 
   // Cleanup function
   const cleanupSocket = (sock: Socket) => {
-    activeSockets.delete(sock);
-    _hasDotabodSocket = activeSockets.size > 0;
-    sock.removeAllListeners();
-    sock.disconnect(true);
-  };
-
-  try {
-    void socket.join("steam");
-    _hasDotabodSocket = true;
-  } catch {
-    console.log("Could not join steam socket");
-    cleanupSocket(socket);
-    return;
+    activeSockets.delete(sock)
+    _hasDotabodSocket = activeSockets.size > 0
+    sock.removeAllListeners()
+    sock.disconnect(true)
   }
 
-  socket.on("disconnect", () => {
-    console.log("disconnect");
-    console.log('We lost the server! Respond to all messages with "server offline"');
-    cleanupSocket(socket);
-  });
+  try {
+    void socket.join('steam')
+    _hasDotabodSocket = true
+  } catch {
+    console.log('Could not join steam socket')
+    cleanupSocket(socket)
+    return
+  }
 
-  socket.on("error", (error) => {
-    console.error("Socket error:", error);
-    cleanupSocket(socket);
-  });
+  socket.on('disconnect', () => {
+    console.log('disconnect')
+    console.log('We lost the server! Respond to all messages with "server offline"')
+    cleanupSocket(socket)
+  })
+
+  socket.on('error', (error) => {
+    console.error('Socket error:', error)
+    cleanupSocket(socket)
+  })
 
   // Add timeout for long-running operations (e.g., 30 seconds)
   const withTimeout = async <T>(fn: Promise<T>, timeoutMs = 30_000): Promise<T> =>
@@ -89,120 +89,120 @@ socketIoServer.on("connection", (socket) => {
       fn,
       new Promise<never>((_, reject) =>
         setTimeout(() => {
-          reject(new Error("Operation timed out"));
-        }, timeoutMs),
+          reject(new Error('Operation timed out'))
+        }, timeoutMs)
       ),
-    ]);
+    ])
 
-  socket.on("getVersion", (ack: (commitHash: string | null) => void) => {
-    ack(process.env.COMMIT_HASH ?? null);
-  });
+  socket.on('getVersion', (ack: (commitHash: string | null) => void) => {
+    ack(process.env.COMMIT_HASH ?? null)
+  })
 
-  socket.on("getCards", async (accountIds: number[], refetchCards: boolean, callback: callback) => {
+  socket.on('getCards', async (accountIds: number[], refetchCards: boolean, callback: callback) => {
     if (!isConnectedToSteam) {
-      logger.error("[STEAM] Error getting cards, not connected to steam", {
+      logger.error('[STEAM] Error getting cards, not connected to steam', {
         accountIds,
         refetchCards,
-      });
-      callback("Steam not connected", null);
-      return;
+      })
+      callback('Steam not connected', null)
+      return
     }
     try {
-      const result = await withTimeout(dota.getCards(accountIds, refetchCards));
-      callback(null, result);
+      const result = await withTimeout(dota.getCards(accountIds, refetchCards))
+      callback(null, result)
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      logger.error("[STEAM] Error getting cards", {
+      const errorMessage = getErrorMessage(error)
+      logger.error('[STEAM] Error getting cards', {
         accountIds,
         error: errorMessage,
         errorAll: error,
         refetchCards,
-      });
-      callback(errorMessage, null);
+      })
+      callback(errorMessage, null)
     }
-  });
+  })
 
-  socket.on("getCard", async (accountId: number, callback: callback) => {
+  socket.on('getCard', async (accountId: number, callback: callback) => {
     if (!isConnectedToSteam) {
-      callback("Steam not connected", null);
-      return;
+      callback('Steam not connected', null)
+      return
     }
     try {
-      const result = await withTimeout(dota.getCard(accountId));
-      callback(null, result);
+      const result = await withTimeout(dota.getCard(accountId))
+      callback(null, result)
     } catch (error) {
-      callback(getErrorMessage(error), null);
+      callback(getErrorMessage(error), null)
     }
-  });
+  })
 
-  socket.on("getPlayerSummaries", async (accountIds: number[], callback: callback) => {
+  socket.on('getPlayerSummaries', async (accountIds: number[], callback: callback) => {
     if (!isConnectedToSteam) {
-      callback("Steam not connected", null);
-      return;
+      callback('Steam not connected', null)
+      return
     }
     try {
-      const result = await withTimeout(dota.getPlayerSummaries(accountIds));
-      callback(null, result);
+      const result = await withTimeout(dota.getPlayerSummaries(accountIds))
+      callback(null, result)
     } catch (error) {
-      callback(getErrorMessage(error), null);
+      callback(getErrorMessage(error), null)
     }
-  });
+  })
 
   // PRESERVED — gated, not dead. Caller (dota's saveMatchData) is behind ENABLE_SPECTATE_FRIEND_GAME.
   // See memory `keep-spectate-friend-path`. Re-enable + test once bot-friend management exists.
-  socket.on("getUserSteamServer", async (steam32Id: number, callback: callback) => {
+  socket.on('getUserSteamServer', async (steam32Id: number, callback: callback) => {
     if (!isConnectedToSteam) {
-      logger.error("[STEAM] Error getting user steam server, not connected to steam", {
+      logger.error('[STEAM] Error getting user steam server, not connected to steam', {
         steam32Id,
-      });
-      callback("Steam not connected", null);
-      return;
+      })
+      callback('Steam not connected', null)
+      return
     }
     try {
-      const result = await withTimeout(dota.getUserSteamServer(steam32Id));
-      logger.info("[STEAM] Got user steam server", { result, steam32Id });
-      callback(null, result);
+      const result = await withTimeout(dota.getUserSteamServer(steam32Id))
+      logger.info('[STEAM] Got user steam server', { result, steam32Id })
+      callback(null, result)
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      logger.error("[STEAM] Error getting user steam server, unknown error", {
+      const errorMessage = getErrorMessage(error)
+      logger.error('[STEAM] Error getting user steam server, unknown error', {
         caughtError: error,
         error: errorMessage,
         steam32Id,
-      });
-      callback(errorMessage, null);
+      })
+      callback(errorMessage, null)
     }
-  });
+  })
 
   socket.on(
-    "getRealTimeStats",
+    'getRealTimeStats',
     async (data: Parameters<typeof GetRealTimeStats>[0], callback: callback) => {
       if (!isConnectedToSteam) {
-        callback("Steam not connected", null);
-        return;
+        callback('Steam not connected', null)
+        return
       }
       try {
-        const result = await withTimeout(GetRealTimeStats(data));
-        callback(null, result);
+        const result = await withTimeout(GetRealTimeStats(data))
+        callback(null, result)
       } catch (error) {
-        callback(getErrorMessage(error), null);
+        callback(getErrorMessage(error), null)
       }
-    },
-  );
+    }
+  )
 
-  socket.on("getMatchMinimalDetails", async (data: { match_id: number }, callback: callback) => {
+  socket.on('getMatchMinimalDetails', async (data: { match_id: number }, callback: callback) => {
     if (!isConnectedToSteam) {
-      callback("Steam not connected", null);
-      return;
+      callback('Steam not connected', null)
+      return
     }
     try {
       const response: MatchMinimalDetailsResponse = await withTimeout(
-        dota.requestMatchMinimalDetails([data.match_id]),
-      );
-      callback(null, response);
+        dota.requestMatchMinimalDetails([data.match_id])
+      )
+      callback(null, response)
     } catch (error) {
-      callback(getErrorMessage(error), null);
+      callback(getErrorMessage(error), null)
     }
-  });
-});
+  })
+})
 
-export default socketIoServer;
+export default socketIoServer

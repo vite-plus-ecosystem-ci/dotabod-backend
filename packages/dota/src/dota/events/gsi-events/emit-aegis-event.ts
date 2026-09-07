@@ -1,29 +1,29 @@
-import { getValueOrDefault } from "../../../settings";
-import type { SocketClient } from "../../../types";
-import { settingsKeys as DBSettings } from "../../../types/settings";
-import { server } from "../../server";
-import type { AegisRes } from "./aegis-res";
-import { getNewAegisTime } from "./get-new-aegis-time";
+import { getValueOrDefault } from '../../../settings'
+import type { SocketClient } from '../../../types'
+import { settingsKeys as DBSettings } from '../../../types/settings'
+import { server } from '../../server'
+import type { AegisRes } from './aegis-res'
+import { getNewAegisTime } from './get-new-aegis-time'
 
 export const emitAegisEvent = function emitAegisEvent(
   res: AegisRes,
   token: string,
-  client: SocketClient,
+  client: SocketClient
 ) {
-  res = getNewAegisTime(res);
+  res = getNewAegisTime(res)
   if (res.expireS <= 0) {
-    return;
+    return
   }
 
-  const tellChatAegis = getValueOrDefault(DBSettings.aegis, client.settings, client.subscription);
+  const tellChatAegis = getValueOrDefault(DBSettings.aegis, client.settings, client.subscription)
   if (!tellChatAegis) {
-    return;
+    return
   }
 
   const {
     eventPlayerId: _eventPlayerId,
     holderKillCountAtPickup: _holderKillCountAtPickup,
     ...socketPayload
-  } = res;
-  server.io.to(token).emit("aegis-picked-up", socketPayload);
-};
+  } = res
+  server.io.to(token).emit('aegis-picked-up', socketPayload)
+}

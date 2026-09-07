@@ -1,39 +1,39 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { DotaEventTypes } from "../../../types";
-import type { TipEvent } from "../../../types";
-import { getRedisNumberValue, is8500Plus } from "../../../utils/index";
-import { getHeroNameOrColor } from "../../lib/heroes";
-import { isPlayingMatch } from "../../lib/is-playing-match";
-import { MatchDataService } from "../../lib/matchData";
-import { say } from "../../say";
-import eventHandler from "../event-handler";
+import { DotaEventTypes } from '../../../types'
+import type { TipEvent } from '../../../types'
+import { getRedisNumberValue, is8500Plus } from '../../../utils/index'
+import { getHeroNameOrColor } from '../../lib/heroes'
+import { isPlayingMatch } from '../../lib/is-playing-match'
+import { MatchDataService } from '../../lib/matchData'
+import { say } from '../../say'
+import eventHandler from '../event-handler'
 
 eventHandler.registerEvent(`event:${DotaEventTypes.Tip}`, {
   handler: async (dotaClient, event: TipEvent) => {
     if (!dotaClient.client.stream_online) {
-      return;
+      return
     }
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      return;
+      return
     }
 
-    const roster = await new MatchDataService(dotaClient.client).resolveRoster();
-    const { players } = roster;
+    const roster = await new MatchDataService(dotaClient.client).resolveRoster()
+    const { players } = roster
 
     // tip events carry sender_player_id / receiver_player_id, NOT player_id —
     // the fallback must use those, or the index becomes undefined and tips break.
-    const senderFoundIndex = players.findIndex((p) => p.slot === event.sender_player_id);
-    const senderPlayerIdIndex = senderFoundIndex === -1 ? event.sender_player_id : senderFoundIndex;
+    const senderFoundIndex = players.findIndex((p) => p.slot === event.sender_player_id)
+    const senderPlayerIdIndex = senderFoundIndex === -1 ? event.sender_player_id : senderFoundIndex
 
-    const receiverFoundIndex = players.findIndex((p) => p.slot === event.receiver_player_id);
+    const receiverFoundIndex = players.findIndex((p) => p.slot === event.receiver_player_id)
     const receiverPlayerIdIndex =
-      receiverFoundIndex === -1 ? event.receiver_player_id : receiverFoundIndex;
+      receiverFoundIndex === -1 ? event.receiver_player_id : receiverFoundIndex
     // sub-8500 may use the player-slot color; 8500+ only names a hero when we
     // positively matched the player by `slot` in the roster — see
     // event.aegis_picked_up for the pattern.
-    const high = is8500Plus(dotaClient.client);
-    const senderHeroId = players[senderPlayerIdIndex]?.heroId;
+    const high = is8500Plus(dotaClient.client)
+    const senderHeroId = players[senderPlayerIdIndex]?.heroId
     const heroName = high
       ? senderFoundIndex !== -1 &&
         senderHeroId !== null &&
@@ -42,29 +42,29 @@ eventHandler.registerEvent(`event:${DotaEventTypes.Tip}`, {
         !Number.isNaN(senderHeroId)
         ? getHeroNameOrColor(senderHeroId, senderPlayerIdIndex)
         : null
-      : getHeroNameOrColor(senderHeroId ?? 0, senderPlayerIdIndex);
+      : getHeroNameOrColor(senderHeroId ?? 0, senderPlayerIdIndex)
 
-    const playingHeroSlot = await getRedisNumberValue(`${dotaClient.getToken()}:playingHeroSlot`);
+    const playingHeroSlot = await getRedisNumberValue(`${dotaClient.getToken()}:playingHeroSlot`)
 
     if (receiverPlayerIdIndex === playingHeroSlot) {
       say(
         dotaClient.client,
         heroName !== null && heroName.length > 0
-          ? t("tip.from", {
-              emote: "ICANT",
+          ? t('tip.from', {
+              emote: 'ICANT',
               heroName,
               lng: dotaClient.client.locale,
             })
-          : t("tip.fromUnknown", {
-              emote: "ICANT",
+          : t('tip.fromUnknown', {
+              emote: 'ICANT',
               lng: dotaClient.client.locale,
             }),
-        { chattersKey: "tip" },
-      );
+        { chattersKey: 'tip' }
+      )
     }
 
     if (senderPlayerIdIndex === playingHeroSlot) {
-      const receiverHeroId = players[receiverPlayerIdIndex]?.heroId;
+      const receiverHeroId = players[receiverPlayerIdIndex]?.heroId
       const toHero = high
         ? receiverFoundIndex !== -1 &&
           receiverHeroId !== null &&
@@ -73,22 +73,22 @@ eventHandler.registerEvent(`event:${DotaEventTypes.Tip}`, {
           !Number.isNaN(receiverHeroId)
           ? getHeroNameOrColor(receiverHeroId, receiverPlayerIdIndex)
           : null
-        : getHeroNameOrColor(receiverHeroId ?? 0, receiverPlayerIdIndex);
+        : getHeroNameOrColor(receiverHeroId ?? 0, receiverPlayerIdIndex)
 
       say(
         dotaClient.client,
         toHero !== null && toHero.length > 0
-          ? t("tip.to", {
-              emote: "PepeLaugh",
+          ? t('tip.to', {
+              emote: 'PepeLaugh',
               heroName: toHero,
               lng: dotaClient.client.locale,
             })
-          : t("tip.toUnknown", {
-              emote: "PepeLaugh",
+          : t('tip.toUnknown', {
+              emote: 'PepeLaugh',
               lng: dotaClient.client.locale,
             }),
-        { chattersKey: "tip" },
-      );
+        { chattersKey: 'tip' }
+      )
     }
   },
-});
+})

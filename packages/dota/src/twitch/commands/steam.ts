@@ -1,33 +1,33 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { DBSettings } from "../../settings";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
+import { DBSettings } from '../../settings'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
 
-commandHandler.registerCommand("steam", {
-  aliases: ["steamid", "account"],
+commandHandler.registerCommand('steam', {
+  aliases: ['steamid', 'account'],
   dbkey: DBSettings.commandSteam,
   handler: (message: MessageType) => {
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
 
     if (client.steam32Id !== null && client.steam32Id !== 0) {
-      chatClient.say(channel, `steamid.xyz/${client.steam32Id.toString()}`, message.user.messageId);
-      return;
+      chatClient.say(channel, `steamid.xyz/${client.steam32Id.toString()}`, message.user.messageId)
+      return
     }
 
     chatClient.say(
       channel,
       message.channel.client.multiAccount !== undefined && message.channel.client.multiAccount !== 0
-        ? t("multiAccount", {
+        ? t('multiAccount', {
             lng: message.channel.client.locale,
-            url: "dotabod.com/dashboard/features",
+            url: 'dotabod.com/dashboard/features',
           })
-        : t("unknownSteam", { lng: message.channel.client.locale }),
-      message.user.messageId,
-    );
+        : t('unknownSteam', { lng: message.channel.client.locale }),
+      message.user.messageId
+    )
   },
   permission: 2,
-});
+})

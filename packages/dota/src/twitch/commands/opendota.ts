@@ -1,33 +1,33 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { getHeroNameOrColor } from "../../dota/lib/heroes";
-import { DBSettings } from "../../settings";
-import { dotabodProfileUrl } from "../../utils/index";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
-import { getDotabodProfileUrl } from "../lib/get-dotabod-profile";
-import { profileLink } from "./profile-link";
+import { getHeroNameOrColor } from '../../dota/lib/heroes'
+import { DBSettings } from '../../settings'
+import { dotabodProfileUrl } from '../../utils/index'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
+import { getDotabodProfileUrl } from '../lib/get-dotabod-profile'
+import { profileLink } from './profile-link'
 
-commandHandler.registerCommand("opendota", {
+commandHandler.registerCommand('opendota', {
   dbkey: DBSettings.commandOpendota,
   handler: async (message: MessageType, args: string[], command) => {
     const {
       channel: { name: channelName, client: channelClient },
-    } = message;
+    } = message
 
     try {
       if (!args.length) {
         chatClient.say(
           channelName,
-          t("profileUrl", {
+          t('profileUrl', {
             channel: channelClient.name,
             lng: channelClient.locale,
             url: dotabodProfileUrl(channelClient.name),
           }),
-          message.user.messageId,
-        );
-        return;
+          message.user.messageId
+        )
+        return
       }
 
       const { hero, playerIdx, player } = await profileLink({
@@ -35,25 +35,25 @@ commandHandler.registerCommand("opendota", {
         client: channelClient,
         command,
         locale: channelClient.locale,
-      });
+      })
 
       if (player?.accountid !== null && player?.accountid !== undefined && player.accountid !== 0) {
-        const url = await getDotabodProfileUrl(channelClient, Number(player.accountid));
+        const url = await getDotabodProfileUrl(channelClient, Number(player.accountid))
         if (url === null || url.length === 0) {
           chatClient.say(
             channelName,
-            t("dotabodProfileNotFound", {
+            t('dotabodProfileNotFound', {
               lng: channelClient.locale,
               player: getHeroNameOrColor(hero?.id ?? 0, playerIdx),
             }),
-            message.user.messageId,
-          );
-          return;
+            message.user.messageId
+          )
+          return
         }
 
         chatClient.say(
           channelName,
-          t("profileUrl", {
+          t('profileUrl', {
             channel:
               Number(player?.accountid) === channelClient.steam32Id
                 ? channelClient.name
@@ -61,17 +61,17 @@ commandHandler.registerCommand("opendota", {
             lng: channelClient.locale,
             url,
           }),
-          message.user.messageId,
-        );
+          message.user.messageId
+        )
       }
     } catch (error) {
       chatClient.say(
         message.channel.name,
         error instanceof Error
           ? error.message
-          : t("gameNotFound", { lng: message.channel.client.locale }),
-        message.user.messageId,
-      );
+          : t('gameNotFound', { lng: message.channel.client.locale }),
+        message.user.messageId
+      )
     }
   },
-});
+})

@@ -1,8 +1,8 @@
-import { getAuthProvider } from "@dotabod/shared-utils";
+import { getAuthProvider } from '@dotabod/shared-utils'
 
-import type { SocketClient } from "../types";
-import { deleteRedisData } from "./gsi-handler";
-import { gsiHandlers, twitchIdToToken, twitchNameToToken } from "./lib/consts";
+import type { SocketClient } from '../types'
+import { deleteRedisData } from './gsi-handler'
+import { gsiHandlers, twitchIdToToken, twitchNameToToken } from './lib/consts'
 
 // Tear down all in-memory caches for a user.
 //
@@ -14,30 +14,30 @@ import { gsiHandlers, twitchIdToToken, twitchNameToToken } from "./lib/consts";
 // the watcher's fast-path rejection. See packages/dota/src/db/watcher.ts.
 export const clearCacheForUser = async function clearCacheForUser(client?: SocketClient) {
   if (!client) {
-    return;
+    return
   }
 
   // Reset multiAccount explicitly
-  client.multiAccount = undefined;
+  client.multiAccount = undefined
 
   // mark the client as disabled while we cleanup everything
   // just so new items won't get added while we do this
-  const handler = gsiHandlers.get(client.token);
-  handler?.disable();
+  const handler = gsiHandlers.get(client.token)
+  handler?.disable()
   if (handler) {
-    handler.multiAccountRevalidatedAt = undefined;
+    handler.multiAccountRevalidatedAt = undefined
   }
 
-  const accountId = client.Account?.providerAccountId ?? "";
-  twitchIdToToken.delete(accountId);
-  twitchNameToToken.delete(client.name);
+  const accountId = client.Account?.providerAccountId ?? ''
+  twitchIdToToken.delete(accountId)
+  twitchNameToToken.delete(client.name)
 
-  const authProvider = getAuthProvider();
-  authProvider.removeUser(accountId);
+  const authProvider = getAuthProvider()
+  authProvider.removeUser(accountId)
 
-  await deleteRedisData(client);
+  await deleteRedisData(client)
 
-  gsiHandlers.delete(client.token);
+  gsiHandlers.delete(client.token)
 
-  return true;
-};
+  return true
+}

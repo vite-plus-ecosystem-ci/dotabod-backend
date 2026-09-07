@@ -1,79 +1,79 @@
-import { supabase } from "@dotabod/shared-utils";
-import { t } from "i18next";
+import { supabase } from '@dotabod/shared-utils'
+import { t } from 'i18next'
 
-import { ranks } from "../../dota/lib/consts";
-import { DBSettings, getValueOrDefault } from "../../settings";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
+import { ranks } from '../../dota/lib/consts'
+import { DBSettings, getValueOrDefault } from '../../settings'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
 
 // Extract unique rank titles and map them to their base tier values
-const rankTitles: Record<string, number> = {};
+const rankTitles: Record<string, number> = {}
 for (const rank of ranks) {
   // Extract base rank name without stars
-  const baseRank = rank.title.split("☆")[0].toLowerCase();
+  const baseRank = rank.title.split('☆')[0].toLowerCase()
   // Get first digit of the image which represents the medal tier
-  const medalTier = Number(rank.image[0]) * 10;
+  const medalTier = Number(rank.image[0]) * 10
 
   // Only add if not already in the map
   if (!rankTitles[baseRank]) {
-    rankTitles[baseRank] = medalTier;
+    rankTitles[baseRank] = medalTier
   }
 }
 
 // Add immortal (not in ranks array because it's special)
-rankTitles.immortal = 80;
+rankTitles.immortal = 80
 
-commandHandler.registerCommand("only", {
+commandHandler.registerCommand('only', {
   cooldown: 0,
   dbkey: DBSettings.commandOnly,
   handler: async (message: MessageType, args: string[]) => {
-    const disableCommands = ["off", "disable", "stop"];
+    const disableCommands = ['off', 'disable', 'stop']
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
 
     // Get current rank only settings
     const rankOnlySettings = getValueOrDefault(
       DBSettings.rankOnly,
       client.settings,
-      client.subscription,
-    );
+      client.subscription
+    )
 
     // If no args provided, show current status
     if (args.length === 0) {
       if (rankOnlySettings.enabled) {
-        const requiredRank = rankOnlySettings.minimumRank || "Herald";
+        const requiredRank = rankOnlySettings.minimumRank || 'Herald'
         chatClient.say(
           channel,
-          t("rankOnlyStatus", {
-            context: "enabled",
+          t('rankOnlyStatus', {
+            context: 'enabled',
             lng: message.channel.client.locale,
             rank: requiredRank,
-            url: "dotabod.com/verify",
+            url: 'dotabod.com/verify',
           }),
-          message.user.messageId,
-        );
+          message.user.messageId
+        )
       } else {
         chatClient.say(
           channel,
-          t("rankOnlyStatus", {
-            context: "disabled",
+          t('rankOnlyStatus', {
+            context: 'disabled',
             lng: message.channel.client.locale,
-            rank: "",
+            rank: '',
           }),
-          message.user.messageId,
-        );
+          message.user.messageId
+        )
       }
-      return;
+      return
     }
 
     // Handle disabling the mode
-    const rankArg = args[0].toLowerCase().trim();
+    const rankArg = args[0].toLowerCase().trim()
     if (disableCommands.includes(rankArg)) {
-      const userId = message.channel.client.token;
+      const userId = message.channel.client.token
 
-      await supabase.from("settings").upsert(
+      await supabase.from('settings').upsert(
         {
           key: DBSettings.rankOnly,
           updated_at: new Date().toISOString(),
@@ -84,27 +84,27 @@ commandHandler.registerCommand("only", {
           }),
         },
         {
-          onConflict: "userId, key",
-        },
-      );
+          onConflict: 'userId, key',
+        }
+      )
 
       chatClient.say(
         channel,
-        t("rankOnlyDisabled", { lng: message.channel.client.locale }),
-        message.user.messageId,
-      );
-      return;
+        t('rankOnlyDisabled', { lng: message.channel.client.locale }),
+        message.user.messageId
+      )
+      return
     }
 
-    let minimumRankTier = 0;
-    let minimumRank = "";
+    let minimumRankTier = 0
+    let minimumRank = ''
 
     // Check if it's a valid rank title
     for (const [title, tier] of Object.entries(rankTitles)) {
       if (rankArg.includes(title)) {
-        minimumRankTier = tier;
-        minimumRank = title.charAt(0).toUpperCase() + title.slice(1);
-        break;
+        minimumRankTier = tier
+        minimumRank = title.charAt(0).toUpperCase() + title.slice(1)
+        break
       }
     }
 
@@ -112,21 +112,21 @@ commandHandler.registerCommand("only", {
     if (minimumRankTier === 0) {
       const validRanks = Object.keys(rankTitles)
         .map((r) => r.charAt(0).toUpperCase() + r.slice(1))
-        .join(", ");
+        .join(', ')
 
       chatClient.say(
         channel,
-        t("rankOnlyInvalid", {
+        t('rankOnlyInvalid', {
           lng: message.channel.client.locale,
           validRanks,
         }),
-        message.user.messageId,
-      );
-      return;
+        message.user.messageId
+      )
+      return
     }
 
     // Update the settings
-    await supabase.from("settings").upsert(
+    await supabase.from('settings').upsert(
       {
         key: DBSettings.rankOnly,
         updated_at: new Date().toISOString(),
@@ -138,20 +138,20 @@ commandHandler.registerCommand("only", {
         }),
       },
       {
-        onConflict: "userId, key",
-      },
-    );
+        onConflict: 'userId, key',
+      }
+    )
 
     chatClient.say(
       channel,
-      t("rankOnlyEnabled", {
+      t('rankOnlyEnabled', {
         lng: message.channel.client.locale,
         rank: minimumRank,
-        url: "dotabod.com/verify",
+        url: 'dotabod.com/verify',
       }),
-      message.user.messageId,
-    );
+      message.user.messageId
+    )
   },
   // Mod or broadcaster only,
   permission: 2,
-});
+})

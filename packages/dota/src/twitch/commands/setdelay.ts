@@ -1,34 +1,34 @@
-import { supabase } from "@dotabod/shared-utils";
-import { t } from "i18next";
+import { supabase } from '@dotabod/shared-utils'
+import { t } from 'i18next'
 
-import { DBSettings } from "../../settings";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
+import { DBSettings } from '../../settings'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
 
-commandHandler.registerCommand("setdelay", {
-  aliases: ["delay=", "setstreamdelay", "streamdelay="],
+commandHandler.registerCommand('setdelay', {
+  aliases: ['delay=', 'setstreamdelay', 'streamdelay='],
   cooldown: 0,
   handler: async (message, args) => {
     if (Number.isNaN(Number(args[0]))) {
       chatClient.say(
         message.channel.name,
-        t("setStreamDelayNoArgs", {
+        t('setStreamDelayNoArgs', {
           lng: message.channel.client.locale,
         }),
-        message.user.messageId,
-      );
+        message.user.messageId
+      )
 
-      return;
+      return
     }
 
-    let delayInSeconds = Number(args[0]) || 0;
+    let delayInSeconds = Number(args[0]) || 0
     if (delayInSeconds > 3000) {
-      delayInSeconds = 3000;
+      delayInSeconds = 3000
     } else if (delayInSeconds < 0) {
-      delayInSeconds = 0;
+      delayInSeconds = 0
     }
 
-    await supabase.from("settings").upsert(
+    await supabase.from('settings').upsert(
       {
         key: DBSettings.streamDelay,
         updated_at: new Date().toISOString(),
@@ -36,22 +36,22 @@ commandHandler.registerCommand("setdelay", {
         value: delayInSeconds * 1000,
       },
       {
-        onConflict: "userId, key",
-      },
-    );
+        onConflict: 'userId, key',
+      }
+    )
 
     chatClient.say(
       message.channel.name,
       delayInSeconds
-        ? t("setStreamDelay", {
+        ? t('setStreamDelay', {
             lng: message.channel.client.locale,
             seconds: delayInSeconds,
           })
-        : t("setStreamDelayRemoved", {
+        : t('setStreamDelayRemoved', {
             lng: message.channel.client.locale,
           }),
-      message.user.messageId,
-    );
+      message.user.messageId
+    )
   },
   permission: 2,
-});
+})

@@ -1,55 +1,55 @@
-import RedisClient from "../../../db/redis-client";
-import { DotaEventTypes } from "../../../types";
-import type { RoshanKilledEvent } from "../../../types";
-import { fmtMSS, getRedisNumberValue } from "../../../utils/index";
-import { isPlayingMatch } from "../../lib/is-playing-match";
-import { say } from "../../say";
-import eventHandler from "../event-handler";
-import { emitRoshEvent, generateRoshanMessage } from "./rosh-res";
-import type { RoshRes } from "./rosh-res";
+import RedisClient from '../../../db/redis-client'
+import { DotaEventTypes } from '../../../types'
+import type { RoshanKilledEvent } from '../../../types'
+import { fmtMSS, getRedisNumberValue } from '../../../utils/index'
+import { isPlayingMatch } from '../../lib/is-playing-match'
+import { say } from '../../say'
+import eventHandler from '../event-handler'
+import { emitRoshEvent, generateRoshanMessage } from './rosh-res'
+import type { RoshRes } from './rosh-res'
 
 eventHandler.registerEvent(`event:${DotaEventTypes.RoshanKilled}`, {
   handler: async (dotaClient, event: RoshanKilledEvent) => {
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      return;
+      return
     }
     if (!dotaClient.client.stream_online) {
-      return;
+      return
     }
 
-    const redisClient = RedisClient.getInstance();
-    const matchId = await redisClient.client.get(`${dotaClient.getToken()}:matchId`);
+    const redisClient = RedisClient.getInstance()
+    const matchId = await redisClient.client.get(`${dotaClient.getToken()}:matchId`)
 
     const playingGameMode = await getRedisNumberValue(
-      `${matchId}:${dotaClient.getToken()}:gameMode`,
-    );
+      `${matchId}:${dotaClient.getToken()}:gameMode`
+    )
 
     // doing map gametime - event gametime in case the user reconnects to a match,
     // and the gametime is over the event gametime
     const gameTimeDiff =
-      (dotaClient.client.gsi?.map?.game_time ?? event.game_time) - event.game_time;
+      (dotaClient.client.gsi?.map?.game_time ?? event.game_time) - event.game_time
 
     // Roshan respawn window: 8 to 11 minutes after death (unchanged since patch 7.24)
     // minS = 8 minutes (480 seconds), maxS = 11 minutes (660 seconds)
-    let minS = 8 * 60 - gameTimeDiff;
-    let maxS = 11 * 60 - gameTimeDiff;
+    let minS = 8 * 60 - gameTimeDiff
+    let maxS = 11 * 60 - gameTimeDiff
 
     // Check if the game mode is Turbo (23)
     if (playingGameMode === 23) {
-      minS /= 2;
-      maxS /= 2;
+      minS /= 2
+      maxS /= 2
     }
 
-    const minTime = (dotaClient.client.gsi?.map?.clock_time ?? 0) + minS;
-    const maxTime = (dotaClient.client.gsi?.map?.clock_time ?? 0) + maxS;
+    const minTime = (dotaClient.client.gsi?.map?.clock_time ?? 0) + minS
+    const maxTime = (dotaClient.client.gsi?.map?.clock_time ?? 0) + maxS
 
     // server time
-    const minDate = dotaClient.addSecondsToNow(minS);
-    const maxDate = dotaClient.addSecondsToNow(maxS);
+    const minDate = dotaClient.addSecondsToNow(minS)
+    const maxDate = dotaClient.addSecondsToNow(maxS)
 
     // TODO: move this to a redis handler
-    const redisJson = await redisClient.getJson<RoshRes>(`${dotaClient.getToken()}:roshan`);
-    const count = redisJson ? redisJson.count : 0;
+    const redisJson = await redisClient.getJson<RoshRes>(`${dotaClient.getToken()}:roshan`)
+    const count = redisJson ? redisJson.count : 0
     const res = {
       count: count + 1,
       maxDate,
@@ -58,14 +58,14 @@ eventHandler.registerEvent(`event:${DotaEventTypes.RoshanKilled}`, {
       minDate,
       minS,
       minTime: fmtMSS(minTime),
-    };
+    }
 
-    await redisClient.setJson(`${dotaClient.getToken()}:roshan`, res);
+    await redisClient.setJson(`${dotaClient.getToken()}:roshan`, res)
 
     say(dotaClient.client, generateRoshanMessage(res, dotaClient.client.locale), {
-      chattersKey: "roshanKilled",
-    });
+      chattersKey: 'roshanKilled',
+    })
 
-    emitRoshEvent(res, dotaClient.getToken(), dotaClient.client);
+    emitRoshEvent(res, dotaClient.getToken(), dotaClient.client)
   },
-});
+})

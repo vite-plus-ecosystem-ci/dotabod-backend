@@ -1,19 +1,19 @@
-import type { HeroesStatus, Packet, Players } from "../../../../types";
-import type { RosterSource } from "../types";
+import type { HeroesStatus, Packet, Players } from '../../../../types'
+import type { RosterSource } from '../types'
 
 // Input passed to every resolver. Each resolver only needs the bits it cares about; the chain
 // constructs this once and passes it down.
 export interface ResolverContext {
-  gsi: Packet | undefined;
-  matchId: string | undefined;
+  gsi: Packet | undefined
+  matchId: string | undefined
 }
 
 // What a resolver returns when it claims the data. The legacy `Players` shape is preserved at this
 // layer so that `internal/normalize.ts` can do the single sentinel/NaN/coverage pass downstream.
 export interface RawRoster {
-  source: RosterSource;
-  matchPlayers: Players;
-  heroesStatus?: HeroesStatus;
+  source: RosterSource
+  matchPlayers: Players
+  heroesStatus?: HeroesStatus
 }
 
 // One subclass per data source. Each subclass:
@@ -22,6 +22,6 @@ export interface RawRoster {
 // The chain (`ResolverChain`) tries resolvers in priority order and stops at the first non-null.
 export abstract class RosterResolver {
   // 'vision' covers heroes + draft
-  abstract readonly name: RosterSource | "vision";
-  abstract resolve(ctx: ResolverContext): Promise<RawRoster | null>;
+  abstract readonly name: RosterSource | 'vision'
+  abstract resolve(ctx: ResolverContext): Promise<RawRoster | null>
 }

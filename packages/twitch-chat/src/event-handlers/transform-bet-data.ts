@@ -1,30 +1,30 @@
 interface PredictionTopPredictor {
-  user_name: string;
-  channel_points_used: number;
-  channel_points_won: number | null;
+  user_name: string
+  channel_points_used: number
+  channel_points_won: number | null
 }
 
 interface PredictionOutcome {
-  title: string;
-  channel_points?: number;
-  users?: number;
-  top_predictors?: PredictionTopPredictor[];
+  title: string
+  channel_points?: number
+  users?: number
+  top_predictors?: PredictionTopPredictor[]
 }
 
 interface PredictionEvent {
-  title: string;
-  locks_at?: string;
-  locked_at?: string;
-  ended_at?: string;
-  outcomes?: PredictionOutcome[];
+  title: string
+  locks_at?: string
+  locked_at?: string
+  ended_at?: string
+  outcomes?: PredictionOutcome[]
 }
 
 export const transformBetData = (event: PredictionEvent) => {
-  const rawDate = event.locks_at ?? event.locked_at ?? event.ended_at;
+  const rawDate = event.locks_at ?? event.locked_at ?? event.ended_at
   return {
-    endDate: rawDate !== undefined && rawDate.length > 0 ? new Date(rawDate) : "",
+    endDate: rawDate !== undefined && rawDate.length > 0 ? new Date(rawDate) : '',
     outcomes: event?.outcomes?.map((outcome) => {
-      const hasTopPredictors = "top_predictors" in outcome;
+      const hasTopPredictors = 'top_predictors' in outcome
 
       return {
         title: outcome.title,
@@ -37,8 +37,8 @@ export const transformBetData = (event: PredictionEvent) => {
           : undefined,
         totalUsers: hasTopPredictors ? outcome.users : undefined,
         totalVotes: hasTopPredictors ? outcome.channel_points : undefined,
-      };
+      }
     }),
     title: event.title,
-  };
-};
+  }
+}

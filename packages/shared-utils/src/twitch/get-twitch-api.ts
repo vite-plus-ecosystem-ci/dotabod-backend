@@ -1,11 +1,11 @@
-import { ApiClient } from "@twurple/api";
+import { ApiClient } from '@twurple/api'
 
-import { logger } from "../logger";
-import { getAuthProvider } from "./get-auth-provider";
-import { getTwitchTokens } from "./get-twitch-tokens";
+import { logger } from '../logger'
+import { getAuthProvider } from './get-auth-provider'
+import { getTwitchTokens } from './get-twitch-tokens'
 
 // Singleton instance of the API client
-let apiClient: ApiClient | null = null;
+let apiClient: ApiClient | null = null
 
 /**
  * Gets or creates a Twitch API client for the specified user
@@ -13,21 +13,21 @@ let apiClient: ApiClient | null = null;
  * @returns Twitch API client instance
  */
 export const getTwitchAPI = async (twitchId?: string): Promise<ApiClient> => {
-  const authProvider = getAuthProvider();
-  const lookupTwitchId = twitchId ?? process.env.TWITCH_BOT_PROVIDERID;
+  const authProvider = getAuthProvider()
+  const lookupTwitchId = twitchId ?? process.env.TWITCH_BOT_PROVIDERID
   if (lookupTwitchId === undefined || lookupTwitchId.length === 0) {
-    throw new Error("Missing Twitch user ID");
+    throw new Error('Missing Twitch user ID')
   }
 
   // Check if user is already in the auth provider
   try {
     if (!authProvider.hasUser(lookupTwitchId)) {
       // Get tokens for the user
-      const tokens = await getTwitchTokens(lookupTwitchId);
+      const tokens = await getTwitchTokens(lookupTwitchId)
 
       // Check if tokens exist
-      const accessToken = tokens?.access_token;
-      const refreshToken = tokens?.refresh_token;
+      const accessToken = tokens?.access_token
+      const refreshToken = tokens?.refresh_token
 
       if (
         accessToken === undefined ||
@@ -35,8 +35,8 @@ export const getTwitchAPI = async (twitchId?: string): Promise<ApiClient> => {
         refreshToken === undefined ||
         refreshToken.length === 0
       ) {
-        logger.info("[TWITCH] Missing tokens", { lookupTwitchId, twitchId });
-        throw new Error("Missing Twitch tokens");
+        logger.info('[TWITCH] Missing tokens', { lookupTwitchId, twitchId })
+        throw new Error('Missing Twitch tokens')
       }
 
       // Create token data object
@@ -48,26 +48,22 @@ export const getTwitchAPI = async (twitchId?: string): Promise<ApiClient> => {
             ? new Date(tokens.obtainment_timestamp).getTime()
             : Date.now(),
         refreshToken,
-        scope: tokens?.scope?.split(" ") ?? [],
-      };
+        scope: tokens?.scope?.split(' ') ?? [],
+      }
 
       // Add user to the auth provider
-      authProvider.addUser(lookupTwitchId, tokenData);
+      authProvider.addUser(lookupTwitchId, tokenData)
     }
   } catch (error) {
-    logger.error("[TWITCH] Error adding user to auth provider", {
-      error,
-      lookupTwitchId,
-      twitchId,
-    });
+    logger.error('[TWITCH] Error adding user to auth provider', { error, lookupTwitchId, twitchId })
   }
 
   // Create API client if it doesn't exist yet
   if (apiClient === null) {
-    apiClient = new ApiClient({ authProvider });
-    logger.info("[TWITCH] Created new API client", { twitchId: lookupTwitchId });
+    apiClient = new ApiClient({ authProvider })
+    logger.info('[TWITCH] Created new API client', { twitchId: lookupTwitchId })
   }
 
   // Return the API client
-  return apiClient;
-};
+  return apiClient
+}

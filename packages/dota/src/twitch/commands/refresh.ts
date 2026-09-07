@@ -1,24 +1,24 @@
-import { t } from "i18next";
+import { t } from 'i18next'
 
-import { server } from "../../dota/server";
-import { chatClient } from "../chat-client";
-import commandHandler from "../lib/command-handler";
-import type { MessageType } from "../lib/command-handler";
+import { server } from '../../dota/server'
+import { chatClient } from '../chat-client'
+import commandHandler from '../lib/command-handler'
+import type { MessageType } from '../lib/command-handler'
 
-commandHandler.registerCommand("refresh", {
+commandHandler.registerCommand('refresh', {
   handler: (message: MessageType) => {
     const {
       channel: { name: channel, client },
-    } = message;
+    } = message
     if (client.token) {
       chatClient.say(
         channel,
-        t("refresh", { lng: message.channel.client.locale }),
-        message.user.messageId,
-      );
-      server.io.to(client.token).emit("refresh");
+        t('refresh', { lng: message.channel.client.locale }),
+        message.user.messageId
+      )
+      server.io.to(client.token).emit('refresh')
     }
   },
 
   permission: 2,
-});
+})

@@ -1,129 +1,129 @@
-import "./events/gsi-event-loader";
-import { lstatSync, readdirSync } from "node:fs";
-import path, { join } from "node:path";
+import './events/gsi-event-loader'
+import { lstatSync, readdirSync } from 'node:fs'
+import path, { join } from 'node:path'
 
-import { logger } from "@dotabod/shared-utils";
-import chokidar from "chokidar";
-import i18next from "i18next";
-import FsBackend from "i18next-fs-backend";
-import type { FsBackendOptions } from "i18next-fs-backend";
+import { logger } from '@dotabod/shared-utils'
+import chokidar from 'chokidar'
+import i18next from 'i18next'
+import FsBackend from 'i18next-fs-backend'
+import type { FsBackendOptions } from 'i18next-fs-backend'
 
-import RedisClient from "../db/redis-client";
-import SetupSupabase from "../db/watcher";
-import GSIServer from "./gsi-server";
-import { rearmPersistedClips } from "./lib/clip-schedule";
-import { hydrateInvalidTokens } from "./lib/invalid-tokens";
-import { server } from "./server";
+import RedisClient from '../db/redis-client'
+import SetupSupabase from '../db/watcher'
+import GSIServer from './gsi-server'
+import { rearmPersistedClips } from './lib/clip-schedule'
+import { hydrateInvalidTokens } from './lib/invalid-tokens'
+import { server } from './server'
 
-logger.info("Starting 'dota' package");
+logger.info("Starting 'dota' package")
 
 const setupTranslations = async () => {
   await i18next.use(FsBackend).init<FsBackendOptions>({
     backend: {
-      loadPath: join("./locales/{{lng}}/{{ns}}.json"),
+      loadPath: join('./locales/{{lng}}/{{ns}}.json'),
     },
-    defaultNS: "translation",
-    fallbackLng: "en",
+    defaultNS: 'translation',
+    fallbackLng: 'en',
     initAsync: false,
-    lng: "en",
-    preload: readdirSync(join("./locales")).filter((fileName: string) => {
-      const joinedPath = join(join("./locales"), fileName);
-      const isDirectory = lstatSync(joinedPath).isDirectory();
-      return isDirectory;
+    lng: 'en',
+    preload: readdirSync(join('./locales')).filter((fileName: string) => {
+      const joinedPath = join(join('./locales'), fileName)
+      const isDirectory = lstatSync(joinedPath).isDirectory()
+      return isDirectory
     }),
     returnEmptyString: false,
     returnNull: false,
-  });
+  })
 
   chokidar
-    .watch("/app/packages/dota/locales/**/*.json", {
+    .watch('/app/packages/dota/locales/**/*.json', {
       ignoreInitial: true,
       interval: 5000,
       usePolling: true,
     })
-    .on("all", (_event, filePath) => {
-      logger.info("chokidar updated", { _event, filePath });
-      const parsedPath = path.parse(filePath);
-      const ns = parsedPath.name;
-      const lng = path.basename(parsedPath.dir);
+    .on('all', (_event, filePath) => {
+      logger.info('chokidar updated', { _event, filePath })
+      const parsedPath = path.parse(filePath)
+      const ns = parsedPath.name
+      const lng = path.basename(parsedPath.dir)
       i18next
         .reloadResources([lng], [ns])
         .then(() => {
-          logger.info("Translation reloaded", { filePath });
+          logger.info('Translation reloaded', { filePath })
         })
         .catch((error) => {
-          logger.info("Translation error on reloading", { error });
-        });
-    });
+          logger.info('Translation error on reloading', { error })
+        })
+    })
 
-  logger.info("Loaded translations");
-};
+  logger.info('Loaded translations')
+}
 
 const setupSupabaseWatcher = () => {
-  const supabaseWatcher = new SetupSupabase();
-  supabaseWatcher.init();
-  logger.info("Supabase watcher started");
-};
+  const supabaseWatcher = new SetupSupabase()
+  supabaseWatcher.init()
+  logger.info('Supabase watcher started')
+}
 
 const setupRedisClient = async () => {
-  const redisClient = RedisClient.getInstance();
-  logger.info("Redis client created");
-  await redisClient.connectClient();
-  logger.info("Redis client connected");
-  await redisClient.connectSubscriber();
-  logger.info("Redis subscriber connected");
+  const redisClient = RedisClient.getInstance()
+  logger.info('Redis client created')
+  await redisClient.connectClient()
+  logger.info('Redis client connected')
+  await redisClient.connectSubscriber()
+  logger.info('Redis subscriber connected')
 
   // Re-arm clip tasks that a restart dropped from the in-memory DelayedQueue.
-  await rearmPersistedClips();
+  await rearmPersistedClips()
 
   // Seed the in-memory invalidTokens cache from Redis so deploys don't re-spam
   // logs for the same population of stale GSI / Twitch tokens.
-  await hydrateInvalidTokens();
-};
+  await hydrateInvalidTokens()
+}
 
 const initServer = () => {
-  const gsiServer = new GSIServer();
-  gsiServer.init();
-  logger.info("GSIServer started");
-  server.setServer(gsiServer);
-  return gsiServer;
-};
+  const gsiServer = new GSIServer()
+  gsiServer.init()
+  logger.info('GSIServer started')
+  server.setServer(gsiServer)
+  return gsiServer
+}
 
 const main = async () => {
-  logger.info("Starting on", { env: process.env.DOTABOD_ENV });
+  logger.info('Starting on', { env: process.env.DOTABOD_ENV })
   try {
     // Run all setup functions in parallel
     const results = await Promise.allSettled([
       setupRedisClient(),
       setupTranslations(),
       Promise.resolve(setupSupabaseWatcher()),
-    ]);
+    ])
 
     // Check which promises failed
     results.forEach((result, index) => {
-      if (result.status === "rejected") {
-        const setupFunctions = ["Redis", "Translations", "Supabase"];
+      if (result.status === 'rejected') {
+        const setupFunctions = ['Redis', 'Translations', 'Supabase']
         logger.error(`${setupFunctions[index]} setup failed`, {
           reason: result.reason,
-        });
+        })
       }
-    });
+    })
   } catch (error) {
-    logger.error("Error in setup", { error });
+    logger.error('Error in setup', { error })
   }
 
-  return initServer();
-};
+  return initServer()
+}
 
 const logAndExit = (err: unknown) => {
-  logger.error("Unhandled error occurred. Exiting...", { error: err });
-  console.log(err);
-  process.exit(1);
-};
+  logger.error('Unhandled error occurred. Exiting...', { error: err })
+  console.log(err)
+  process.exit(1)
+}
 
 // Add event listeners to catch uncaught exceptions and unhandled rejections
-process.on("uncaughtException", logAndExit);
-process.on("unhandledRejection", logAndExit);
+process.on('uncaughtException', logAndExit)
+process.on('unhandledRejection', logAndExit)
 
 // Start the initialization but don't export the promise
-main().catch(logAndExit);
+main().catch(logAndExit)

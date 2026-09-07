@@ -11,48 +11,48 @@ version: 2
 # or not the ecosystem is configured, so they're declared here to keep those
 # grouped rather than one-PR-per-CVE.
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     groups:
       actions:
         applies-to: version-updates
-        patterns: ["*"]
+        patterns: ['*']
       actions-security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
 
   # `directories` + globstar, not `directory: '/'` — past security PRs came from
   # packages/dota as well as the root, and a root-only entry wouldn't group them.
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     directories:
-      - "/"
-      - "/packages/**"
+      - '/'
+      - '/packages/**'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 0
     groups:
       npm-security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
 
-  - package-ecosystem: "uv"
-    directory: "/packages/clip-processor-py"
+  - package-ecosystem: 'uv'
+    directory: '/packages/clip-processor-py'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 0
     groups:
       uv-security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
 
-  - package-ecosystem: "pip"
-    directory: "/packages/clip-processor-py"
+  - package-ecosystem: 'pip'
+    directory: '/packages/clip-processor-py'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 0
     groups:
       pip-security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']

@@ -1,7 +1,7 @@
-import { setTimeout as wait } from "node:timers/promises";
+import { setTimeout as wait } from 'node:timers/promises'
 
-import { logger } from "@dotabod/shared-utils";
-import { z } from "zod";
+import { logger } from '@dotabod/shared-utils'
+import { z } from 'zod'
 
 /**
  * Node / undici / node-fetch error codes for *connection-level* failures that
@@ -16,108 +16,108 @@ import { z } from "zod";
  * twurple's retry and reaches us — that's the gap this wrapper closes.
  */
 const TRANSIENT_NETWORK_CODES = new Set<string>([
-  "ERR_STREAM_PREMATURE_CLOSE",
-  "ECONNRESET",
-  "ECONNREFUSED",
-  "ETIMEDOUT",
-  "EPIPE",
-  "EAI_AGAIN",
-  "ENOTFOUND",
-  "UND_ERR_SOCKET",
-  "UND_ERR_CONNECT_TIMEOUT",
-  "UND_ERR_HEADERS_TIMEOUT",
-  "UND_ERR_BODY_TIMEOUT",
-]);
+  'ERR_STREAM_PREMATURE_CLOSE',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+  'EAI_AGAIN',
+  'ENOTFOUND',
+  'UND_ERR_SOCKET',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+])
 
 interface NetworkErrorDetails {
-  cause?: { code?: string };
-  code?: string;
-  message: string;
+  cause?: { code?: string }
+  code?: string
+  message: string
 }
 
-export type NetworkErrorInput = Error | null | string | undefined;
+export type NetworkErrorInput = Error | null | string | undefined
 
 const networkErrorSchema = z.object({
   cause: z.object({ code: z.string().optional() }).optional(),
   code: z.string().optional(),
   message: z.string(),
-});
+})
 
 const isParsedTransientNetworkError = function isParsedTransientNetworkError(
-  error: NetworkErrorDetails,
+  error: NetworkErrorDetails
 ): boolean {
-  const code = error.code ?? error.cause?.code;
+  const code = error.code ?? error.cause?.code
   if (code !== undefined && TRANSIENT_NETWORK_CODES.has(code)) {
-    return true;
+    return true
   }
   return (
-    error.message.includes("Premature close") ||
-    error.message.includes("socket hang up") ||
-    error.message.includes("network socket disconnected") ||
-    error.message.includes("other side closed")
-  );
-};
+    error.message.includes('Premature close') ||
+    error.message.includes('socket hang up') ||
+    error.message.includes('network socket disconnected') ||
+    error.message.includes('other side closed')
+  )
+}
 
 export const isTransientNetworkError = function isTransientNetworkError(
-  error: NetworkErrorInput,
+  error: NetworkErrorInput
 ): boolean {
-  const parsedError = networkErrorSchema.safeParse(error);
+  const parsedError = networkErrorSchema.safeParse(error)
   if (!parsedError.success) {
-    return false;
+    return false
   }
-  return isParsedTransientNetworkError(parsedError.data);
-};
+  return isParsedTransientNetworkError(parsedError.data)
+}
 
 interface RetryOptions {
   /** Extra attempts after the first (default 2 → up to 3 calls total). */
-  retries?: number;
+  retries?: number
   /** Base backoff in ms; doubles each attempt (default 250 → 250ms, then 500ms). */
-  baseDelayMs?: number;
+  baseDelayMs?: number
   /** Short label for the retry log line, e.g. `closeTwitchBet:getPredictions`. */
-  label?: string;
+  label?: string
 }
 
 interface RequiredRetryOptions {
-  baseDelayMs: number;
-  label?: string;
-  retries: number;
+  baseDelayMs: number
+  label?: string
+  retries: number
 }
 
 const retryTransientAttempt = async function retryTransientAttempt<T>(
   fn: () => Promise<T>,
   options: RequiredRetryOptions,
-  attempt: number,
+  attempt: number
 ): Promise<T> {
   try {
-    return await fn();
+    return await fn()
   } catch (error) {
-    const parsedError = networkErrorSchema.safeParse(error);
+    const parsedError = networkErrorSchema.safeParse(error)
     if (
       attempt >= options.retries ||
       !parsedError.success ||
       !isParsedTransientNetworkError(parsedError.data)
     ) {
-      throw error;
+      throw error
     }
 
-    const delayMs = options.baseDelayMs * 2 ** attempt;
-    logger.info("[TWITCH] Retrying after transient network error", {
+    const delayMs = options.baseDelayMs * 2 ** attempt
+    logger.info('[TWITCH] Retrying after transient network error', {
       attempt: attempt + 1,
       code: parsedError.data.code,
       delayMs,
       label: options.label,
       retries: options.retries,
-    });
+    })
     if (delayMs > 0) {
-      await wait(delayMs);
+      await wait(delayMs)
     }
-    return await retryTransientAttempt(fn, options, attempt + 1);
+    return await retryTransientAttempt(fn, options, attempt + 1)
   }
-};
+}
 
 export const retryTransient = async function retryTransient<T>(
   fn: () => Promise<T>,
-  { retries = 2, baseDelayMs = 250, label }: RetryOptions = {},
+  { retries = 2, baseDelayMs = 250, label }: RetryOptions = {}
 ): Promise<T> {
-  return await retryTransientAttempt(fn, { baseDelayMs, label, retries }, 0);
-};
+  return await retryTransientAttempt(fn, { baseDelayMs, label, retries }, 0)
+}

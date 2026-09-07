@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
   schedule:
     # Weekly check; extraction only runs when the icon set changed.
-    - cron: "40 6 * * 1"
+    - cron: '40 6 * * 1'
 
 permissions:
   contents: write
@@ -65,13 +65,13 @@ jobs:
         if: steps.scan.outputs.should_update == 'true'
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: '8.0.x'
 
       - name: Setup Python
         if: steps.scan.outputs.should_update == 'true'
         uses: actions/setup-python@v6
         with:
-          python-version: "3.x"
+          python-version: '3.x'
 
       - name: Free up disk + use /mnt for large downloads
         if: steps.scan.outputs.should_update == 'true'
@@ -99,7 +99,7 @@ jobs:
         if: steps.scan.outputs.should_update == 'true'
         uses: peter-evans/create-pull-request@v8.1.1
         with:
-          title: "chore(clip-vision): refresh in-game hero icon templates from VPK"
+          title: 'chore(clip-vision): refresh in-game hero icon templates from VPK'
           body: |
             Automated refresh of canonical in-game top-bar hero icons
             (including arcana/persona variants) extracted from the real Dota 2 VPK
@@ -111,7 +111,7 @@ jobs:
             - `templates_cache.npz` invalidated so templates recompute.
           base: ${{ env.BASE_BRANCH }}
           branch: ${{ env.UPDATE_BRANCH }}
-          commit-message: "chore(clip-vision): refresh VPK hero icon templates"
+          commit-message: 'chore(clip-vision): refresh VPK hero icon templates'
           delete-branch: true
           add-paths: |
             packages/clip-processor-py/assets/dota_heroes/*_icon*.png
