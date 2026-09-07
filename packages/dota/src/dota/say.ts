@@ -1,11 +1,11 @@
-import { t } from 'i18next'
+import { t } from "i18next";
 
-import { DBSettings, getValueOrDefault } from '../settings'
-import type { defaultSettings, SettingKeys } from '../settings'
-import { chatClient } from '../twitch/chat-client'
-import type { SocketClient } from '../types'
-import { getStreamDelay } from './get-stream-delay'
-import { delayedQueue } from './lib/delayed-queue'
+import { DBSettings, getValueOrDefault } from "../settings";
+import type { defaultSettings, SettingKeys } from "../settings";
+import { chatClient } from "../twitch/chat-client";
+import type { SocketClient } from "../types";
+import { getStreamDelay } from "./get-stream-delay";
+import { delayedQueue } from "./lib/delayed-queue";
 
 export const say = function say(
   client: SocketClient,
@@ -17,15 +17,15 @@ export const say = function say(
     beta = false,
     bypassDisableCheck = false,
   }: {
-    key?: SettingKeys
-    chattersKey?: keyof (typeof defaultSettings)['chatters']
-    delay?: boolean
-    beta?: boolean
-    bypassDisableCheck?: boolean
-  } = {}
+    key?: SettingKeys;
+    chattersKey?: keyof (typeof defaultSettings)["chatters"];
+    delay?: boolean;
+    beta?: boolean;
+    bypassDisableCheck?: boolean;
+  } = {},
 ) {
   if (beta && !client.beta_tester) {
-    return
+    return;
   }
 
   // Check if account is disabled - prevent all chat messages if disabled (unless bypassed)
@@ -33,10 +33,10 @@ export const say = function say(
     const isDisabled = getValueOrDefault(
       DBSettings.commandDisable,
       client.settings,
-      client.subscription
-    )
+      client.subscription,
+    );
     if (isDisabled) {
-      return
+      return;
     }
   }
 
@@ -44,15 +44,15 @@ export const say = function say(
   const chattersEnabled = getValueOrDefault(
     DBSettings.chatter,
     client.settings,
-    client.subscription
-  )
+    client.subscription,
+  );
   if (!chattersEnabled) {
-    return
+    return;
   }
 
   // Check specific feature access
   if (key !== undefined && !Boolean(getValueOrDefault(key, client.settings, client.subscription))) {
-    return
+    return;
   }
 
   // Check specific chatter access
@@ -61,26 +61,26 @@ export const say = function say(
       DBSettings.chatters,
       client.settings,
       client.subscription,
-      chattersKey
-    ) as (typeof defaultSettings)['chatters']
+      chattersKey,
+    ) as (typeof defaultSettings)["chatters"];
     if (!chatterSpecific[chattersKey].enabled) {
-      return
+      return;
     }
   }
 
-  const msg = beta ? `${message} ${t('betaFeature', { lng: client.locale })}` : message
+  const msg = beta ? `${message} ${t("betaFeature", { lng: client.locale })}` : message;
   if (!delay) {
-    chatClient.say(client.name, msg)
-    return
+    chatClient.say(client.name, msg);
+    return;
   }
 
   delayedQueue.addTask(
     getStreamDelay(client.settings, client.subscription),
     (payload) => {
       if (payload.clientName) {
-        chatClient.say(payload.clientName, payload.message)
+        chatClient.say(payload.clientName, payload.message);
       }
     },
-    { clientName: client.name, message: msg }
-  )
-}
+    { clientName: client.name, message: msg },
+  );
+};

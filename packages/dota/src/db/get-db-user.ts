@@ -1,92 +1,92 @@
-import { logger, supabase } from '@dotabod/shared-utils'
+import { logger, supabase } from "@dotabod/shared-utils";
 
-import { createGSIHandler } from '../dota/gsi-handler-factory'
-import findUser, { findUserByTwitchId } from '../dota/lib/connected-streamers'
+import { createGSIHandler } from "../dota/gsi-handler-factory";
+import findUser, { findUserByTwitchId } from "../dota/lib/connected-streamers";
 import {
   gsiHandlers,
   invalidTokens,
   lookingupToken,
   twitchIdToToken,
   twitchNameToToken,
-} from '../dota/lib/consts'
-import type { SocketClient } from '../types'
-import { isSubscriptionActive } from '../types/subscription'
-import type { SubscriptionRow } from '../types/subscription'
+} from "../dota/lib/consts";
+import type { SocketClient } from "../types";
+import { isSubscriptionActive } from "../types/subscription";
+import type { SubscriptionRow } from "../types/subscription";
 
 export default async function getDBUser({
   token,
   twitchId: providerAccountId,
   ip: _ip,
 }: {
-  token?: string
-  twitchId?: string
-  ip?: string
+  token?: string;
+  twitchId?: string;
+  ip?: string;
 } = {}): Promise<{
-  reason: string
-  result: SocketClient | null | undefined
+  reason: string;
+  result: SocketClient | null | undefined;
 }> {
-  const lookupToken = token ?? providerAccountId ?? ''
+  const lookupToken = token ?? providerAccountId ?? "";
 
   if (invalidTokens.has(lookupToken)) {
-    return { reason: 'Token is in invalidTokens set', result: null }
+    return { reason: "Token is in invalidTokens set", result: null };
   }
 
-  let client = findUser(token) ?? findUserByTwitchId(providerAccountId)
+  let client = findUser(token) ?? findUserByTwitchId(providerAccountId);
   if (client) {
-    lookingupToken.delete(lookupToken)
-    return { reason: 'Client found by token or twitchId', result: client }
+    lookingupToken.delete(lookupToken);
+    return { reason: "Client found by token or twitchId", result: client };
   }
 
   if (lookingupToken.has(lookupToken)) {
-    return { reason: 'Token is currently being looked up', result: null }
+    return { reason: "Token is currently being looked up", result: null };
   }
 
-  lookingupToken.set(lookupToken, true)
+  lookingupToken.set(lookupToken, true);
 
   if (!lookupToken) {
-    invalidTokens.add(lookupToken)
-    lookingupToken.delete(lookupToken)
-    return { reason: 'No lookup token provided', result: null }
+    invalidTokens.add(lookupToken);
+    lookingupToken.delete(lookupToken);
+    return { reason: "No lookup token provided", result: null };
   }
 
-  let userId = token === undefined || token.length === 0 ? null : token
+  let userId = token === undefined || token.length === 0 ? null : token;
   if (providerAccountId !== undefined && providerAccountId.length > 0) {
     const { data, error } = await supabase
-      .from('accounts')
-      .select('userId')
-      .eq('provider', 'twitch')
-      .eq('providerAccountId', providerAccountId)
-      .single()
-    userId = data?.userId ?? null
+      .from("accounts")
+      .select("userId")
+      .eq("provider", "twitch")
+      .eq("providerAccountId", providerAccountId)
+      .single();
+    userId = data?.userId ?? null;
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if (error.code === "PGRST116") {
         // Genuine "0 rows" (DB enforces uniqueness on provider+providerAccountId,
         // so >1 rows can't surface as PGRST116 here). Safe to persist for 24h.
-        invalidTokens.add(lookupToken)
+        invalidTokens.add(lookupToken);
       } else {
         // Transient DB error — log for observability but only cache in-memory
         // so recovery on next deploy doesn't require waiting out the 24h TTL.
-        logger.error('[USER] accounts lookup failed', { error, lookupToken, providerAccountId })
-        invalidTokens.addEphemeral(lookupToken)
+        logger.error("[USER] accounts lookup failed", { error, lookupToken, providerAccountId });
+        invalidTokens.addEphemeral(lookupToken);
       }
-      lookingupToken.delete(lookupToken)
+      lookingupToken.delete(lookupToken);
       return {
         reason: `Error looking up userId by providerAccountId: ${error.message}`,
         result: null,
-      }
+      };
     }
   }
 
   if (userId === null || userId.length === 0) {
-    invalidTokens.add(lookupToken)
-    lookingupToken.delete(lookupToken)
-    return { reason: 'No userId found', result: null }
+    invalidTokens.add(lookupToken);
+    lookingupToken.delete(lookupToken);
+    return { reason: "No userId found", result: null };
   }
 
   // Fetch user by `twitchId` and `token`
   const { data: user, error: userError } = await supabase
-    .from('users')
+    .from("users")
     .select(
       `
     id,
@@ -125,31 +125,31 @@ export default async function getDBUser({
       key,
       value
     )
-  `
+  `,
     )
-    .eq('id', userId)
-    .single()
+    .eq("id", userId)
+    .single();
 
   // Handle errors
   if (userError) {
-    if (userError.code === 'PGRST116') {
+    if (userError.code === "PGRST116") {
       // Genuine "0 rows" — user was deleted (users.id is the primary key so
       // >1 rows can't surface as PGRST116). Safe to persist for 24h.
-      invalidTokens.add(lookupToken)
+      invalidTokens.add(lookupToken);
     } else {
       // Transient DB error — log for observability but only cache in-memory.
-      logger.error('[USER] users lookup failed', { error: userError, lookupToken })
-      invalidTokens.addEphemeral(lookupToken)
+      logger.error("[USER] users lookup failed", { error: userError, lookupToken });
+      invalidTokens.addEphemeral(lookupToken);
     }
-    lookingupToken.delete(lookupToken)
-    return { reason: `Error fetching user from supabase: ${userError.message}`, result: null }
+    lookingupToken.delete(lookupToken);
+    return { reason: `Error fetching user from supabase: ${userError.message}`, result: null };
   }
 
   if (!user?.id) {
-    logger.info('Invalid token', { token: lookupToken })
-    invalidTokens.add(lookupToken)
-    lookingupToken.delete(lookupToken)
-    return { reason: 'No user or user.id found', result: null }
+    logger.info("Invalid token", { token: lookupToken });
+    invalidTokens.add(lookupToken);
+    lookingupToken.delete(lookupToken);
+    return { reason: "No user or user.id found", result: null };
   }
 
   // Hard gate: banned user. Persist in invalidTokens so subsequent GSI POSTs
@@ -157,39 +157,39 @@ export default async function getDBUser({
   // dota watcher's UPDATE:users handler adds to invalidTokens on the
   // null→set banned_at transition so a live ban is effective immediately.
   if (user.banned_at !== null && user.banned_at !== undefined && user.banned_at.length > 0) {
-    invalidTokens.add(lookupToken)
-    lookingupToken.delete(lookupToken)
-    return { reason: 'User is banned', result: null }
+    invalidTokens.add(lookupToken);
+    lookingupToken.delete(lookupToken);
+    return { reason: "User is banned", result: null };
   }
 
   // If they require a refresh, don't cache them
-  const Account = Array.isArray(user?.Account) ? user.Account[0] : user.Account
+  const Account = Array.isArray(user?.Account) ? user.Account[0] : user.Account;
   if (Account?.requires_refresh === true) {
-    invalidTokens.add(lookupToken)
-    lookingupToken.delete(lookupToken)
-    return { reason: 'Account requires refresh', result: null }
+    invalidTokens.add(lookupToken);
+    lookingupToken.delete(lookupToken);
+    return { reason: "Account requires refresh", result: null };
   }
 
-  client = findUser(user.id)
+  client = findUser(user.id);
   if (client) {
-    lookingupToken.delete(lookupToken)
-    return { reason: 'Client found by user.id', result: client }
+    lookingupToken.delete(lookupToken);
+    return { reason: "Client found by user.id", result: client };
   }
 
   if (Account === null || Account === undefined) {
-    logger.info('Invalid token missing Account??', { token: lookupToken })
-    invalidTokens.add(lookupToken)
-    lookingupToken.delete(lookupToken)
-    return { reason: 'No Account found', result: undefined }
+    logger.info("Invalid token missing Account??", { token: lookupToken });
+    invalidTokens.add(lookupToken);
+    lookingupToken.delete(lookupToken);
+    return { reason: "No Account found", result: undefined };
   }
-  let subscription: SocketClient['subscription'] | undefined
+  let subscription: SocketClient["subscription"] | undefined;
   if (Array.isArray(user.subscriptions) && user.subscriptions.length > 0) {
     const activeSubscription =
       user.subscriptions.find((sub: SubscriptionRow) => isSubscriptionActive(sub)) ??
-      user.subscriptions[0]
+      user.subscriptions[0];
     subscription = {
       ...activeSubscription,
-    }
+    };
   }
 
   const userInfo = {
@@ -199,7 +199,7 @@ export default async function getDBUser({
       obtainment_timestamp:
         Account.obtainment_timestamp === null ||
         Account.obtainment_timestamp === undefined ||
-        Account.obtainment_timestamp === ''
+        Account.obtainment_timestamp === ""
           ? null
           : new Date(Account.obtainment_timestamp),
       requires_refresh: Account.requires_refresh ?? false,
@@ -217,15 +217,15 @@ export default async function getDBUser({
         : new Date(user.stream_start_date),
     subscription,
     token: user.id,
-  }
+  };
 
-  const gsiHandler = gsiHandlers.get(userInfo.id) ?? createGSIHandler(userInfo)
-  gsiHandlers.set(userInfo.id, gsiHandler)
+  const gsiHandler = gsiHandlers.get(userInfo.id) ?? createGSIHandler(userInfo);
+  gsiHandlers.set(userInfo.id, gsiHandler);
 
-  twitchIdToToken.set(Account.providerAccountId, userInfo.id)
-  twitchNameToToken.set(userInfo.name.toLowerCase(), userInfo.id)
-  lookingupToken.delete(lookupToken)
-  invalidTokens.delete(userInfo.id)
+  twitchIdToToken.set(Account.providerAccountId, userInfo.id);
+  twitchNameToToken.set(userInfo.name.toLowerCase(), userInfo.id);
+  lookingupToken.delete(lookupToken);
+  invalidTokens.delete(userInfo.id);
 
-  return { reason: 'User successfully retrieved', result: userInfo }
+  return { reason: "User successfully retrieved", result: userInfo };
 }

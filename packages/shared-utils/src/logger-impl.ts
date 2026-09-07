@@ -1,45 +1,45 @@
-import { createLogger, format, transports } from 'winston'
+import { createLogger, format, transports } from "winston";
 
-const { combine, printf, errors, json, timestamp } = format
+const { combine, printf, errors, json, timestamp } = format;
 
 const handleErrors = format((info) => {
   if (info instanceof Error) {
-    return { ...info, stack: info.stack }
+    return { ...info, stack: info.stack };
   }
   if (info.e instanceof Error) {
-    return { ...info, 'e.stack': info.e.stack }
+    return { ...info, "e.stack": info.e.stack };
   }
   if (info.error instanceof Error) {
-    return { ...info, 'error.stack': info.error.stack }
+    return { ...info, "error.stack": info.error.stack };
   }
-  return info
-})
+  return info;
+});
 
 const customFormat = printf(
   ({ message, level, timestamp, ...rest }) =>
-    `[${String(timestamp)}] ${level}: ${String(message)}${Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : ''}`
-)
+    `[${String(timestamp)}] ${level}: ${String(message)}${Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : ""}`,
+);
 
 const prodFormats = combine(
   handleErrors(),
   errors({ stack: true }),
   timestamp(),
   json(),
-  customFormat
-)
+  customFormat,
+);
 
 const devFormats = combine(
   handleErrors(),
   errors({ stack: true }),
   json(),
   timestamp(),
-  customFormat
-)
+  customFormat,
+);
 
 export const createAppLogger = function createAppLogger() {
-  const isDev = process.env.DOTABOD_ENV === 'development'
+  const isDev = process.env.DOTABOD_ENV === "development";
   return createLogger({
     format: isDev ? devFormats : prodFormats,
     transports: [new transports.Console()],
-  })
-}
+  });
+};

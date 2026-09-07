@@ -1,28 +1,28 @@
 export const scheduleNonOverlapping = function scheduleNonOverlapping(
   fn: () => Promise<void>,
-  intervalMs: number
+  intervalMs: number,
 ): () => void {
-  let inFlight = false
+  let inFlight = false;
 
   const runTask = async function runTask(): Promise<void> {
-    inFlight = true
+    inFlight = true;
     try {
-      await fn()
+      await fn();
     } catch {
       // Task failures are isolated so later intervals can still run.
     } finally {
-      inFlight = false
+      inFlight = false;
     }
-  }
+  };
 
   const handle = setInterval(() => {
     if (inFlight) {
-      return
+      return;
     }
-    void runTask()
-  }, intervalMs)
+    void runTask();
+  }, intervalMs);
 
   return () => {
-    clearInterval(handle)
-  }
-}
+    clearInterval(handle);
+  };
+};

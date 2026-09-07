@@ -1,50 +1,50 @@
-import DOTA_AGHS from 'dotaconstants/build/aghs_desc.json' with { type: 'json' }
-import { t } from 'i18next'
-import { z } from 'zod'
+import DOTA_AGHS from "dotaconstants/build/aghs_desc.json" with { type: "json" };
+import { t } from "i18next";
+import { z } from "zod";
 
-import type { GSIHandlerType } from '../../dota/gsi-handler-types'
-import { gsiHandlers } from '../../dota/lib/consts'
-import { hasCurrentGameContext } from '../../dota/lib/get-current-match-id'
-import { getHeroById, getHeroNameOrColor, withHeroLink } from '../../dota/lib/heroes'
-import { DBSettings } from '../../settings'
-import { chatClient } from '../chat-client'
-import commandHandler from '../lib/command-handler'
-import { findAccountFromCmd } from '../lib/find-gsi-by-account-id'
+import type { GSIHandlerType } from "../../dota/gsi-handler-types";
+import { gsiHandlers } from "../../dota/lib/consts";
+import { hasCurrentGameContext } from "../../dota/lib/get-current-match-id";
+import { getHeroById, getHeroNameOrColor, withHeroLink } from "../../dota/lib/heroes";
+import { DBSettings } from "../../settings";
+import { chatClient } from "../chat-client";
+import commandHandler from "../lib/command-handler";
+import { findAccountFromCmd } from "../lib/find-gsi-by-account-id";
 
-const heroSchema = z.object({ id: z.number() })
+const heroSchema = z.object({ id: z.number() });
 
 const isValidGSIHandler = function isValidGSIHandler(
   gsiHandler: GSIHandlerType | undefined,
-  hasCurrentGame: boolean
+  hasCurrentGame: boolean,
 ): boolean {
-  return gsiHandler !== undefined && hasCurrentGame
-}
+  return gsiHandler !== undefined && hasCurrentGame;
+};
 
 const isValidHero = function isValidHero(hero: { id?: number } | null | undefined): boolean {
-  const parsedHero = heroSchema.safeParse(hero)
+  const parsedHero = heroSchema.safeParse(hero);
   if (!parsedHero.success) {
-    return false
+    return false;
   }
-  const heroData = getHeroById(parsedHero.data.id)
-  return heroData !== null && heroData !== undefined
-}
+  const heroData = getHeroById(parsedHero.data.id);
+  return heroData !== null && heroData !== undefined;
+};
 
-commandHandler.registerCommand('aghs', {
+commandHandler.registerCommand("aghs", {
   dbkey: DBSettings.commandAghs,
   handler: async (message, args, command) => {
     const {
       channel: { name: channelName, client: channelClient },
-    } = message
+    } = message;
 
-    const gsiHandler = gsiHandlers.get(channelClient.token)
+    const gsiHandler = gsiHandlers.get(channelClient.token);
 
     if (!isValidGSIHandler(gsiHandler, hasCurrentGameContext(channelClient))) {
       chatClient.say(
         channelName,
-        t('notPlaying', { emote: 'PauseChamp', lng: channelClient.locale }),
-        message.user.messageId
-      )
-      return
+        t("notPlaying", { emote: "PauseChamp", lng: channelClient.locale }),
+        message.user.messageId,
+      );
+      return;
     }
 
     try {
@@ -52,64 +52,64 @@ commandHandler.registerCommand('aghs', {
         channelClient,
         args,
         channelClient.locale,
-        command
-      )
+        command,
+      );
       if (!isValidHero(hero) || !hero) {
         chatClient.say(
           channelName,
-          t('gameNotFound', { lng: channelClient.locale }),
-          message.user.messageId
-        )
-        return
+          t("gameNotFound", { lng: channelClient.locale }),
+          message.user.messageId,
+        );
+        return;
       }
 
-      const heroData = getHeroById(hero.id)
-      const heroAghs = DOTA_AGHS.find((agh) => agh.hero_name === heroData?.key)
+      const heroData = getHeroById(hero.id);
+      const heroAghs = DOTA_AGHS.find((agh) => agh.hero_name === heroData?.key);
 
       if (!heroAghs) {
         chatClient.say(
           channelName,
-          t('missingMatchData', { emote: 'PauseChamp', lng: channelClient.locale }),
-          message.user.messageId
-        )
-        return
+          t("missingMatchData", { emote: "PauseChamp", lng: channelClient.locale }),
+          message.user.messageId,
+        );
+        return;
       }
 
       if (!heroAghs.has_scepter) {
         chatClient.say(
           channelName,
           withHeroLink(
-            t('noAghs', {
+            t("noAghs", {
               heroName: getHeroNameOrColor(hero.id, playerIdx),
               lng: channelClient.locale,
             }),
-            hero.id
+            hero.id,
           ),
-          message.user.messageId
-        )
-        return
+          message.user.messageId,
+        );
+        return;
       }
 
       chatClient.say(
         channelName,
         withHeroLink(
-          t('aghs', {
+          t("aghs", {
             description: heroAghs?.scepter_desc,
             heroName: getHeroNameOrColor(hero.id, playerIdx),
             lng: channelClient.locale,
             title: heroAghs?.scepter_skill_name,
           }),
-          hero.id
+          hero.id,
         ),
-        message.user.messageId
-      )
+        message.user.messageId,
+      );
     } catch (error) {
       chatClient.say(
         channelName,
-        error instanceof Error ? error.message : t('gameNotFound', { lng: channelClient.locale }),
-        message.user.messageId
-      )
+        error instanceof Error ? error.message : t("gameNotFound", { lng: channelClient.locale }),
+        message.user.messageId,
+      );
     }
   },
   onlyOnline: true,
-})
+});

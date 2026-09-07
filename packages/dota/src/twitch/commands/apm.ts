@@ -1,17 +1,17 @@
-import { t } from 'i18next'
+import { t } from "i18next";
 
-import { getHeroNameOrColor } from '../../dota/lib/heroes'
-import { DBSettings } from '../../settings'
-import { chatClient } from '../chat-client'
-import commandHandler from '../lib/command-handler'
-import { profileLink } from './profile-link'
+import { getHeroNameOrColor } from "../../dota/lib/heroes";
+import { DBSettings } from "../../settings";
+import { chatClient } from "../chat-client";
+import commandHandler from "../lib/command-handler";
+import { profileLink } from "./profile-link";
 
-commandHandler.registerCommand('apm', {
+commandHandler.registerCommand("apm", {
   dbkey: DBSettings.commandAPM,
   handler: async (message, args, command) => {
     const {
       channel: { name: channel, client },
-    } = message
+    } = message;
 
     try {
       const { player, hero, playerIdx } = await profileLink({
@@ -19,39 +19,39 @@ commandHandler.registerCommand('apm', {
         client,
         command,
         locale: client.locale,
-      })
+      });
 
       const commandsIssued =
-        player && 'commands_issued' in player
+        player && "commands_issued" in player
           ? player.commands_issued
-          : (client.gsi?.player?.commands_issued ?? 0)
-      const gameTime = client.gsi?.map?.game_time ?? 1
-      const apm = commandsIssued ? Math.round(commandsIssued / (gameTime / 60)) : 0
+          : (client.gsi?.player?.commands_issued ?? 0);
+      const gameTime = client.gsi?.map?.game_time ?? 1;
+      const apm = commandsIssued ? Math.round(commandsIssued / (gameTime / 60)) : 0;
 
       const heroName =
-        player && 'commands_issued' in player
+        player && "commands_issued" in player
           ? getHeroNameOrColor(hero?.id ?? 0, playerIdx)
-          : getHeroNameOrColor(client?.gsi?.hero?.id ?? 0)
+          : getHeroNameOrColor(client?.gsi?.hero?.id ?? 0);
 
       chatClient.say(
         channel,
-        t('apm', {
+        t("apm", {
           count: apm,
-          emote: 'Chatting',
+          emote: "Chatting",
           heroName,
           lng: message.channel.client.locale,
         }),
-        message.user.messageId
-      )
+        message.user.messageId,
+      );
     } catch (error) {
       chatClient.say(
         message.channel.name,
         error instanceof Error
           ? error.message
-          : t('gameNotFound', { lng: message.channel.client.locale }),
-        message.user.messageId
-      )
+          : t("gameNotFound", { lng: message.channel.client.locale }),
+        message.user.messageId,
+      );
     }
   },
   onlyOnline: true,
-})
+});

@@ -1,50 +1,50 @@
-import { getTwitchAPI, logger, supabase } from '@dotabod/shared-utils'
-import { faker } from '@faker-js/faker'
-import type { ApiClient } from '@twurple/api'
-import axios from 'axios'
+import { getTwitchAPI, logger, supabase } from "@dotabod/shared-utils";
+import { faker } from "@faker-js/faker";
+import type { ApiClient } from "@twurple/api";
+import axios from "axios";
 
-import { gameEnd } from '../__tests__/play-by-plays'
-import { fetchOnlineUsers } from '../dota/events/gsi-events/__tests__/fetch-online-users'
-import { DotaEventTypes } from '../types'
+import { gameEnd } from "../__tests__/play-by-plays";
+import { fetchOnlineUsers } from "../dota/events/gsi-events/__tests__/fetch-online-users";
+import { DotaEventTypes } from "../types";
 
-if (process.env.DOTABOD_ENV !== 'production') {
-  console.log('DOTABOD_ENV is development')
+if (process.env.DOTABOD_ENV !== "production") {
+  console.log("DOTABOD_ENV is development");
 }
-console.log('running dev script')
+console.log("running dev script");
 
-const USER_COUNT = 300
+const USER_COUNT = 300;
 
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:5120',
-})
+  baseURL: "http://localhost:5120",
+});
 
 const postWinEventsForUsers = async function postWinEventsForUsers(
   users: {
-    id: string
+    id: string;
   }[],
-  win_team: 'radiant' | 'dire' = 'radiant'
+  win_team: "radiant" | "dire" = "radiant",
 ) {
   const promises = users.flatMap((user) =>
     gameEnd({
-      matchId: '123',
-      steam32: '123',
-      steam64: '123456',
+      matchId: "123",
+      steam32: "123",
+      steam64: "123456",
       token: user.id,
       win_team,
-    }).map(async (step) => await apiClient.post('/', step))
-  )
-  return await Promise.allSettled(promises)
-}
+    }).map(async (step) => await apiClient.post("/", step)),
+  );
+  return await Promise.allSettled(promises);
+};
 
 const postEventsForUsers = async function postEventsForUsers(
   users: {
-    id: string
+    id: string;
   }[],
-  eventType: DotaEventTypes
+  eventType: DotaEventTypes,
 ) {
   const promises = users.map(
     async (user) =>
-      await apiClient.post('/', {
+      await apiClient.post("/", {
         auth: { token: user.id },
         events: [
           {
@@ -54,50 +54,50 @@ const postEventsForUsers = async function postEventsForUsers(
           },
         ],
         player: {
-          activity: 'playing',
+          activity: "playing",
         },
-      })
-  )
-  await Promise.allSettled(promises)
-}
+      }),
+  );
+  await Promise.allSettled(promises);
+};
 
 const _testAegis = async function _testAegis() {
-  const users = await fetchOnlineUsers(USER_COUNT)
-  await postWinEventsForUsers(users, 'radiant')
-  await postEventsForUsers(users, DotaEventTypes.AegisPickedUp)
-}
+  const users = await fetchOnlineUsers(USER_COUNT);
+  await postWinEventsForUsers(users, "radiant");
+  await postEventsForUsers(users, DotaEventTypes.AegisPickedUp);
+};
 
 const _fixNewUsers = async function _fixNewUsers() {
-  console.log('running fixNewUsers')
+  console.log("running fixNewUsers");
   const { data: users } = await supabase
-    .from('users')
-    .select('id, Account:accounts(providerAccountId)')
-    .is('displayName', null)
+    .from("users")
+    .select("id, Account:accounts(providerAccountId)")
+    .is("displayName", null);
 
   if (!users) {
-    return
+    return;
   }
 
-  const botApi = await getTwitchAPI()
+  const botApi = await getTwitchAPI();
   for (const user of users) {
     if (
       user.Account?.providerAccountId === undefined ||
       user.Account.providerAccountId.length === 0
     ) {
-      console.log('no account for user', user.id)
-      continue
+      console.log("no account for user", user.id);
+      continue;
     }
-    await handleNewUser(user.Account.providerAccountId, botApi)
+    await handleNewUser(user.Account.providerAccountId, botApi);
   }
-  return
-}
+  return;
+};
 
 // await fixNewUsers()
 
 const handleNewUser = async function handleNewUser(providerAccountId: string, botApi: ApiClient) {
   try {
-    const stream = await botApi.streams.getStreamByUserId(providerAccountId)
-    const streamer = await botApi.users.getUserById(providerAccountId)
+    const stream = await botApi.streams.getStreamByUserId(providerAccountId);
+    const streamer = await botApi.users.getUserById(providerAccountId);
     // const follows = botApi.users.getFollowsPaginated({
     //   followedUser: providerAccountId,
     // })
@@ -108,36 +108,36 @@ const handleNewUser = async function handleNewUser(providerAccountId: string, bo
       name: streamer?.name,
       stream_online: !!stream?.startDate,
       stream_start_date: stream?.startDate?.toISOString() ?? null,
-    }
+    };
 
     // remove falsy values from data (like displayName: undefined)
     const filteredData = Object.fromEntries(
-      Object.entries(data).filter(([_key, value]) => Boolean(value))
-    ) as Partial<typeof data>
+      Object.entries(data).filter(([_key, value]) => Boolean(value)),
+    ) as Partial<typeof data>;
 
-    let userId: string | null = null
+    let userId: string | null = null;
     if (providerAccountId) {
       const { data } = await supabase
-        .from('accounts')
-        .select('userId')
-        .eq('provider', 'twitch')
-        .eq('providerAccountId', providerAccountId)
-        .single()
-      userId = data?.userId ?? null
+        .from("accounts")
+        .select("userId")
+        .eq("provider", "twitch")
+        .eq("providerAccountId", providerAccountId)
+        .single();
+      userId = data?.userId ?? null;
     }
 
-    console.log({ filteredData, userId })
+    console.log({ filteredData, userId });
 
     if (userId === null || userId.length === 0) {
-      logger.error('[USER] 2 Error checking auth', { error: 'No token' })
-      return null
+      logger.error("[USER] 2 Error checking auth", { error: "No token" });
+      return null;
     }
 
-    await supabase.from('users').update(filteredData).eq('id', userId)
+    await supabase.from("users").update(filteredData).eq("id", userId);
   } catch (error) {
-    console.log(error, 'error on getStreamByUserId')
+    console.log(error, "error on getStreamByUserId");
   }
-}
+};
 
 // async function getAccounts() {
 //   // const steam32id = 1234

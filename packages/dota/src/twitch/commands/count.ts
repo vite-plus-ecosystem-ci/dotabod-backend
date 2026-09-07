@@ -1,26 +1,26 @@
-import { t } from 'i18next'
+import { t } from "i18next";
 
-import { gsiHandlers } from '../../dota/lib/consts'
-import { server } from '../../dota/server'
-import { chatClient } from '../chat-client'
-import commandHandler from '../lib/command-handler'
+import { gsiHandlers } from "../../dota/lib/consts";
+import { server } from "../../dota/server";
+import { chatClient } from "../chat-client";
+import commandHandler from "../lib/command-handler";
 
-commandHandler.registerCommand('count', {
+commandHandler.registerCommand("count", {
   handler: async (message) => {
-    const connectedSockets = await server.io.fetchSockets()
-    const sockets = connectedSockets.length
-    const gsiSize = gsiHandlers.size
+    const connectedSockets = await server.io.fetchSockets();
+    const sockets = connectedSockets.length;
+    const gsiSize = gsiHandlers.size;
 
-    const bothParts = `${t('connections.gsi', {
+    const bothParts = `${t("connections.gsi", {
       channel: message.channel.name,
       count: gsiSize,
       lng: message.channel.client.locale,
-    })} · ${t('connections.overlay', {
+    })} · ${t("connections.overlay", {
       channel: message.channel.name,
       count: sockets,
       lng: message.channel.client.locale,
-    })}`
+    })}`;
 
-    chatClient.say(message.channel.name, bothParts, message.user.messageId)
+    chatClient.say(message.channel.name, bothParts, message.user.messageId);
   },
-})
+});

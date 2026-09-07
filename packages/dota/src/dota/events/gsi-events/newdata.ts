@@ -1,14 +1,14 @@
-import { commandDisable, logger } from '@dotabod/shared-utils'
-import { t } from 'i18next'
+import { commandDisable, logger } from "@dotabod/shared-utils";
+import { t } from "i18next";
 
-import { redisClient } from '../../../db/redis-instance'
-import { DBSettings, ENABLE_SPECTATE_FRIEND_GAME, getValueOrDefault } from '../../../settings'
-import MongoDBSingleton from '../../../steam/mongo-db-singleton'
-import { steamSocket } from '../../../steam/ws'
+import { redisClient } from "../../../db/redis-instance";
+import { DBSettings, ENABLE_SPECTATE_FRIEND_GAME, getValueOrDefault } from "../../../settings";
+import MongoDBSingleton from "../../../steam/mongo-db-singleton";
+import { steamSocket } from "../../../steam/ws";
 // Import commandHandler here
-import commandHandler from '../../../twitch/lib/command-handler'
-import { findSpectatorIdx } from '../../../twitch/lib/find-gsi-by-account-id'
-import { ChatMessageType, validEventTypes } from '../../../types'
+import commandHandler from "../../../twitch/lib/command-handler";
+import { findSpectatorIdx } from "../../../twitch/lib/find-gsi-by-account-id";
+import { ChatMessageType, validEventTypes } from "../../../types";
 import type {
   Abilities,
   Ability,
@@ -18,49 +18,49 @@ import type {
   Items,
   Packet,
   SocketClient,
-} from '../../../types'
-import CustomError from '../../../utils/custom-error'
-import { getRedisNumberValue, is8500Plus } from '../../../utils/index'
-import { consumeMultiAccountRecovery, events } from '../../global-event-emitter'
-import type { GSIHandlerType } from '../../gsi-handler-types'
-import { checkPassiveMidas } from '../../lib/check-midas'
-import { checkPassiveTp } from '../../lib/check-passive-tp'
-import { calculateManaSaved } from '../../lib/check-tread-toggle'
-import { draftStartByMatchId } from '../../lib/consts'
-import { DelayedCommands } from '../../lib/delayed-commands'
-import { getSpectatorPlayers } from '../../lib/get-spectator-players'
-import { isPlayingMatch } from '../../lib/is-playing-match'
-import { isSpectator } from '../../lib/is-spectator'
-import { MatchDataService } from '../../lib/matchData'
-import { say } from '../../say'
-import eventHandler from '../event-handler'
+} from "../../../types";
+import CustomError from "../../../utils/custom-error";
+import { getRedisNumberValue, is8500Plus } from "../../../utils/index";
+import { consumeMultiAccountRecovery, events } from "../../global-event-emitter";
+import type { GSIHandlerType } from "../../gsi-handler-types";
+import { checkPassiveMidas } from "../../lib/check-midas";
+import { checkPassiveTp } from "../../lib/check-passive-tp";
+import { calculateManaSaved } from "../../lib/check-tread-toggle";
+import { draftStartByMatchId } from "../../lib/consts";
+import { DelayedCommands } from "../../lib/delayed-commands";
+import { getSpectatorPlayers } from "../../lib/get-spectator-players";
+import { isPlayingMatch } from "../../lib/is-playing-match";
+import { isSpectator } from "../../lib/is-spectator";
+import { MatchDataService } from "../../lib/matchData";
+import { say } from "../../say";
+import eventHandler from "../event-handler";
 // minimap overlay is unused in prod — disabled to skip per-tick parse; revive by uncommenting
 // import { minimapParser } from '../minimap/parser'
-import { selectNewEvents } from './select-new-events'
-import { sendExtensionPubSubBroadcastMessageIfChanged } from './send-extension-pub-sub-broadcast-message-if-changed'
-import { shouldLogUnknownGsiEvent } from './unknown-event-diagnostics'
+import { selectNewEvents } from "./select-new-events";
+import { sendExtensionPubSubBroadcastMessageIfChanged } from "./send-extension-pub-sub-broadcast-message-if-changed";
+import { shouldLogUnknownGsiEvent } from "./unknown-event-diagnostics";
 
 const chatterMatchFound = async function chatterMatchFound(client: SocketClient) {
   if (!client.stream_online) {
-    return
+    return;
   }
 
   const commands = DelayedCommands.filter((cmd) =>
-    getValueOrDefault(cmd.key, client.settings, client.subscription)
-  )
+    getValueOrDefault(cmd.key, client.settings, client.subscription),
+  );
 
   if (commands.length > 0) {
     say(
       client,
-      t('matchFound', {
-        commandList: commands.map((c) => c.command).join(' · '),
+      t("matchFound", {
+        commandList: commands.map((c) => c.command).join(" · "),
         lng: client.locale,
       }),
       {
-        chattersKey: 'commandsReady',
+        chattersKey: "commandsReady",
         delay: false,
-      }
-    )
+      },
+    );
   }
 
   try {
@@ -68,127 +68,127 @@ const chatterMatchFound = async function chatterMatchFound(client: SocketClient)
     const autoCommands = getValueOrDefault(
       DBSettings.autoCommandsOnMatchStart,
       client.settings,
-      client.subscription
-    )
+      client.subscription,
+    );
 
-    logger.info('[AUTO_COMMANDS] Processing auto commands', {
+    logger.info("[AUTO_COMMANDS] Processing auto commands", {
       autoCommands,
       hasCommands: autoCommands.length > 0,
       token: client.token,
-    })
+    });
 
     if (autoCommands.length > 0) {
       for (const commandKey of autoCommands) {
         // Find the command in DelayedCommands that matches this key
-        const commandInfo = DelayedCommands.find((cmd) => cmd.key === commandKey)
+        const commandInfo = DelayedCommands.find((cmd) => cmd.key === commandKey);
 
         if (commandInfo !== undefined) {
-          logger.info('[AUTO_COMMANDS] Executing auto command', {
+          logger.info("[AUTO_COMMANDS] Executing auto command", {
             command: commandInfo.command,
             commandKey,
             token: client.token,
-          })
+          });
 
           // Simulate a command message
           await commandHandler
             .handleMessage({
               channel: {
                 client,
-                id: client.Account?.providerAccountId ?? '',
-                name: client.name.startsWith('#') ? client.name : `#${client.name}`,
+                id: client.Account?.providerAccountId ?? "",
+                name: client.name.startsWith("#") ? client.name : `#${client.name}`,
                 settings: client.settings,
               },
               content: commandInfo.command,
               user: {
-                messageId: '',
+                messageId: "",
                 name: client.name,
                 // Broadcaster permission
                 permission: 3,
-                userId: client.Account?.providerAccountId ?? '',
+                userId: client.Account?.providerAccountId ?? "",
               },
             })
             .catch((error: unknown) => {
-              logger.error('[AUTO_COMMANDS] Error executing auto command', {
+              logger.error("[AUTO_COMMANDS] Error executing auto command", {
                 command: commandInfo.command,
                 commandKey,
                 error,
-              })
-            })
+              });
+            });
 
-          logger.info('[AUTO_COMMANDS] Successfully executed auto command', {
+          logger.info("[AUTO_COMMANDS] Successfully executed auto command", {
             command: commandInfo.command,
             commandKey,
-          })
+          });
 
           // Small delay between commands to prevent rate limiting
-          await new Promise((resolve) => setTimeout(resolve, 100))
+          await new Promise((resolve) => setTimeout(resolve, 100));
         } else {
-          logger.warn('[AUTO_COMMANDS] Command not found in DelayedCommands', {
+          logger.warn("[AUTO_COMMANDS] Command not found in DelayedCommands", {
             commandKey,
             token: client.token,
-          })
+          });
         }
       }
     }
   } catch (error) {
-    logger.error('[AUTO_COMMANDS] Error sending auto commands', { error })
+    logger.error("[AUTO_COMMANDS] Error sending auto commands", { error });
   }
-}
+};
 
 // Use Sets for tracking lookups to avoid duplicates
-const steamServerLookupMap = new Set<string>()
-const steamDelayDataLookupMap = new Set<string>()
+const steamServerLookupMap = new Set<string>();
+const steamDelayDataLookupMap = new Set<string>();
 
 // Debounce map to limit how often we call saveMatchData per client
-const saveMatchDataDebounceMap = new Map<string, { lastExecuted: number; inProgress: boolean }>()
+const saveMatchDataDebounceMap = new Map<string, { lastExecuted: number; inProgress: boolean }>();
 // Debounce interval in milliseconds
 // 5 seconds
-const DEBOUNCE_INTERVAL = 5000
+const DEBOUNCE_INTERVAL = 5000;
 
 // Cache results in memory for quick lookup
 const matchDataCache = new Map<
   string,
   {
-    steamServerId: string | null
-    lobbyType: string | null
-    timestamp: number
+    steamServerId: string | null;
+    lobbyType: string | null;
+    timestamp: number;
   }
->()
-const chatMessageTypesSet = new Set<string>(Object.values(ChatMessageType))
+>();
+const chatMessageTypesSet = new Set<string>(Object.values(ChatMessageType));
 // Cache expiration time in milliseconds
 // 1 minute
-const CACHE_EXPIRATION = 60_000
+const CACHE_EXPIRATION = 60_000;
 
 // Runs every gametick
 const saveMatchData = async function saveMatchData(client: SocketClient) {
   // This now waits for the bet to complete before checking match data
   // Since match data is delayed it will run far fewer than before, when checking actual match id of an ingame match
   // the matchid is saved when the hero is selected
-  const matchId = await redisClient.client.get(`${client.token}:matchId`)
+  const matchId = await redisClient.client.get(`${client.token}:matchId`);
   if (
     matchId === null ||
     matchId.length === 0 ||
     Number(matchId) === 0 ||
     Number.isNaN(Number(matchId))
   ) {
-    return
+    return;
   }
 
   if (client.steam32Id === null || client.steam32Id === 0) {
-    return
+    return;
   }
 
   // Check for account sharing before proceeding with match data processing
-  const accountSharingDetected = await checkAccountSharing(client, matchId)
+  const accountSharingDetected = await checkAccountSharing(client, matchId);
   if (accountSharingDetected) {
     // If account sharing is detected, stop processing for this client
-    return
+    return;
   }
 
-  const cacheKey = `${matchId}:${client.token}`
+  const cacheKey = `${matchId}:${client.token}`;
 
   // Check in-memory cache first
-  const cachedData = matchDataCache.get(cacheKey)
+  const cachedData = matchDataCache.get(cacheKey);
   if (cachedData) {
     // If cache is still valid, use cached data and return
     if (Date.now() - cachedData.timestamp < CACHE_EXPIRATION) {
@@ -197,28 +197,28 @@ const saveMatchData = async function saveMatchData(client: SocketClient) {
         cachedData.steamServerId.length > 0 &&
         cachedData.lobbyType !== null
       ) {
-        return
+        return;
       }
     } else {
       // If cache expired, remove it
-      matchDataCache.delete(cacheKey)
+      matchDataCache.delete(cacheKey);
     }
   }
 
   // Implement debounce logic
-  const debounceKey = client.token
-  const now = Date.now()
-  const debounceData = saveMatchDataDebounceMap.get(debounceKey)
+  const debounceKey = client.token;
+  const now = Date.now();
+  const debounceData = saveMatchDataDebounceMap.get(debounceKey);
 
   // If this client's function is already in progress or ran recently, skip this execution
   if (debounceData) {
     if (debounceData.inProgress || now - debounceData.lastExecuted < DEBOUNCE_INTERVAL) {
-      return
+      return;
     }
   }
 
   // Mark this execution as in progress
-  saveMatchDataDebounceMap.set(debounceKey, { inProgress: true, lastExecuted: now })
+  saveMatchDataDebounceMap.set(debounceKey, { inProgress: true, lastExecuted: now });
 
   try {
     // did we already come here before?
@@ -226,20 +226,20 @@ const saveMatchData = async function saveMatchData(client: SocketClient) {
       .multi()
       .get(`${matchId}:${client.token}:steamServerId`)
       .get(`${matchId}:${client.token}:lobbyType`)
-      .exec()
+      .exec();
 
-    const [steamServerId] = res
-    const [, lobbyType] = res
+    const [steamServerId] = res;
+    const [, lobbyType] = res;
 
     // Update cache with Redis data
     matchDataCache.set(cacheKey, {
-      lobbyType: lobbyType === null || lobbyType === '' ? null : String(lobbyType),
-      steamServerId: steamServerId === null || steamServerId === '' ? null : String(steamServerId),
+      lobbyType: lobbyType === null || lobbyType === "" ? null : String(lobbyType),
+      steamServerId: steamServerId === null || steamServerId === "" ? null : String(steamServerId),
       timestamp: now,
-    })
+    });
 
-    if (steamServerId !== null && steamServerId !== '' && lobbyType !== null) {
-      return
+    if (steamServerId !== null && steamServerId !== "" && lobbyType !== null) {
+      return;
     }
 
     // PRESERVED — gated, not dead. This block is the sole writer of the redis steamServerId key
@@ -247,70 +247,70 @@ const saveMatchData = async function saveMatchData(client: SocketClient) {
     // commands instead use the server_steam_id already present in delayedGames. This lookup stays
     // gated pending bot-friend management at scale; see memory `keep-spectate-friend-path`.
     if (
-      (steamServerId === null || steamServerId === '') &&
+      (steamServerId === null || steamServerId === "") &&
       lobbyType === null &&
       !is8500Plus(client) &&
       ENABLE_SPECTATE_FRIEND_GAME
     ) {
       // Fix: Check if we're already looking up this match to prevent race conditions
       if (steamServerLookupMap.has(matchId)) {
-        return
+        return;
       }
 
       // Add to lookup map before starting the async operation
-      steamServerLookupMap.add(matchId)
+      steamServerLookupMap.add(matchId);
 
       try {
         const getDelayedDataPromise = new Promise<string>((resolve, reject) => {
           const timeoutId = setTimeout(() => {
-            reject(new CustomError(t('matchData8500', { emote: 'PoroSad', lng: client.locale })))
+            reject(new CustomError(t("matchData8500", { emote: "PoroSad", lng: client.locale })));
             // 10 second timeout
-          }, 10_000)
+          }, 10_000);
 
           steamSocket.emit(
-            'getUserSteamServer',
+            "getUserSteamServer",
             client.steam32Id,
             (err: unknown, cards: string) => {
-              clearTimeout(timeoutId)
+              clearTimeout(timeoutId);
               if (err !== null && err !== undefined) {
-                reject(err)
+                reject(err);
               } else {
-                resolve(cards)
+                resolve(cards);
               }
-            }
-          )
-        })
+            },
+          );
+        });
 
-        const steamServerId = await getDelayedDataPromise
+        const steamServerId = await getDelayedDataPromise;
 
         if (steamServerId.length > 0) {
           await redisClient.client.set(
             `${matchId}:${client.token}:steamServerId`,
-            steamServerId.toString()
-          )
+            steamServerId.toString(),
+          );
 
           // Update cache
           matchDataCache.set(cacheKey, {
             lobbyType: null,
             steamServerId: steamServerId.toString(),
             timestamp: Date.now(),
-          })
+          });
         }
       } catch {
         // Do nothing, we don't want to log this error
         // logger.error('Error getting steam server data', { error, matchId })
       } finally {
         // Always remove from the map, even if there was an error
-        steamServerLookupMap.delete(matchId)
+        steamServerLookupMap.delete(matchId);
       }
     }
 
     // Re-check steamServerId from cache first, then Redis if needed
-    let currentSteamServerId = matchDataCache.get(cacheKey)?.steamServerId ?? null
+    let currentSteamServerId = matchDataCache.get(cacheKey)?.steamServerId ?? null;
     if (currentSteamServerId === null || currentSteamServerId.length === 0) {
       currentSteamServerId = await redisClient.client.get(
-        `${matchId}:${client.token}:steamServerId`
-      )
+        `${matchId}:${client.token}:steamServerId`,
+      );
 
       // Update cache if we found it in Redis
       if (currentSteamServerId !== null && currentSteamServerId.length > 0) {
@@ -318,12 +318,12 @@ const saveMatchData = async function saveMatchData(client: SocketClient) {
           lobbyType: null,
           steamServerId: null,
           timestamp: now,
-        }
+        };
         matchDataCache.set(cacheKey, {
           ...currentCache,
           steamServerId: currentSteamServerId,
           timestamp: now,
-        })
+        });
       }
     }
 
@@ -335,20 +335,20 @@ const saveMatchData = async function saveMatchData(client: SocketClient) {
     ) {
       // Fix: Check if we're already looking up this match to prevent race conditions
       if (steamDelayDataLookupMap.has(matchId)) {
-        return
+        return;
       }
 
-      steamDelayDataLookupMap.add(matchId)
+      steamDelayDataLookupMap.add(matchId);
 
       try {
         const getDelayedDataPromise = new Promise<DelayedGames>((resolve, reject) => {
           const timeoutId = setTimeout(() => {
-            reject(new CustomError(t('matchData8500', { emote: 'PoroSad', lng: client.locale })))
+            reject(new CustomError(t("matchData8500", { emote: "PoroSad", lng: client.locale })));
             // 10 second timeout
-          }, 10_000)
+          }, 10_000);
 
           steamSocket.emit(
-            'getRealTimeStats',
+            "getRealTimeStats",
             {
               match_id: matchId,
               refetchCards: true,
@@ -356,331 +356,331 @@ const saveMatchData = async function saveMatchData(client: SocketClient) {
               token: client.token,
             },
             (err: unknown, data: DelayedGames) => {
-              clearTimeout(timeoutId)
+              clearTimeout(timeoutId);
               if (err !== null && err !== undefined) {
-                reject(err)
+                reject(err);
               } else {
-                resolve(data)
+                resolve(data);
               }
-            }
-          )
-        })
+            },
+          );
+        });
 
-        const delayedData = await getDelayedDataPromise
+        const delayedData = await getDelayedDataPromise;
 
         if (delayedData.match.lobby_type !== undefined) {
           await Promise.all([
             redisClient.client.set(
               `${matchId}:${client.token}:lobbyType`,
-              delayedData.match.lobby_type
+              delayedData.match.lobby_type,
             ),
             redisClient.client.set(
               `${matchId}:${client.token}:gameMode`,
-              delayedData.match.game_mode
+              delayedData.match.game_mode,
             ),
-          ])
+          ]);
 
           // Update cache with complete data
           matchDataCache.set(cacheKey, {
             lobbyType: String(delayedData.match.lobby_type),
             steamServerId: currentSteamServerId,
             timestamp: Date.now(),
-          })
+          });
         }
       } catch (error) {
         if (!(error instanceof CustomError)) {
-          logger.error('Error getting delayed match data', { error, matchId })
+          logger.error("Error getting delayed match data", { error, matchId });
         }
       } finally {
         // Always remove from the map, even if there was an error
-        steamDelayDataLookupMap.delete(matchId)
+        steamDelayDataLookupMap.delete(matchId);
       }
     }
   } finally {
     // Update the debounce map to mark execution as complete
-    const currentDebounce = saveMatchDataDebounceMap.get(debounceKey)
+    const currentDebounce = saveMatchDataDebounceMap.get(debounceKey);
     if (currentDebounce) {
-      saveMatchDataDebounceMap.set(debounceKey, { ...currentDebounce, inProgress: false })
+      saveMatchDataDebounceMap.set(debounceKey, { ...currentDebounce, inProgress: false });
 
       // Set up an automatic cleanup for the debounce map entry after 5 minutes of inactivity
       setTimeout(() => {
-        const entry = saveMatchDataDebounceMap.get(debounceKey)
+        const entry = saveMatchDataDebounceMap.get(debounceKey);
         if (entry && Date.now() - entry.lastExecuted > 300_000) {
           // 5 minutes
-          saveMatchDataDebounceMap.delete(debounceKey)
+          saveMatchDataDebounceMap.delete(debounceKey);
         }
         // 5 minutes
-      }, 300_000)
+      }, 300_000);
     }
   }
-}
+};
 
 // Implement a cleanup function to periodically clear expired cache entries
 const cleanupMatchDataCache = function cleanupMatchDataCache() {
-  const now = Date.now()
+  const now = Date.now();
   for (const [key, value] of matchDataCache.entries()) {
     if (now - value.timestamp > CACHE_EXPIRATION) {
-      matchDataCache.delete(key)
+      matchDataCache.delete(key);
     }
   }
   // Run cleanup every minute
-  setTimeout(cleanupMatchDataCache, 60_000)
-}
+  setTimeout(cleanupMatchDataCache, 60_000);
+};
 
 // Start the cleanup process
-cleanupMatchDataCache()
+cleanupMatchDataCache();
 
 // Cache to prevent excessive account sharing logging
-const accountSharingLogCache = new Map<string, number>()
+const accountSharingLogCache = new Map<string, number>();
 // 5 minutes
-const ACCOUNT_SHARING_LOG_INTERVAL = 300_000
+const ACCOUNT_SHARING_LOG_INTERVAL = 300_000;
 
 export const __resetAccountSharingLogCacheForTests =
   function __resetAccountSharingLogCacheForTests(): void {
-    accountSharingLogCache.clear()
-  }
+    accountSharingLogCache.clear();
+  };
 
 // Cleanup function for account sharing log cache
 const cleanupAccountSharingLogCache = function cleanupAccountSharingLogCache() {
-  const now = Date.now()
+  const now = Date.now();
   for (const [key, timestamp] of accountSharingLogCache.entries()) {
     if (now - timestamp > ACCOUNT_SHARING_LOG_INTERVAL * 2) {
-      accountSharingLogCache.delete(key)
+      accountSharingLogCache.delete(key);
     }
   }
   // Run cleanup every 10 minutes
-  setTimeout(cleanupAccountSharingLogCache, 600_000)
-}
+  setTimeout(cleanupAccountSharingLogCache, 600_000);
+};
 
 // Start the account sharing log cache cleanup process
-cleanupAccountSharingLogCache()
+cleanupAccountSharingLogCache();
 
 // Account sharing detection - blocks processing for multiple Steam accounts per token
 export const checkAccountSharing = async function checkAccountSharing(
   client: SocketClient,
-  matchId: string
+  matchId: string,
 ): Promise<boolean> {
   if (client.steam32Id === null || client.steam32Id === 0 || matchId.length === 0) {
-    return false
+    return false;
   }
 
-  const { steam32Id } = client
-  const currentToken = client.token
-  const currentTime = Date.now()
+  const { steam32Id } = client;
+  const currentToken = client.token;
+  const currentTime = Date.now();
 
   // Redis key to track active Steam accounts for this token
-  const redisKey = `token:${currentToken}:activeSteam32Ids`
+  const redisKey = `token:${currentToken}:activeSteam32Ids`;
 
   try {
     // Get existing active Steam accounts for this token
-    const existingSteamIds = await redisClient.client.get(redisKey)
-    let activeSteamIds: string[] = []
+    const existingSteamIds = await redisClient.client.get(redisKey);
+    let activeSteamIds: string[] = [];
 
     if (existingSteamIds !== null && existingSteamIds.length > 0) {
-      activeSteamIds = JSON.parse(existingSteamIds)
+      activeSteamIds = JSON.parse(existingSteamIds);
     }
 
     // Add current Steam ID if not already present
     if (!activeSteamIds.includes(steam32Id.toString())) {
-      activeSteamIds.push(steam32Id.toString())
+      activeSteamIds.push(steam32Id.toString());
 
       // Update Redis with new list
       await redisClient.client.setEx(
         redisKey,
         // Expire after 1 minute of inactivity
         60,
-        JSON.stringify(activeSteamIds)
-      )
+        JSON.stringify(activeSteamIds),
+      );
     }
 
     // Check if multiple Steam accounts are active for this token
     if (activeSteamIds.length > 1) {
-      const isFirstAccount = activeSteamIds[0] === steam32Id.toString()
+      const isFirstAccount = activeSteamIds[0] === steam32Id.toString();
 
       if (isFirstAccount) {
         // This is the first/primary Steam account - allow processing
-        return false
+        return false;
       }
-      const playerName = client.gsi?.player?.name
+      const playerName = client.gsi?.player?.name;
       const accountName =
-        playerName === undefined || playerName.length === 0 ? 'Unknown' : playerName
+        playerName === undefined || playerName.length === 0 ? "Unknown" : playerName;
       // This is an additional Steam account - block processing
       logger.warn(
-        '[ACCOUNT_SHARING] Multiple Steam accounts detected for token - blocking additional account',
+        "[ACCOUNT_SHARING] Multiple Steam accounts detected for token - blocking additional account",
         {
           accountName,
           allActiveSteamIds: activeSteamIds,
           blockedSteam32Id: steam32Id,
           primarySteam32Id: activeSteamIds[0],
           token: currentToken,
-        }
-      )
+        },
+      );
 
       // Rate limit logging to database to prevent spam
-      const logCacheKey = `${currentToken}:${steam32Id}`
-      const lastLogged = accountSharingLogCache.get(logCacheKey)
+      const logCacheKey = `${currentToken}:${steam32Id}`;
+      const lastLogged = accountSharingLogCache.get(logCacheKey);
 
       if (
         lastLogged === undefined ||
         lastLogged === 0 ||
         currentTime - lastLogged > ACCOUNT_SHARING_LOG_INTERVAL
       ) {
-        await commandDisable.recordNotification(currentToken, 'ACCOUNT_SHARING', {
+        await commandDisable.recordNotification(currentToken, "ACCOUNT_SHARING", {
           account_name: accountName,
           all_active_steam_ids: activeSteamIds,
-          block_reason: 'Multiple Steam accounts sending GSI data to same token',
+          block_reason: "Multiple Steam accounts sending GSI data to same token",
           blocked_steam32_id: steam32Id.toString(),
           conflict_detected_at: new Date(currentTime).toISOString(),
           current_match_id: matchId,
           primary_steam32_id: activeSteamIds[0],
-        })
+        });
 
-        accountSharingLogCache.set(logCacheKey, currentTime)
+        accountSharingLogCache.set(logCacheKey, currentTime);
       }
 
       // Send warning message to blocked account
       say(
         client,
-        t('accountSharing.blocked', {
+        t("accountSharing.blocked", {
           accountName,
           lng: client.locale,
-        })
-      )
+        }),
+      );
 
       // Block processing for this Steam account
-      return true
+      return true;
     }
 
     // No blocking needed
-    return false
+    return false;
   } catch (error) {
-    logger.error('[ACCOUNT_SHARING] Error checking account sharing', {
+    logger.error("[ACCOUNT_SHARING] Error checking account sharing", {
       error: error instanceof Error ? error.message : String(error),
       matchId,
       steam32Id,
       token: currentToken,
-    })
+    });
     // Allow processing on error
-    return false
+    return false;
   }
-}
+};
 
 // Track the last time we saved data for each match
-const lastSaveTimeByMatch = new Map<string, number>()
+const lastSaveTimeByMatch = new Map<string, number>();
 // 1 minute in milliseconds
-const SAVE_INTERVAL = 60_000
+const SAVE_INTERVAL = 60_000;
 
 // In-memory cache for playingHeroSlot to reduce Redis calls
 // Key: token, Value: hero slot number (or null if not set)
-const playingHeroSlotCache = new Map<string, number | null>()
+const playingHeroSlotCache = new Map<string, number | null>();
 
 export const clearPlayingHeroSlotCache = function clearPlayingHeroSlotCache(token: string): void {
-  playingHeroSlotCache.delete(token)
-}
+  playingHeroSlotCache.delete(token);
+};
 
 const _saveMatchDataDump = async (dotaClient: GSIHandlerType) => {
   if (!isPlayingMatch(dotaClient.client.gsi)) {
-    return
+    return;
   }
 
-  const matchId = dotaClient.client.gsi?.map?.matchid
+  const matchId = dotaClient.client.gsi?.map?.matchid;
   if (matchId === undefined || matchId.length === 0) {
-    return
+    return;
   }
 
-  const now = Date.now()
-  const lastSaveTime = lastSaveTimeByMatch.get(matchId) ?? 0
-  const winTeam = dotaClient.client.gsi?.map?.win_team
+  const now = Date.now();
+  const lastSaveTime = lastSaveTimeByMatch.get(matchId) ?? 0;
+  const winTeam = dotaClient.client.gsi?.map?.win_team;
 
   // Only save if it's been at least 1 minute since the last save for this match
   // OR if the win_team is not "none" (meaning the game has ended)
-  if (now - lastSaveTime < SAVE_INTERVAL && winTeam === 'none') {
-    return
+  if (now - lastSaveTime < SAVE_INTERVAL && winTeam === "none") {
+    return;
   }
 
   // Preserves the legacy snake_case shape because the `dump` collection may be read by
   // external analytics tooling outside this repo. Inline-mapped at this single boundary
   // point; convert to RosterPlayer shape once external consumers are confirmed migrated.
-  const roster = await new MatchDataService(dotaClient.client).resolveRoster()
+  const roster = await new MatchDataService(dotaClient.client).resolveRoster();
   const matchPlayers = roster.players.map((p) => ({
     accountid: p.accountId ?? 0,
     heroid: p.heroId ?? undefined,
     playerid: p.slot,
     ...(p.rank === null ? {} : { rank: p.rank }),
     ...(p.playerName === null ? {} : { player_name: p.playerName }),
-  }))
+  }));
 
   const keysToSave = [
-    'map',
-    'player',
-    'minimap',
-    'hero',
-    'abilities',
-    'items',
-    'buildings',
-    'draft',
-    'events',
-  ] as const
-  const dumpData: Record<string, unknown> = {}
+    "map",
+    "player",
+    "minimap",
+    "hero",
+    "abilities",
+    "items",
+    "buildings",
+    "draft",
+    "events",
+  ] as const;
+  const dumpData: Record<string, unknown> = {};
   for (const key of keysToSave) {
-    const packetValue = dotaClient.client.gsi?.[key]
+    const packetValue = dotaClient.client.gsi?.[key];
     if (packetValue !== undefined) {
-      dumpData[key] = packetValue
+      dumpData[key] = packetValue;
     }
   }
 
-  const mongo = MongoDBSingleton
-  const db = await mongo.connect()
+  const mongo = MongoDBSingleton;
+  const db = await mongo.connect();
   try {
     // save to new mongodb collection, database: match, collection: dump
-    await db.collection('dump').insertOne({
+    await db.collection("dump").insertOne({
       data: dumpData,
       matchId,
       matchPlayers,
       status: winTeam,
       timestamp: now,
-    })
+    });
 
     // Update the last save time for this match
-    lastSaveTimeByMatch.set(matchId, now)
+    lastSaveTimeByMatch.set(matchId, now);
   } finally {
-    await mongo.close()
+    await mongo.close();
   }
-}
+};
 
 const _maybeSendTooltipData = async (dotaClient: GSIHandlerType) => {
   if (!dotaClient.client.beta_tester || !dotaClient.client.stream_online) {
-    return
+    return;
   }
 
-  let hero: Hero | undefined
-  let items: Items | undefined
-  let abilities: Abilities | undefined
+  let hero: Hero | undefined;
+  let items: Items | undefined;
+  let abilities: Abilities | undefined;
 
   if (isSpectator(dotaClient.client.gsi)) {
-    const spectatorPlayers = getSpectatorPlayers(dotaClient.client.gsi)
-    const selectedPlayer = spectatorPlayers.find((a) => 'selected' in a && a.selected === true)
+    const spectatorPlayers = getSpectatorPlayers(dotaClient.client.gsi);
+    const selectedPlayer = spectatorPlayers.find((a) => "selected" in a && a.selected === true);
 
     const { playerN, teamN } =
-      findSpectatorIdx(dotaClient.client.gsi, selectedPlayer?.accountid) ?? {}
+      findSpectatorIdx(dotaClient.client.gsi, selectedPlayer?.accountid) ?? {};
 
     // @ts-expect-error we can iterate by team2 and team3
-    items = dotaClient.client.gsi?.items?.[teamN]?.[playerN]
+    items = dotaClient.client.gsi?.items?.[teamN]?.[playerN];
     // @ts-expect-error we can iterate by team2 and team3
-    hero = dotaClient.client.gsi?.hero?.[teamN]?.[playerN]
+    hero = dotaClient.client.gsi?.hero?.[teamN]?.[playerN];
   } else {
-    hero = dotaClient.client.gsi?.hero
-    items = dotaClient.client.gsi?.items
-    abilities = dotaClient.client.gsi?.abilities
+    hero = dotaClient.client.gsi?.hero;
+    items = dotaClient.client.gsi?.items;
+    abilities = dotaClient.client.gsi?.abilities;
   }
 
   if (hero === undefined || items === undefined || abilities === undefined) {
-    return
+    return;
   }
 
-  const inv = Object.values(items ?? {})
-  const backpackItems: Item[] = inv.slice(0, 9)
-  const roster = await new MatchDataService(dotaClient.client).resolveRoster()
+  const inv = Object.values(items ?? {});
+  const backpackItems: Item[] = inv.slice(0, 9);
+  const roster = await new MatchDataService(dotaClient.client).resolveRoster();
 
   const messageToSend = {
     abilities: Object.values(abilities).map((ability: Ability) => ability.name),
@@ -688,22 +688,22 @@ const _maybeSendTooltipData = async (dotaClient: GSIHandlerType) => {
     heroes: roster.players.map((p) => p.heroId),
     items: backpackItems.map((item) => item.name),
     neutral: items?.neutral0?.name,
-  }
-  await sendExtensionPubSubBroadcastMessageIfChanged(dotaClient, messageToSend)
-}
+  };
+  await sendExtensionPubSubBroadcastMessageIfChanged(dotaClient, messageToSend);
+};
 
 // Catch all
-eventHandler.registerEvent('newdata', {
+eventHandler.registerEvent("newdata", {
   allowMultiAccount: true,
   handler: async (dotaClient, data: Packet) => {
-    const recoveryAttemptedBeforeDispatch = consumeMultiAccountRecovery(data)
+    const recoveryAttemptedBeforeDispatch = consumeMultiAccountRecovery(data);
     const wasMultiAccountBlocked =
-      dotaClient.client.multiAccount !== undefined && dotaClient.client.multiAccount !== 0
+      dotaClient.client.multiAccount !== undefined && dotaClient.client.multiAccount !== 0;
     if (wasMultiAccountBlocked && !recoveryAttemptedBeforeDispatch) {
-      await dotaClient.updateSteam32Id()
+      await dotaClient.updateSteam32Id();
     }
     if (dotaClient.client.multiAccount !== undefined && dotaClient.client.multiAccount !== 0) {
-      return
+      return;
     }
 
     // New users who don't have a steam account saved yet
@@ -711,34 +711,34 @@ eventHandler.registerEvent('newdata', {
     const updateSteam32IdPromise =
       wasMultiAccountBlocked || recoveryAttemptedBeforeDispatch
         ? Promise.resolve()
-        : dotaClient.updateSteam32Id()
+        : dotaClient.updateSteam32Id();
 
     // In case they connect to a game in progress and we missed the start event
-    const setupOBSBlockersPromise = dotaClient.setupOBSBlockers(data.map?.game_state ?? '')
+    const setupOBSBlockersPromise = dotaClient.setupOBSBlockers(data.map?.game_state ?? "");
 
     // Workaround: Add draft start map check, since its not handled in previously/added
     // Its the first time gsi sends map data for a match, so we need to handle it here in newdata
-    const currentMatchId = dotaClient.client.gsi?.map?.matchid ?? ''
+    const currentMatchId = dotaClient.client.gsi?.map?.matchid ?? "";
     if (
       isPlayingMatch(dotaClient.client.gsi, false) &&
-      data.map?.game_state === 'DOTA_GAMERULES_STATE_PLAYER_DRAFT' &&
+      data.map?.game_state === "DOTA_GAMERULES_STATE_PLAYER_DRAFT" &&
       currentMatchId.length > 0 &&
       draftStartByMatchId.get(currentMatchId) !== true
     ) {
-      draftStartByMatchId.set(currentMatchId, true)
-      events.emit('map:game_state', 'DOTA_GAMERULES_STATE_PLAYER_DRAFT', dotaClient.client.token)
+      draftStartByMatchId.set(currentMatchId, true);
+      events.emit("map:game_state", "DOTA_GAMERULES_STATE_PLAYER_DRAFT", dotaClient.client.token);
     }
 
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      await Promise.all([updateSteam32IdPromise, setupOBSBlockersPromise])
-      return
+      await Promise.all([updateSteam32IdPromise, setupOBSBlockersPromise]);
+      return;
     }
 
     // Everything below here requires an ongoing match, not a finished match
-    const winTeam = dotaClient.client.gsi?.map?.win_team
-    const hasWon = winTeam !== undefined && winTeam.length > 0 && winTeam !== 'none'
+    const winTeam = dotaClient.client.gsi?.map?.win_team;
+    const hasWon = winTeam !== undefined && winTeam.length > 0 && winTeam !== "none";
     if (hasWon) {
-      return
+      return;
     }
 
     // minimap overlay is unused in prod — disabled to skip per-tick parse; revive by uncommenting
@@ -752,18 +752,18 @@ eventHandler.registerEvent('newdata', {
     //   if (enabled) minimapParser.init(data, dotaClient.mapBlocker)
     // }
     // Can't just !dotaClient.heroSlot because it can be 0
-    const purchaser = dotaClient.client.gsi?.items?.teleport0?.purchaser
+    const purchaser = dotaClient.client.gsi?.items?.teleport0?.purchaser;
 
     // Use in-memory cache first to avoid Redis call on every tick
-    let playingHeroSlot = playingHeroSlotCache.get(dotaClient.client.token)
+    let playingHeroSlot = playingHeroSlotCache.get(dotaClient.client.token);
     if (playingHeroSlot === undefined) {
       // Not in cache, check Redis
-      playingHeroSlot = await getRedisNumberValue(`${dotaClient.client.token}:playingHeroSlot`)
+      playingHeroSlot = await getRedisNumberValue(`${dotaClient.client.token}:playingHeroSlot`);
       // Cache the result (including null)
-      playingHeroSlotCache.set(dotaClient.client.token, playingHeroSlot)
+      playingHeroSlotCache.set(dotaClient.client.token, playingHeroSlot);
     }
 
-    if (playingHeroSlot === null && typeof purchaser === 'number') {
+    if (playingHeroSlot === null && typeof purchaser === "number") {
       // Update both Redis and cache
       await Promise.all([
         redisClient.client.set(`${dotaClient.client.token}:playingHeroSlot`, purchaser),
@@ -775,15 +775,15 @@ eventHandler.registerEvent('newdata', {
         // rejecting this Promise.all and blocking the cache update below.
         dotaClient.client.steam32Id !== null && dotaClient.client.steam32Id !== 0
           ? chatterMatchFound(dotaClient.client).catch((error) => {
-              logger.error('[AUTO_COMMANDS] Error triggering chatterMatchFound', { error })
+              logger.error("[AUTO_COMMANDS] Error triggering chatterMatchFound", { error });
             })
           : Promise.resolve(),
-      ])
+      ]);
       // Update cache with the new value
-      playingHeroSlotCache.set(dotaClient.client.token, purchaser)
+      playingHeroSlotCache.set(dotaClient.client.token, purchaser);
 
       // This is the first time we've seen the hero slot, so we can't check anything else yet
-      return
+      return;
     }
 
     const {
@@ -792,24 +792,24 @@ eventHandler.registerEvent('newdata', {
       DBSettings.chatters,
       dotaClient.client.settings,
       dotaClient.client.subscription,
-      'powerTreads'
-    )
-    let calculateManaSavedPromise: Promise<void> | null = null
+      "powerTreads",
+    );
+    let calculateManaSavedPromise: Promise<void> | null = null;
     if (treadsChatterEnabled) {
       try {
-        calculateManaSavedPromise = calculateManaSaved(dotaClient)
+        calculateManaSavedPromise = calculateManaSaved(dotaClient);
       } catch (error) {
-        logger.error('err calculateManaSaved', { error })
+        logger.error("err calculateManaSaved", { error });
       }
     }
 
     // saveMatchData checks and returns early if steam is found
-    const saveMatchDataPromise = saveMatchData(dotaClient.client)
-    const handleNewEventsPromise = handleNewEvents(data, dotaClient)
-    const openBetsPromise = dotaClient.openBets(dotaClient.client)
-    const checkPassiveMidasPromise = checkPassiveMidas(dotaClient.client)
-    const checkPassiveTpPromise = checkPassiveTp(dotaClient.client)
-    const checkNeutralItemsPromise = dotaClient.neutralItemTimer.checkNeutralItems()
+    const saveMatchDataPromise = saveMatchData(dotaClient.client);
+    const handleNewEventsPromise = handleNewEvents(data, dotaClient);
+    const openBetsPromise = dotaClient.openBets(dotaClient.client);
+    const checkPassiveMidasPromise = checkPassiveMidas(dotaClient.client);
+    const checkPassiveTpPromise = checkPassiveTp(dotaClient.client);
+    const checkNeutralItemsPromise = dotaClient.neutralItemTimer.checkNeutralItems();
 
     // Create an array of promises, filtering out any that are undefined or null
     const promisesToExecute = [
@@ -822,60 +822,60 @@ eventHandler.registerEvent('newdata', {
       checkPassiveMidasPromise,
       checkPassiveTpPromise,
       checkNeutralItemsPromise,
-    ].filter((promise) => promise !== undefined && promise !== null)
+    ].filter((promise) => promise !== undefined && promise !== null);
 
     // Use Promise.allSettled so one failure doesn't stop the others. Each
     // sub-promise has its own try/catch + logger inside; logging again here
     // turned a single broken sub-promise into one error log per GSI frame.
-    await Promise.allSettled(promisesToExecute)
+    await Promise.allSettled(promisesToExecute);
   },
-})
+});
 
 const handleNewEvents = function handleNewEvents(data: Packet, dotaClient: GSIHandlerType) {
   // Deduped against already-seen events by `${game_time}-${event_type}`.
-  const newEvents = selectNewEvents(dotaClient.events, data.events)
+  const newEvents = selectNewEvents(dotaClient.events, data.events);
 
   if (newEvents.length > 0) {
     // Merge new and existing events
-    dotaClient.events = [...dotaClient.events, ...newEvents]
+    dotaClient.events = [...dotaClient.events, ...newEvents];
 
     // Emit events and log if necessary
     newEvents.forEach((event) => {
-      const rawData = event.data
-      let dataType: string | undefined
-      let dataWasJsonParsed = false
+      const rawData = event.data;
+      let dataType: string | undefined;
+      let dataWasJsonParsed = false;
 
-      if (typeof rawData === 'string') {
+      if (typeof rawData === "string") {
         try {
-          const parsedData = JSON.parse(rawData) as { type?: unknown }
-          if (typeof parsedData?.type === 'string') {
-            dataType = parsedData.type
+          const parsedData = JSON.parse(rawData) as { type?: unknown };
+          if (typeof parsedData?.type === "string") {
+            dataType = parsedData.type;
           }
-          dataWasJsonParsed = true
+          dataWasJsonParsed = true;
         } catch {
           // Ignore malformed data payloads
         }
       }
 
-      const shouldLogUnknownEventType = !validEventTypes.has(event.event_type)
+      const shouldLogUnknownEventType = !validEventTypes.has(event.event_type);
       const shouldLogUnknownChatMessageType =
-        typeof dataType === 'string' && !chatMessageTypesSet.has(dataType)
+        typeof dataType === "string" && !chatMessageTypesSet.has(dataType);
       const unknownDiagnosticKeys = [
         shouldLogUnknownEventType ? `event:${event.event_type}` : null,
         shouldLogUnknownChatMessageType ? `message:${dataType}` : null,
-      ].filter((key): key is string => key !== null)
+      ].filter((key): key is string => key !== null);
       const shouldLogDiagnostic = unknownDiagnosticKeys
         .map((key) => shouldLogUnknownGsiEvent(key))
-        .some(Boolean)
+        .some(Boolean);
 
-      events.emit(`event:${event.event_type}`, event, dotaClient.client.token)
+      events.emit(`event:${event.event_type}`, event, dotaClient.client.token);
       if (shouldLogDiagnostic) {
-        logger.info('[NEWEVENT]', {
+        logger.info("[NEWEVENT]", {
           dataWasJsonParsed,
           event,
           unknownDiagnosticKeys,
-        })
+        });
       }
-    })
+    });
   }
-}
+};

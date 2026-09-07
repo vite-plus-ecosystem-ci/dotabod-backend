@@ -1,61 +1,61 @@
-import { getPlayers } from './get-players'
-import type { RosterPlayer } from './matchData'
-import { getRankDetail, rankTierToMmr } from './ranks'
+import { getPlayers } from "./get-players";
+import type { RosterPlayer } from "./matchData";
+import { getRankDetail, rankTierToMmr } from "./ranks";
 
 interface Avg {
-  locale: string
-  currentMatchId?: string
-  players?: RosterPlayer[]
+  locale: string;
+  currentMatchId?: string;
+  players?: RosterPlayer[];
 }
 
 const calculateAverage = function calculateAverage(numbers: number[]): number {
-  const validNumbers = numbers.filter(Boolean)
+  const validNumbers = numbers.filter(Boolean);
   if (validNumbers.length === 0) {
-    return 0
+    return 0;
   }
-  const sum = validNumbers.reduce((a, b) => a + b, 0)
-  return Math.round(sum / validNumbers.length)
-}
+  const sum = validNumbers.reduce((a, b) => a + b, 0);
+  return Math.round(sum / validNumbers.length);
+};
 
 const getRankTitle = async function getRankTitle(
   avg: number,
   avgLeader: number,
-  averageMmrPostfix: string
+  averageMmrPostfix: string,
 ): Promise<string> {
-  const rank = await getRankDetail(avg)
+  const rank = await getRankDetail(avg);
   if (!rank && !avgLeader) {
-    return `Immortal${averageMmrPostfix}`
+    return `Immortal${averageMmrPostfix}`;
   }
   if (!rank) {
-    return `${avg || `#${avgLeader}${averageMmrPostfix}`}`
+    return `${avg || `#${avgLeader}${averageMmrPostfix}`}`;
   }
   if (avgLeader) {
-    return `#${avgLeader}${averageMmrPostfix}`
+    return `#${avgLeader}${averageMmrPostfix}`;
   }
-  if ('standing' in rank) {
-    return `Immortal${averageMmrPostfix}`
+  if ("standing" in rank) {
+    return `Immortal${averageMmrPostfix}`;
   }
-  return `${avg} · ${rank.myRank.title}${averageMmrPostfix}`
-}
+  return `${avg} · ${rank.myRank.title}${averageMmrPostfix}`;
+};
 
 export const calculateAvg = async function calculateAvg({
   locale,
   currentMatchId,
   players,
 }: Avg): Promise<string> {
-  const { cards, average_mmr } = await getPlayers({ currentMatchId, locale, players })
+  const { cards, average_mmr } = await getPlayers({ currentMatchId, locale, players });
 
-  const mmrs: number[] = []
-  const leaderranks: number[] = []
+  const mmrs: number[] = [];
+  const leaderranks: number[] = [];
   cards.forEach((card) => {
-    mmrs.push(rankTierToMmr(card.rank_tier))
-    leaderranks.push(card.leaderboard_rank)
-  })
+    mmrs.push(rankTierToMmr(card.rank_tier));
+    leaderranks.push(card.leaderboard_rank);
+  });
 
-  const avg = calculateAverage(mmrs)
-  const avgLeader = calculateAverage(leaderranks)
+  const avg = calculateAverage(mmrs);
+  const avgLeader = calculateAverage(leaderranks);
   const averageMmrPostfix =
-    average_mmr !== undefined && average_mmr !== 0 ? ` · ${average_mmr} MMR` : ''
+    average_mmr !== undefined && average_mmr !== 0 ? ` · ${average_mmr} MMR` : "";
 
-  return await getRankTitle(avg, avgLeader, averageMmrPostfix)
-}
+  return await getRankTitle(avg, avgLeader, averageMmrPostfix);
+};

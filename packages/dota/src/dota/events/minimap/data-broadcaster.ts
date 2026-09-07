@@ -1,13 +1,13 @@
-import isEqual from 'lodash.isequal'
+import isEqual from "lodash.isequal";
 
-import { server } from '../../server'
+import { server } from "../../server";
 import type {
   DataBroadcasterInterface,
   EntityData,
   MinimapData,
   MinimapEntityType,
   ParsedData,
-} from './data-broadcaster-types'
+} from "./data-broadcaster-types";
 
 const DEFAULT_DATA: MinimapData = {
   buildings: {
@@ -45,31 +45,31 @@ const DEFAULT_DATA: MinimapData = {
     lastUpdate: 0,
     timeout: 500,
   },
-}
+};
 
 export const sendInitialData = function sendInitialData(token: string) {
-  const KEYS = Object.keys(DEFAULT_DATA) as MinimapEntityType[]
+  const KEYS = Object.keys(DEFAULT_DATA) as MinimapEntityType[];
   KEYS.forEach((type) => {
-    const entity = DEFAULT_DATA[type]
-    entity.lastUpdate = Date.now()
-    server.io.to(token).emit(`DATA_${type}`, entity.data)
-  })
-}
+    const entity = DEFAULT_DATA[type];
+    entity.lastUpdate = Date.now();
+    server.io.to(token).emit(`DATA_${type}`, entity.data);
+  });
+};
 
 export class DataBroadcaster implements DataBroadcasterInterface {
-  token: string
-  minimap: MinimapData = DEFAULT_DATA
+  token: string;
+  minimap: MinimapData = DEFAULT_DATA;
 
   constructor(token: string) {
-    this.token = token
+    this.token = token;
   }
 
   resetData(): void {
     Object.keys(this.minimap).forEach((type) => {
-      const entity = this.minimap[type as MinimapEntityType]
-      entity.data = []
-      entity.lastUpdate = 0
-    })
+      const entity = this.minimap[type as MinimapEntityType];
+      entity.data = [];
+      entity.lastUpdate = 0;
+    });
   }
 
   // called every gametick
@@ -77,20 +77,20 @@ export class DataBroadcaster implements DataBroadcasterInterface {
     // Update Data
     if (parsedData.minimap) {
       Object.keys(this.minimap).forEach((type) => {
-        const entity = this.minimap[type as MinimapEntityType]
-        const elapsedTime = Date.now() - entity.lastUpdate
-        const minimapData = parsedData.minimap?.[type as MinimapEntityType]
+        const entity = this.minimap[type as MinimapEntityType];
+        const elapsedTime = Date.now() - entity.lastUpdate;
+        const minimapData = parsedData.minimap?.[type as MinimapEntityType];
         const emitFlag =
           minimapData !== undefined &&
           !isEqual(entity.data, minimapData) &&
-          elapsedTime >= entity.timeout
+          elapsedTime >= entity.timeout;
 
         if (emitFlag) {
-          entity.data = minimapData
-          entity.lastUpdate = Date.now()
-          server.io.to(this.token).emit(`DATA_${type}`, entity.data)
+          entity.data = minimapData;
+          entity.lastUpdate = Date.now();
+          server.io.to(this.token).emit(`DATA_${type}`, entity.data);
         }
-      })
+      });
     }
   }
 }

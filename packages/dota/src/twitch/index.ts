@@ -1,5 +1,5 @@
-import './command-loader'
-import { getTwitchAPI, logger } from '@dotabod/shared-utils'
+import "./command-loader";
+import { getTwitchAPI, logger } from "@dotabod/shared-utils";
 import {
   EventSubChannelPollBeginEvent,
   EventSubChannelPollEndEvent,
@@ -8,53 +8,53 @@ import {
   EventSubChannelPredictionEndEvent,
   EventSubChannelPredictionLockEvent,
   EventSubChannelPredictionProgressEvent,
-} from '@twurple/eventsub-base'
-import { t } from 'i18next'
-import { io as socketIo } from 'socket.io-client'
-import type { Socket } from 'socket.io-client'
+} from "@twurple/eventsub-base";
+import { t } from "i18next";
+import { io as socketIo } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
-import getDBUser from '../db/get-db-user'
-import findUser, { getTokenFromTwitchId } from '../dota/lib/connected-streamers'
-import { plebMode } from '../dota/lib/consts'
-import { getDotabodRankProfile, getRankTitle } from '../dota/lib/ranks'
-import { server } from '../dota/server'
-import { DBSettings, getValueOrDefault } from '../settings'
-import { twitchChat } from '../steam/ws'
-import { chatClient } from './chat-client'
-import { checkAltAccount } from './check-alt-account'
-import commandHandler from './lib/command-handler'
+import getDBUser from "../db/get-db-user";
+import findUser, { getTokenFromTwitchId } from "../dota/lib/connected-streamers";
+import { plebMode } from "../dota/lib/consts";
+import { getDotabodRankProfile, getRankTitle } from "../dota/lib/ranks";
+import { server } from "../dota/server";
+import { DBSettings, getValueOrDefault } from "../settings";
+import { twitchChat } from "../steam/ws";
+import { chatClient } from "./chat-client";
+import { checkAltAccount } from "./check-alt-account";
+import commandHandler from "./lib/command-handler";
 
 // Map to track the last time a rank warning message was sent to a channel
-const lastRankWarningTimestamps: Record<string, number> = {}
+const lastRankWarningTimestamps: Record<string, number> = {};
 // 30 seconds
-const RANK_WARNING_COOLDOWN_MS = 30_000
+const RANK_WARNING_COOLDOWN_MS = 30_000;
 
-let disableAltAccountCheck = true
+let disableAltAccountCheck = true;
 
-logger.info("Starting 'twitch' package")
+logger.info("Starting 'twitch' package");
 
-twitchChat.on('connect', () => {
-  logger.info('We alive on dotabod chat server!')
-})
+twitchChat.on("connect", () => {
+  logger.info("We alive on dotabod chat server!");
+});
 
-twitchChat.on('disconnect', (reason, details) => {
-  logger.warn('Disconnected from dotabod chat server', { details, reason })
-})
+twitchChat.on("disconnect", (reason, details) => {
+  logger.warn("Disconnected from dotabod chat server", { details, reason });
+});
 
 // Function to check if a user meets the rank requirement
 const getUserRankTier = async function getUserRankTier(twitchUsername: string): Promise<number> {
   try {
-    const profile = await getDotabodRankProfile(twitchUsername)
-    return profile?.rank_tier ?? 0
+    const profile = await getDotabodRankProfile(twitchUsername);
+    return profile?.rank_tier ?? 0;
   } catch {
-    return 0
+    return 0;
   }
-}
+};
 
-const lastMissingUserMessageTimestamps: Record<string, number> = {}
+const lastMissingUserMessageTimestamps: Record<string, number> = {};
 
 twitchChat.on(
-  'msg',
+  "msg",
   async (
     channel: string,
     user: string,
@@ -64,124 +64,124 @@ twitchChat.on(
       userInfo,
       messageId,
     }: {
-      channelId: string
+      channelId: string;
       userInfo: {
-        isMod: boolean
-        isBroadcaster: boolean
-        isSubscriber: boolean
-        userId: string
-      }
-      messageId: string
-    }
+        isMod: boolean;
+        isBroadcaster: boolean;
+        isSubscriber: boolean;
+        userId: string;
+      };
+      messageId: string;
+    },
   ) => {
     if (!channelId) {
-      logger.error('No channelId', { channel, text, user })
-      return
+      logger.error("No channelId", { channel, text, user });
+      return;
     }
 
     // Skip rank check for mods and broadcasters
-    const isStaff = userInfo.isMod || userInfo.isBroadcaster
+    const isStaff = userInfo.isMod || userInfo.isBroadcaster;
 
     // So we can get the users settings cuz some commands are disabled
     // This runs every command, but its cached so no hit on db
-    const { result: client, reason } = await getDBUser({ twitchId: channelId })
+    const { result: client, reason } = await getDBUser({ twitchId: channelId });
     if (!client) {
-      const now = Date.now()
-      const lastMessageTime = lastMissingUserMessageTimestamps[channel] || 0
-      const RATE_LIMIT_MS = 10_000
-      const shouldSendMessage = now - lastMessageTime > RATE_LIMIT_MS
+      const now = Date.now();
+      const lastMessageTime = lastMissingUserMessageTimestamps[channel] || 0;
+      const RATE_LIMIT_MS = 10_000;
+      const shouldSendMessage = now - lastMessageTime > RATE_LIMIT_MS;
 
-      if (shouldSendMessage && text.startsWith('!')) {
-        logger.info('[TWITCH] Missing user', { channel, channelId, reason, user })
-        chatClient.say(channel, t('missingUser', { lng: 'en' }))
-        lastMissingUserMessageTimestamps[channel] = now
-        return
+      if (shouldSendMessage && text.startsWith("!")) {
+        logger.info("[TWITCH] Missing user", { channel, channelId, reason, user });
+        chatClient.say(channel, t("missingUser", { lng: "en" }));
+        lastMissingUserMessageTimestamps[channel] = now;
+        return;
       }
       // logger.error('No client', { channel, user, text, reason, channelId })
-      return
+      return;
     }
 
     if (lastMissingUserMessageTimestamps[channel]) {
-      delete lastMissingUserMessageTimestamps[channel]
+      delete lastMissingUserMessageTimestamps[channel];
     }
 
-    if (text === '!altcheck' && (userInfo.userId === '32474777' || isStaff)) {
-      disableAltAccountCheck = !disableAltAccountCheck
-      return
+    if (text === "!altcheck" && (userInfo.userId === "32474777" || isStaff)) {
+      disableAltAccountCheck = !disableAltAccountCheck;
+      return;
     }
 
     // Looks up the chatter's followage date, and their Twitch account creation date, and if its within 10 days of each other, sends a message replying to them
     // Only check this for now
-    const shouldCheckAltAccount = !disableAltAccountCheck && channelId === '40754777'
+    const shouldCheckAltAccount = !disableAltAccountCheck && channelId === "40754777";
     if (shouldCheckAltAccount) {
-      await checkAltAccount(channel, user, channelId, userInfo, messageId, client)
+      await checkAltAccount(channel, user, channelId, userInfo, messageId, client);
     }
 
     // Check if rankOnly mode is enabled
     const rankOnlySettings = getValueOrDefault(
       DBSettings.rankOnly,
       client.settings,
-      client.subscription
-    )
+      client.subscription,
+    );
 
     // If rankOnly is enabled and the user isn't staff, check their rank
     if (rankOnlySettings.enabled && !isStaff) {
       // Check the user's rank
-      const userRankTier = await getUserRankTier(user)
+      const userRankTier = await getUserRankTier(user);
 
       // If they don't meet the rank requirement, delete the message
       if (userRankTier < rankOnlySettings.minimumRankTier) {
         try {
-          const api = await getTwitchAPI(process.env.TWITCH_BOT_PROVIDERID)
+          const api = await getTwitchAPI(process.env.TWITCH_BOT_PROVIDERID);
 
           // Do this as the bot which should be a moderator in the channel
           await api.asUser(process.env.TWITCH_BOT_PROVIDERID!, async (ctx) => {
             const requiredRank =
-              rankOnlySettings.minimumRank || getRankTitle(rankOnlySettings.minimumRankTier)
+              rankOnlySettings.minimumRank || getRankTitle(rankOnlySettings.minimumRankTier);
             await ctx.moderation.banUser(channelId, {
               duration: 30,
-              reason: t('rankOnlyMode', {
-                lng: client.locale || 'en',
+              reason: t("rankOnlyMode", {
+                lng: client.locale || "en",
                 name: user,
                 requiredRank,
-                url: 'dotabod.com/verify',
+                url: "dotabod.com/verify",
               }),
               user: userInfo.userId,
-            })
-          })
+            });
+          });
         } catch (error) {
-          logger.error('[TWITCH] Failed to delete message or timeout user', {
+          logger.error("[TWITCH] Failed to delete message or timeout user", {
             channel,
             error,
             messageId,
             user,
-          })
+          });
         }
 
         // Send a warning message, but with rate limiting PER CHANNEL
-        const now = Date.now()
-        const lastWarningTime = lastRankWarningTimestamps[channel] || 0
+        const now = Date.now();
+        const lastWarningTime = lastRankWarningTimestamps[channel] || 0;
 
         if (now - lastWarningTime > RANK_WARNING_COOLDOWN_MS) {
           const requiredRank =
-            rankOnlySettings.minimumRank || getRankTitle(rankOnlySettings.minimumRankTier)
-          const userRank = getRankTitle(userRankTier)
+            rankOnlySettings.minimumRank || getRankTitle(rankOnlySettings.minimumRankTier);
+          const userRank = getRankTitle(userRankTier);
 
           chatClient.say(
             channel,
-            t('rankOnlyMode', {
-              lng: client.locale || 'en',
+            t("rankOnlyMode", {
+              lng: client.locale || "en",
               name: user,
               requiredRank,
-              url: 'dotabod.com/verify',
-              userRank: userRank || 'Uncalibrated',
-            })
-          )
+              url: "dotabod.com/verify",
+              userRank: userRank || "Uncalibrated",
+            }),
+          );
 
-          lastRankWarningTimestamps[channel] = now
+          lastRankWarningTimestamps[channel] = now;
         }
 
-        return
+        return;
       }
     }
 
@@ -190,44 +190,44 @@ twitchChat.on(
       plebMode.has(channelId) &&
       !(userInfo.isMod || userInfo.isBroadcaster || userInfo.isSubscriber)
     ) {
-      plebMode.delete(channelId)
-      const api = await getTwitchAPI(process.env.TWITCH_BOT_PROVIDERID)
+      plebMode.delete(channelId);
+      const api = await getTwitchAPI(process.env.TWITCH_BOT_PROVIDERID);
       await api.asUser(process.env.TWITCH_BOT_PROVIDERID!, async (ctx) => {
         await ctx.chat.updateSettings(channelId, {
           emoteOnlyModeEnabled: false,
           subscriberOnlyModeEnabled: true,
-        })
-      })
+        });
+      });
       chatClient.say(
         channel,
-        t('pleb', { context: 'off', emote: 'EZ Clap', lng: 'en', name: user })
-      )
-      return
+        t("pleb", { context: "off", emote: "EZ Clap", lng: "en", name: user }),
+      );
+      return;
     }
 
-    if (!text.startsWith('!')) {
-      return
+    if (!text.startsWith("!")) {
+      return;
     }
 
     const isBotDisabled = getValueOrDefault(
       DBSettings.commandDisable,
       client.settings,
-      client.subscription
-    )
-    const toggleCommand = commandHandler.commands.get('toggle')
+      client.subscription,
+    );
+    const toggleCommand = commandHandler.commands.get("toggle");
     if (
       isBotDisabled &&
-      toggleCommand?.aliases?.includes(text.replace('!', '').split(' ')[0]) !== true &&
-      text.split(' ')[0] !== '!toggle'
+      toggleCommand?.aliases?.includes(text.replace("!", "").split(" ")[0]) !== true &&
+      text.split(" ")[0] !== "!toggle"
     ) {
-      logger.debug('Bot is disabled', { channel, text, user })
-      return
+      logger.debug("Bot is disabled", { channel, text, user });
+      return;
     }
 
     // Handle the incoming message using the command handler
     // to address v7 twurple removing #, but my db having # for command stats
     // add a hashtag to the beginning of the channel name if its not there already
-    const channelName = channel.startsWith('#') ? channel : `#${channel}`
+    const channelName = channel.startsWith("#") ? channel : `#${channel}`;
     await commandHandler.handleMessage({
       channel: { client, id: channelId, name: channelName, settings: client.settings },
       content: text,
@@ -237,9 +237,9 @@ twitchChat.on(
         permission: userInfo.isBroadcaster ? 3 : userInfo.isMod ? 2 : userInfo.isSubscriber ? 1 : 0,
         userId: userInfo.userId,
       },
-    })
-  }
-)
+    });
+  },
+);
 
 const events = {
   subscribeToChannelPollBeginEvents: EventSubChannelPollBeginEvent,
@@ -249,30 +249,30 @@ const events = {
   subscribeToChannelPredictionEndEvents: EventSubChannelPredictionEndEvent,
   subscribeToChannelPredictionLockEvents: EventSubChannelPredictionLockEvent,
   subscribeToChannelPredictionProgressEvents: EventSubChannelPredictionProgressEvent,
-}
+};
 
-twitchChat.on('event', (eventName: keyof typeof events, broadcasterId: string, data: unknown) => {
+twitchChat.on("event", (eventName: keyof typeof events, broadcasterId: string, data: unknown) => {
   // Can start doing something with the events
 
-  const token = getTokenFromTwitchId(broadcasterId)
+  const token = getTokenFromTwitchId(broadcasterId);
   if (token === null || token.length === 0) {
-    return
+    return;
   }
 
-  const client = findUser(token)
+  const client = findUser(token);
   if (!client) {
-    return
+    return;
   }
 
-  const isEnabled = getValueOrDefault(DBSettings.livePolls, client.settings, client.subscription)
+  const isEnabled = getValueOrDefault(DBSettings.livePolls, client.settings, client.subscription);
   if (!isEnabled) {
-    return
+    return;
   }
 
-  server.io.to(token).emit('channelPollOrBet', data, eventName)
-})
+  server.io.to(token).emit("channelPollOrBet", data, eventName);
+});
 
-export const twitchEvent: Socket = socketIo(`ws://${process.env.HOST_TWITCH_EVENTS}:5015`)
-twitchEvent.on('connect', () => {
-  logger.info('We alive on dotabod twitch events server!')
-})
+export const twitchEvent: Socket = socketIo(`ws://${process.env.HOST_TWITCH_EVENTS}:5015`);
+twitchEvent.on("connect", () => {
+  logger.info("We alive on dotabod twitch events server!");
+});

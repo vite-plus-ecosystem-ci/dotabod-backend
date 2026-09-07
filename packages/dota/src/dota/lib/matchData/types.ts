@@ -1,4 +1,4 @@
-import type { HeroesStatus } from '../../../types'
+import type { HeroesStatus } from "../../../types";
 
 // --- Public types for the match-data API ---
 //
@@ -8,57 +8,57 @@ import type { HeroesStatus } from '../../../types'
 
 export type RosterSource =
   // observer/spectator client — GSI has all 10 (team2/team3)
-  | 'gsi-spectator'
+  | "gsi-spectator"
   // delayedGames doc from SourceTV broadcast feed
-  | 'sourcetv'
+  | "sourcetv"
   // Vision API returned heroes (any of detect_draft/detect/detect_in_game)
-  | 'vision-heroes'
+  | "vision-heroes"
   // Vision API returned only draft names, no heroes yet
-  | 'vision-draft'
+  | "vision-draft"
   // only the streamer's own hero/account (no other source available)
-  | 'gsi-self'
+  | "gsi-self"
   // no current match
-  | 'none'
+  | "none";
 
 export type MatchStage =
   // CM / player-draft — lobby members known but teams not yet split
-  | 'roster-draft'
+  | "roster-draft"
   // teams split + heroes being picked
-  | 'hero-draft'
+  | "hero-draft"
   // all heroes locked, game underway
-  | 'in-progress'
+  | "in-progress"
   // no signal
-  | 'unknown'
+  | "unknown";
 
-export type Coverage = 'all' | 'partial' | 'none'
+export type Coverage = "all" | "partial" | "none";
 
 export interface RosterCompleteness {
-  accountIds: Coverage
-  heroIds: Coverage
-  teamAssignment: Coverage
-  playerNames: Coverage
-  ranks: Coverage
+  accountIds: Coverage;
+  heroIds: Coverage;
+  teamAssignment: Coverage;
+  playerNames: Coverage;
+  ranks: Coverage;
 }
 
 export interface RosterPlayer {
-  slot: number | null
-  accountId: number | null
-  heroId: number | null
-  team: 'radiant' | 'dire' | null
-  playerName: string | null
-  rank: number | null
+  slot: number | null;
+  accountId: number | null;
+  heroId: number | null;
+  team: "radiant" | "dire" | null;
+  playerName: string | null;
+  rank: number | null;
   // True when this is the focused/selected unit in a spectator client — only set for
   // `gsi-spectator` sources (the underlying `getSpectatorPlayers` populates it); null elsewhere.
-  selected: boolean | null
+  selected: boolean | null;
 }
 
 export interface ResolvedRoster {
-  players: RosterPlayer[]
-  source: RosterSource
-  stage: MatchStage
-  completeness: RosterCompleteness
-  heroesStatus?: HeroesStatus
+  players: RosterPlayer[];
+  source: RosterSource;
+  stage: MatchStage;
+  completeness: RosterCompleteness;
+  heroesStatus?: HeroesStatus;
   // Convenience flags — sugar over `completeness` so callers don't dot-walk.
-  hasAllAccountIds: boolean
-  hasAllHeroes: boolean
+  hasAllAccountIds: boolean;
+  hasAllHeroes: boolean;
 }

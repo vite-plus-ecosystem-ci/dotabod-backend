@@ -4,126 +4,126 @@ import {
   getTwitchHeaders,
   logger,
   supabase,
-} from '@dotabod/shared-utils'
+} from "@dotabod/shared-utils";
 
-import { eventSubMap } from '../../chat-sub-ids'
+import { eventSubMap } from "../../chat-sub-ids";
 
 // Constants
-const headers = await getTwitchHeaders()
+const headers = await getTwitchHeaders();
 
 export const deleteSubscription = async (id: string) => {
   await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${id}`, {
     headers,
-    method: 'DELETE',
-  })
-}
+    method: "DELETE",
+  });
+};
 
 // Function to stop subscriptions for a user
 export const stopUserSubscriptions = async (providerAccountId: string) => {
-  const subscriptions = eventSubMap.get(providerAccountId)
+  const subscriptions = eventSubMap.get(providerAccountId);
   if (subscriptions === undefined) {
-    return
+    return;
   }
 
   // Delete each subscription and remove from map
   await Promise.all(
     Object.values(subscriptions).map(async (subscription) => {
       try {
-        await deleteSubscription(subscription.id)
+        await deleteSubscription(subscription.id);
       } catch (error) {
-        logger.info('[TWITCHEVENTS] could not delete subscription', {
+        logger.info("[TWITCHEVENTS] could not delete subscription", {
           error,
           id: subscription.id,
-        })
+        });
       }
-    })
-  )
+    }),
+  );
 
-  eventSubMap.delete(providerAccountId)
-}
+  eventSubMap.delete(providerAccountId);
+};
 
 const disableChannel = async function disableChannel(broadcasterId: string) {
   const { data: user } = await supabase
-    .from('accounts')
-    .select('userId')
-    .eq('provider', 'twitch')
-    .eq('providerAccountId', broadcasterId)
-    .single()
+    .from("accounts")
+    .select("userId")
+    .eq("provider", "twitch")
+    .eq("providerAccountId", broadcasterId)
+    .single();
 
   if (!user) {
-    logger.info('twitch-events Failed to find user', { twitchId: broadcasterId })
-    return
+    logger.info("twitch-events Failed to find user", { twitchId: broadcasterId });
+    return;
   }
   // Remove all steam accounts associated with this user
   // This allows them to link these steam accounts to a different Twitch account
   // if they need to create a new one after being banned
-  await supabase.from('steam_accounts').delete().eq('userId', user.userId)
+  await supabase.from("steam_accounts").delete().eq("userId", user.userId);
 
   const { data: settings } = await supabase
-    .from('settings')
-    .select('key, value')
-    .eq('userId', user?.userId)
+    .from("settings")
+    .select("key, value")
+    .eq("userId", user?.userId);
 
   if (!settings) {
-    logger.info('twitch-events Failed to find settings', { twitchId: broadcasterId })
-    return
+    logger.info("twitch-events Failed to find settings", { twitchId: broadcasterId });
+    return;
   }
 
-  if (settings.some((setting) => setting.key === 'commandDisable' && setting.value === true)) {
-    logger.info('twitch-events User already disabled', { twitchId: broadcasterId })
-    return
+  if (settings.some((setting) => setting.key === "commandDisable" && setting.value === true)) {
+    logger.info("twitch-events User already disabled", { twitchId: broadcasterId });
+    return;
   }
 
-  logger.info('twitch-events Disabling user', { twitchId: broadcasterId })
+  logger.info("twitch-events Disabling user", { twitchId: broadcasterId });
 
-  await commandDisable.disable(user.userId, 'TOKEN_REVOKED', {
-    additional_info: 'User revoked app permissions on Twitch',
+  await commandDisable.disable(user.userId, "TOKEN_REVOKED", {
+    additional_info: "User revoked app permissions on Twitch",
     requires_reauth: true,
-  })
-}
+  });
+};
 
 // Track pending revoke operations to debounce multiple calls
-const pendingRevokes = new Map<string, NodeJS.Timeout>()
+const pendingRevokes = new Map<string, NodeJS.Timeout>();
 
 export const executeRevoke = async function executeRevoke(
-  providerAccountId: string
+  providerAccountId: string,
 ): Promise<void> {
-  logger.info(`${providerAccountId} revoke executing after debounce`)
-  pendingRevokes.delete(providerAccountId)
+  logger.info(`${providerAccountId} revoke executing after debounce`);
+  pendingRevokes.delete(providerAccountId);
 
-  await stopUserSubscriptions(providerAccountId)
+  await stopUserSubscriptions(providerAccountId);
   await supabase
-    .from('accounts')
+    .from("accounts")
     .update({
       requires_refresh: true,
       updated_at: new Date().toISOString(),
     })
-    .eq('provider', 'twitch')
-    .eq('providerAccountId', providerAccountId)
+    .eq("provider", "twitch")
+    .eq("providerAccountId", providerAccountId);
 
-  await disableChannel(providerAccountId)
-}
+  await disableChannel(providerAccountId);
+};
 
 export const revokeEvent = function revokeEvent({
   providerAccountId,
 }: {
-  providerAccountId: string
+  providerAccountId: string;
 }): void {
   if (providerAccountId === process.env.TWITCH_BOT_PROVIDERID) {
-    logger.info('Bot was revoked by Twitch in events!')
-    botStatus.isBanned = true
+    logger.info("Bot was revoked by Twitch in events!");
+    botStatus.isBanned = true;
   }
 
   // Clear any existing timeout for this user
   if (pendingRevokes.has(providerAccountId)) {
-    clearTimeout(pendingRevokes.get(providerAccountId))
+    clearTimeout(pendingRevokes.get(providerAccountId));
   }
 
   // Set a new timeout
   pendingRevokes.set(
     providerAccountId,
     setTimeout(() => {
-      void executeRevoke(providerAccountId)
-    }, 3000)
-  )
-}
+      void executeRevoke(providerAccountId);
+    }, 3000),
+  );
+};

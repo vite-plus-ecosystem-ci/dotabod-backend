@@ -13,11 +13,11 @@ name: GHCR cleanup
 
 on:
   schedule:
-    - cron: '0 4 * * 0' # Sundays 04:00 UTC
+    - cron: "0 4 * * 0" # Sundays 04:00 UTC
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Preview only — list what would be deleted, delete nothing'
+        description: "Preview only — list what would be deleted, delete nothing"
         type: boolean
         default: true
 

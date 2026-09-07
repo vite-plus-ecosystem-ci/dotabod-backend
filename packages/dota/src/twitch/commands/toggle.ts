@@ -1,31 +1,31 @@
-import { commandDisable } from '@dotabod/shared-utils'
+import { commandDisable } from "@dotabod/shared-utils";
 
-import { DBSettings, getValueOrDefault } from '../../settings'
-import commandHandler from '../lib/command-handler'
+import { DBSettings, getValueOrDefault } from "../../settings";
+import commandHandler from "../lib/command-handler";
 
-commandHandler.registerCommand('toggle', {
-  aliases: ['disable', 'enable'],
+commandHandler.registerCommand("toggle", {
+  aliases: ["disable", "enable"],
   cooldown: 0,
   handler: async (message) => {
     const {
       channel: { client },
-    } = message
+    } = message;
 
     const isBotDisabled = getValueOrDefault(
       DBSettings.commandDisable,
       client.settings,
-      client.subscription
-    )
+      client.subscription,
+    );
 
-    const userId = message.channel.client.token
+    const userId = message.channel.client.token;
 
     await (isBotDisabled
       ? commandDisable.enable(userId)
-      : commandDisable.disable(userId, 'MANUAL_DISABLE', {
+      : commandDisable.disable(userId, "MANUAL_DISABLE", {
           additional_info: `Manually disabled by ${message.user.name} via chat command`,
-          command: '!toggle',
+          command: "!toggle",
           disabled_by: message.user.name,
-        }))
+        }));
   },
   permission: 2,
-})
+});

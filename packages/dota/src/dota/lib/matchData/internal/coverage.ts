@@ -1,37 +1,37 @@
-import type { Coverage, ResolvedRoster, RosterPlayer } from '../types'
+import type { Coverage, ResolvedRoster, RosterPlayer } from "../types";
 
 // Coverage is denominated against the canonical 10-slot roster, NOT the array length, so
 // 'all' always means "all 10 slots have this dimension." A 1-player gsi-self roster is therefore
 // 'partial', not 'all', even though 1/1 of its entries is filled.
-const ROSTER_SLOTS = 10
+const ROSTER_SLOTS = 10;
 
 export const coverage = function coverage(
   players: RosterPlayer[],
-  pred: (p: RosterPlayer) => boolean
+  pred: (p: RosterPlayer) => boolean,
 ): Coverage {
-  const matches = players.filter(pred).length
+  const matches = players.filter(pred).length;
   if (matches === 0) {
-    return 'none'
+    return "none";
   }
   if (matches >= ROSTER_SLOTS && players.length >= ROSTER_SLOTS) {
-    return 'all'
+    return "all";
   }
-  return 'partial'
-}
+  return "partial";
+};
 
 export const emptyRoster = function emptyRoster(): ResolvedRoster {
   return {
     completeness: {
-      accountIds: 'none',
-      heroIds: 'none',
-      playerNames: 'none',
-      ranks: 'none',
-      teamAssignment: 'none',
+      accountIds: "none",
+      heroIds: "none",
+      playerNames: "none",
+      ranks: "none",
+      teamAssignment: "none",
     },
     hasAllAccountIds: false,
     hasAllHeroes: false,
     players: [],
-    source: 'none',
-    stage: 'unknown',
-  }
-}
+    source: "none",
+    stage: "unknown",
+  };
+};

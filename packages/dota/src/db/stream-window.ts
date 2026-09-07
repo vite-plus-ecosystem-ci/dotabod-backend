@@ -3,10 +3,10 @@
 // longest realistic Dota streaming session and is shared by the default win/loss
 // counter, recent / unresolved / won / lost commands, and the retroactive match
 // resolver. !today uses a fixed calendar-day window.
-const DEFAULT_STREAM_WINDOW_MS = 12 * 60 * 60 * 1000
+const DEFAULT_STREAM_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 export const getSessionStartDate = function getSessionStartDate(
-  streamStartDate?: Date | null
+  streamStartDate?: Date | null,
 ): Date {
-  return streamStartDate ?? new Date(Date.now() - DEFAULT_STREAM_WINDOW_MS)
-}
+  return streamStartDate ?? new Date(Date.now() - DEFAULT_STREAM_WINDOW_MS);
+};

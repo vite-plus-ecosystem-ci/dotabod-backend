@@ -2,63 +2,63 @@
  * Type declarations for profanity filtering libraries without TypeScript types
  */
 
-declare module 'bad-words' {
+declare module "bad-words" {
   export class Filter {
     constructor(options?: {
-      emptyList?: boolean
-      exclude?: string[]
-      placeHolder?: string
-      list?: string[]
-      regex?: RegExp
-    })
-    isProfane(text: string): boolean
-    clean(text: string): string
-    addWords(...words: string[]): void
-    removeWords(...words: string[]): void
+      emptyList?: boolean;
+      exclude?: string[];
+      placeHolder?: string;
+      list?: string[];
+      regex?: RegExp;
+    });
+    isProfane(text: string): boolean;
+    clean(text: string): string;
+    addWords(...words: string[]): void;
+    removeWords(...words: string[]): void;
   }
 }
 
-declare module 'profanity-filter' {
+declare module "profanity-filter" {
   export class ProfanityFilter {
-    isProfane: (text: string) => boolean
-    clean: (text: string) => string
-    addWords: (words: string[]) => void
-    removeWords: (words: string[]) => void
+    isProfane: (text: string) => boolean;
+    clean: (text: string) => string;
+    addWords: (words: string[]) => void;
+    removeWords: (words: string[]) => void;
   }
 }
 
-declare module 'profanity-util' {
+declare module "profanity-util" {
   interface ProfanityUtil {
-    check: (text: string | string[]) => [string[], number]
-    purify: (text: string | string[]) => [string | string[], number]
-    addWords: (words: string | string[]) => string[]
-    removeWords: (words: string | string[]) => string[]
-    getDictionary: () => string[]
+    check: (text: string | string[]) => [string[], number];
+    purify: (text: string | string[]) => [string | string[], number];
+    addWords: (words: string | string[]) => string[];
+    removeWords: (words: string | string[]) => string[];
+    getDictionary: () => string[];
   }
 
-  const profanityUtil: ProfanityUtil
-  export default profanityUtil
+  const profanityUtil: ProfanityUtil;
+  export default profanityUtil;
 }
 
-declare module 'russian-bad-words' {
+declare module "russian-bad-words" {
   export interface Word {
-    [key: string]: string
+    [key: string]: string;
   }
 
-  export const words: Word[]
-  export const flatWords: string[]
+  export const words: Word[];
+  export const flatWords: string[];
 }
 
-declare module 'washyourmouthoutwithsoap' {
+declare module "washyourmouthoutwithsoap" {
   export interface Wash {
     // Returns supported locale codes (ISO 639-1)
-    supported: () => string[]
+    supported: () => string[];
     // Checks if text contains bad words for the specified locale
-    check: (locale: string, text: string) => boolean
+    check: (locale: string, text: string) => boolean;
     // Returns all bad words for the specified locale
-    words: (locale: string) => string[]
+    words: (locale: string) => string[];
   }
 
-  const wash: Wash
-  export default wash
+  const wash: Wash;
+  export default wash;
 }

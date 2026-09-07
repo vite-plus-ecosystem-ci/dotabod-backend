@@ -1,37 +1,37 @@
-import { DBSettings } from '../../settings'
-import type { SettingKeys } from '../../settings'
+import { DBSettings } from "../../settings";
+import type { SettingKeys } from "../../settings";
 
 export const DelayedCommands = [
   {
-    command: '!np',
+    command: "!np",
     key: DBSettings.commandNP,
   },
   {
-    command: '!smurfs',
+    command: "!smurfs",
     key: DBSettings.commandSmurfs,
   },
   {
-    command: '!gm',
+    command: "!gm",
     key: DBSettings.commandGM,
   },
   {
-    command: '!lg',
+    command: "!lg",
     key: DBSettings.commandLG,
   },
   {
-    command: '!avg',
+    command: "!avg",
     key: DBSettings.commandAvg,
   },
   {
-    command: '!items',
+    command: "!items",
     key: DBSettings.commandItems,
   },
   {
-    command: '!wp',
+    command: "!wp",
     key: DBSettings.commandWinProbability,
   },
   {
-    command: '!stats',
+    command: "!stats",
     key: DBSettings.commandItems,
   },
-] as const satisfies readonly { command: string; key: SettingKeys }[]
+] as const satisfies readonly { command: string; key: SettingKeys }[];

@@ -1,85 +1,85 @@
-import type { HeroNames } from './get-hero'
-import { heroes } from './hero-list'
+import type { HeroNames } from "./get-hero";
+import { heroes } from "./hero-list";
 // Dota's fixed slot→color order (0-4 Radiant, 5-9 Dire). WARNING: indexing this
 // by a GSI events[].player_id is unreliable — Dota reshuffles player_id, mostly in
 // high-immortal / ranked-roles games (live: ~57% of 8500+ vs ~0% of confirmed
 // sub-8500), so it can resolve the wrong player/side. Only trust it when a real
 // hero (from clip/vision or own GSI) couldn't be found.
-export const heroColors = 'Blue,Teal,Purple,Yellow,Orange,Pink,Olive,Cyan,Green,Brown'.split(',')
+export const heroColors = "Blue,Teal,Purple,Yellow,Orange,Pink,Olive,Cyan,Green,Brown".split(",");
 export const getHeroById = function getHeroById(id?: number) {
   if (id === undefined || id === 0 || Number.isNaN(id)) {
-    return null
+    return null;
   }
 
   for (const [key, hero] of Object.entries(heroes)) {
     if (hero.id === id) {
-      return { ...hero, key: key as HeroNames }
+      return { ...hero, key: key as HeroNames };
     }
   }
 
-  return null
-}
+  return null;
+};
 
 export const getHeroNameOrColor = function getHeroNameOrColor(id?: number, index?: number) {
   if ((id === undefined || id === 0 || Number.isNaN(id)) && index !== undefined) {
-    return heroColors[index]
+    return heroColors[index];
   }
 
-  const hero = getHeroById(id)
-  const name = hero?.localized_name
+  const hero = getHeroById(id);
+  const name = hero?.localized_name;
   if ((name === undefined || name.length === 0) && index !== undefined) {
-    return heroColors[index]
+    return heroColors[index];
   }
 
-  return name ?? 'Unknown'
-}
+  return name ?? "Unknown";
+};
 
 // dota2.com renamed this hero to "Outworld Destroyer", but dotaconstants still
 // reports the old localized name "Outworld Devourer" — override its slug.
 const heroPageSlugOverrides: Partial<Record<HeroNames, string>> = {
-  npc_dota_hero_obsidian_destroyer: 'outworlddestroyer',
-}
+  npc_dota_hero_obsidian_destroyer: "outworlddestroyer",
+};
 
 export const getHeroPageUrl = function getHeroPageUrl(id?: number): string | null {
-  const hero = getHeroById(id)
+  const hero = getHeroById(id);
   if (!hero) {
-    return null
+    return null;
   }
   // dota2.com routes on the English localized name, lowercased with spaces
   // removed (hyphens/apostrophes kept) — e.g. "Shadow Fiend" -> shadowfiend,
   // "Anti-Mage" -> anti-mage, "Nature's Prophet" -> nature'sprophet.
   const slug =
-    heroPageSlugOverrides[hero.key] ?? hero.localized_name.toLowerCase().replaceAll(' ', '')
-  return `dota2.com/hero/${slug}`
-}
+    heroPageSlugOverrides[hero.key] ?? hero.localized_name.toLowerCase().replaceAll(" ", "");
+  return `dota2.com/hero/${slug}`;
+};
 
 export const withHeroLink = function withHeroLink(text: string, id?: number): string {
-  const url = getHeroPageUrl(id)
-  return url !== null && url.length > 0 ? `${text} · ${url}` : text
-}
+  const url = getHeroPageUrl(id);
+  return url !== null && url.length > 0 ? `${text} · ${url}` : text;
+};
 
 export const getHeroByName = function getHeroByName(
   name: string,
-  heroIdsInMatch?: (number | undefined)[]
+  heroIdsInMatch?: (number | undefined)[],
 ) {
   if (name.length === 0) {
-    return null
+    return null;
   }
 
   // only keep a-z in name
   const localName = name
-    .replaceAll(/[^a-z]/giu, '')
+    .replaceAll(/[^a-z]/giu, "")
     .toLowerCase()
-    .trim()
+    .trim();
 
-  let lookInHeroes = Object.values(heroes)
+  let lookInHeroes = Object.values(heroes);
   if (
     heroIdsInMatch !== undefined &&
     heroIdsInMatch.length > 1 &&
     heroIdsInMatch.filter((heroId) => heroId !== undefined && heroId !== 0 && !Number.isNaN(heroId))
       .length > 1
   ) {
-    lookInHeroes = Object.values(heroes).filter((hero) => heroIdsInMatch.includes(hero.id))
+    lookInHeroes = Object.values(heroes).filter((hero) => heroIdsInMatch.includes(hero.id));
   }
 
   // alias lookup first
@@ -87,24 +87,24 @@ export const getHeroByName = function getHeroByName(
     const hasAlias = h.alias.some(
       (alias) =>
         alias
-          .replaceAll(/[^a-z]/giu, '')
+          .replaceAll(/[^a-z]/giu, "")
           .toLowerCase()
-          .trim() === localName
-    )
+          .trim() === localName,
+    );
 
-    return hasAlias
-  })
+    return hasAlias;
+  });
 
   // then hero name
   hero ??= lookInHeroes.find((h) => {
     const inName = h.localized_name
       // replace all spaces with nothing, and only keep a-z
-      .replaceAll(/[^a-z]/giu, '')
+      .replaceAll(/[^a-z]/giu, "")
       .toLowerCase()
-      .trim()
+      .trim();
 
-    return inName.includes(localName)
-  })
+    return inName.includes(localName);
+  });
 
-  return hero
-}
+  return hero;
+};

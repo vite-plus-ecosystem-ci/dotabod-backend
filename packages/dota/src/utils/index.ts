@@ -1,61 +1,61 @@
-import RedisClient from '../db/redis-client'
-import type { SocketClient } from '../types'
+import RedisClient from "../db/redis-client";
+import type { SocketClient } from "../types";
 
 export const steamID64toSteamID32 = function steamID64toSteamID32(steamID64: string) {
   if (!steamID64) {
-    return null
+    return null;
   }
   try {
-    return Number(steamID64.substr(-16, 16)) - 6_561_197_960_265_728
+    return Number(steamID64.substr(-16, 16)) - 6_561_197_960_265_728;
   } catch {
-    return null
+    return null;
   }
-}
+};
 
-const STEAMID64_OFFSET = 76_561_197_960_265_728n
+const STEAMID64_OFFSET = 76_561_197_960_265_728n;
 export const steamID32toSteamID64 = function steamID32toSteamID64(steam32Id: number) {
   try {
-    return (BigInt(steam32Id) + STEAMID64_OFFSET).toString()
+    return (BigInt(steam32Id) + STEAMID64_OFFSET).toString();
   } catch {
-    return null
+    return null;
   }
-}
+};
 
 export const fmtMSS = function fmtMSS(totalSeconds: number) {
   // 👇️ get number of full minutes
-  const minutes = Math.floor(totalSeconds / 60)
+  const minutes = Math.floor(totalSeconds / 60);
 
   // 👇️ get remainder of seconds
-  const seconds = totalSeconds % 60
+  const seconds = totalSeconds % 60;
 
   const padTo2Digits = function padTo2Digits(num: number) {
-    return num.toString().padStart(2, '0')
-  }
+    return num.toString().padStart(2, "0");
+  };
 
   // ✅ format as MM:SS
-  return `${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`
-}
+  return `${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`;
+};
 
-const redisClient = RedisClient.getInstance()
+const redisClient = RedisClient.getInstance();
 export const getRedisNumberValue = async (key: string) => {
-  const value = await redisClient.client.get(key)
-  return value === null ? null : Number(value)
-}
+  const value = await redisClient.client.get(key);
+  return value === null ? null : Number(value);
+};
 
 // Tier gate. Today it mainly skips the (already-disabled) GetRealTimeStats fetch and routes high-MMR
 // hero data through the clip/vision path instead. It does NOT affect the SourceTV `delayedGames`
 // feed (which lists games regardless of any single streamer's MMR).
 export const is8500Plus = (dotaClient: SocketClient) => {
   const currentSteamAccount = dotaClient.SteamAccount?.find(
-    (account) => dotaClient.steam32Id === account.steam32Id
-  )
+    (account) => dotaClient.steam32Id === account.steam32Id,
+  );
 
   if (dotaClient.mmr && dotaClient.mmr > 8500) {
-    return true
+    return true;
   }
 
   if (currentSteamAccount && currentSteamAccount?.mmr >= 8500) {
-    return true
+    return true;
   }
 
   if (
@@ -63,26 +63,26 @@ export const is8500Plus = (dotaClient: SocketClient) => {
     currentSteamAccount?.leaderboard_rank !== undefined &&
     currentSteamAccount.leaderboard_rank !== 0
   ) {
-    return true
+    return true;
   }
 
   // Treating anyone with a leaderboard rank as 8500+
   // The lowest rank is 5000
-  return false
-}
+  return false;
+};
 
 const normalizeDotabodUsername = function normalizeDotabodUsername(username: string): string {
-  return username.replace(/^#/u, '').trim().toLowerCase()
-}
+  return username.replace(/^#/u, "").trim().toLowerCase();
+};
 
 export const dotabodProfileUrl = function dotabodProfileUrl(username: string): string {
-  const normalized = normalizeDotabodUsername(username)
-  return normalized ? `dotabod.com/${normalized}` : ''
-}
+  const normalized = normalizeDotabodUsername(username);
+  return normalized ? `dotabod.com/${normalized}` : "";
+};
 
 export const dotabodMatchHistoryUrl = function dotabodMatchHistoryUrl(
-  client: Pick<SocketClient, 'name'>
+  client: Pick<SocketClient, "name">,
 ): string {
-  const profile = dotabodProfileUrl(client.name)
-  return profile ? `${profile}/matches` : ''
-}
+  const profile = dotabodProfileUrl(client.name);
+  return profile ? `${profile}/matches` : "";
+};

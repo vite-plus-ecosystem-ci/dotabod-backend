@@ -1,3 +1,3 @@
-declare module 'country-code-emoji' {
-  export function countryCodeEmoji(countryCode: string): string | undefined
+declare module "country-code-emoji" {
+  export function countryCodeEmoji(countryCode: string): string | undefined;
 }

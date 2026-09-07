@@ -1,29 +1,29 @@
-import { moderateText } from '@dotabod/profanity-filter'
-import { countryCodeEmoji } from 'country-code-emoji'
-import { t } from 'i18next'
+import { moderateText } from "@dotabod/profanity-filter";
+import { countryCodeEmoji } from "country-code-emoji";
+import { t } from "i18next";
 
-import { calculateAvg } from '../dota/lib/calculate-avg'
-import { getPlayers } from '../dota/lib/get-players'
-import { getHeroNameOrColor } from '../dota/lib/heroes'
-import type { RosterPlayer, RosterSource } from '../dota/lib/matchData'
-import type { HeroesStatus, NotablePlayer, SocketClient } from '../types'
-import MongoDBSingleton from './mongo-db-singleton'
-import { getSteamPlayerSummaries } from './player-summaries'
-import type { SteamPlayerSummary } from './player-summaries'
+import { calculateAvg } from "../dota/lib/calculate-avg";
+import { getPlayers } from "../dota/lib/get-players";
+import { getHeroNameOrColor } from "../dota/lib/heroes";
+import type { RosterPlayer, RosterSource } from "../dota/lib/matchData";
+import type { HeroesStatus, NotablePlayer, SocketClient } from "../types";
+import MongoDBSingleton from "./mongo-db-singleton";
+import { getSteamPlayerSummaries } from "./player-summaries";
+import type { SteamPlayerSummary } from "./player-summaries";
 
 export interface NotablePlayers {
-  account_id: number
-  name: string
-  country_code: string
+  account_id: number;
+  name: string;
+  country_code: string;
 }
 
 const firstNonEmptyString = function firstNonEmptyString(
   ...values: (string | null | undefined)[]
 ): string | undefined {
   return values.find(
-    (value): value is string => value !== null && value !== undefined && value.length > 0
-  )
-}
+    (value): value is string => value !== null && value !== undefined && value.length > 0,
+  );
+};
 
 export const notablePlayers = async function notablePlayers({
   client,
@@ -36,15 +36,15 @@ export const notablePlayers = async function notablePlayers({
   heroesStatus,
   rosterSource,
 }: {
-  client?: SocketClient
-  locale: string
-  twitchChannelId: string
-  currentMatchId?: string
-  players?: RosterPlayer[]
-  enableFlags?: boolean
-  steam32Id: number | null
-  heroesStatus?: HeroesStatus
-  rosterSource?: RosterSource
+  client?: SocketClient;
+  locale: string;
+  twitchChannelId: string;
+  currentMatchId?: string;
+  players?: RosterPlayer[];
+  enableFlags?: boolean;
+  steam32Id: number | null;
+  heroesStatus?: HeroesStatus;
+  rosterSource?: RosterSource;
 }) {
   // Draft-only path: the players passed in are OCR'd draft names with no ranks
   // or hero data, so skip getPlayers (which would fire a needless Steam getCards
@@ -59,25 +59,25 @@ export const notablePlayers = async function notablePlayers({
         currentMatchId,
         locale,
         players,
-      })
+      });
 
-  const mongo = MongoDBSingleton
-  const db = await mongo.connect()
+  const mongo = MongoDBSingleton;
+  const db = await mongo.connect();
 
   try {
     const mode =
       gameMode !== undefined && gameMode !== 0
         ? await db
-            .collection('gameModes')
+            .collection("gameModes")
             .findOne({ id: gameMode }, { projection: { _id: 0, name: 1 } })
-        : { name: null }
+        : { name: null };
 
     // Draft-only players have accountid 0, which can never match a stored
     // record, so skip the lookup entirely when there are no real account ids.
-    const hasRealAccounts = accountIds.some((id) => id !== 0)
+    const hasRealAccounts = accountIds.some((id) => id !== 0);
     const nps = hasRealAccounts
       ? await db
-          .collection<NotablePlayers>('notablePlayers')
+          .collection<NotablePlayers>("notablePlayers")
           .find(
             {
               account_id: {
@@ -94,17 +94,17 @@ export const notablePlayers = async function notablePlayers({
                 country_code: 1,
                 name: 1,
               },
-            }
+            },
           )
           .toArray()
-      : []
+      : [];
 
     // SourceTV gives authoritative account_id + hero_id pairs but no display identity. Resolve
     // names and optional countries by account ID instead of mixing OCR text into that roster.
     const steamSummaries =
-      rosterSource === 'sourcetv'
+      rosterSource === "sourcetv"
         ? await getSteamPlayerSummaries(accountIds)
-        : new Map<number, SteamPlayerSummary>()
+        : new Map<number, SteamPlayerSummary>();
 
     // Description text. When only draft player names are available (no heroes
     // yet) there are no ranks to average, so skip the avg lookup entirely.
@@ -114,93 +114,93 @@ export const notablePlayers = async function notablePlayers({
           currentMatchId,
           locale,
           players,
-        })
+        });
 
-    const proPlayers: NotablePlayer[] = []
+    const proPlayers: NotablePlayer[] = [];
 
     // Using for..of loop instead of forEach to properly handle await
     for (const [i, player] of matchPlayers.entries()) {
-      const np = nps.find((np) => np.account_id === player.accountId)
+      const np = nps.find((np) => np.account_id === player.accountId);
       const steamSummary =
-        player.accountId === null ? undefined : steamSummaries.get(player.accountId)
-      const isCurrentPlayer = player.accountId === steam32Id
-      const fallbackHeroId = matchPlayers[i]?.heroId ?? 0
+        player.accountId === null ? undefined : steamSummaries.get(player.accountId);
+      const isCurrentPlayer = player.accountId === steam32Id;
+      const fallbackHeroId = matchPlayers[i]?.heroId ?? 0;
       const playerName =
         firstNonEmptyString(
           np?.name,
           steamSummary?.personaName,
-          rosterSource === 'sourcetv' ? undefined : matchPlayers[i]?.playerName
-        ) ?? `Player ${i + 1}`
+          rosterSource === "sourcetv" ? undefined : matchPlayers[i]?.playerName,
+        ) ?? `Player ${i + 1}`;
 
       // Determine hero name based on available data
-      let heroName = '?'
+      let heroName = "?";
       if (
         isCurrentPlayer &&
         client &&
         client.gsi?.hero?.id !== undefined &&
         client.gsi?.hero?.id > -1
       ) {
-        heroName = getHeroNameOrColor(client.gsi.hero.id, i)
+        heroName = getHeroNameOrColor(client.gsi.hero.id, i);
       } else if (player.slot !== null) {
-        heroName = getHeroNameOrColor(player.heroId ?? 0, i)
+        heroName = getHeroNameOrColor(player.heroId ?? 0, i);
       }
 
       const playerData = {
         account_id: player.accountId ?? 0,
-        country_code: firstNonEmptyString(np?.country_code, steamSummary?.countryCode) ?? '',
+        country_code: firstNonEmptyString(np?.country_code, steamSummary?.countryCode) ?? "",
         heroId: player.heroId ?? 0,
         heroName:
-          heroName === '?'
+          heroName === "?"
             ? fallbackHeroId > 0
               ? getHeroNameOrColor(fallbackHeroId, i)
-              : '?'
+              : "?"
             : heroName,
         isMe: isCurrentPlayer,
         name: (await moderateText(playerName)) ?? `Player ${i + 1}`,
         position: i,
-      }
+      };
 
       // Show a player when they're a tracked pro (np), when a name was detected,
       // or when this is a vision-detected hero (accountId null from the Vision
       // API, which never provides account ids so np can never match). The
       // vision path is the high-MMR roster view, so a confidently-detected hero
       // must not vanish just because its name OCR came back empty.
-      const isVisionHero = player.accountId === null && (player.heroId ?? 0) > 0
-      const isSourceTvPlayer = rosterSource === 'sourcetv' && player.accountId !== null
+      const isVisionHero = player.accountId === null && (player.heroId ?? 0) > 0;
+      const isSourceTvPlayer = rosterSource === "sourcetv" && player.accountId !== null;
       if (
         np !== undefined ||
         isSourceTvPlayer ||
         firstNonEmptyString(matchPlayers[i]?.playerName) !== undefined ||
         isVisionHero
       ) {
-        proPlayers.push(playerData)
+        proPlayers.push(playerData);
       }
     }
 
-    let modeText: string
+    let modeText: string;
     if (heroesStatus) {
       const noteKey =
-        heroesStatus === 'failed' ? 'notablePlayersNoHeroes' : 'notablePlayersWaitingHeroes'
-      modeText = `[${t(noteKey, { lng: locale })}]: `
+        heroesStatus === "failed" ? "notablePlayersNoHeroes" : "notablePlayersWaitingHeroes";
+      modeText = `[${t(noteKey, { lng: locale })}]: `;
     } else {
-      modeText = typeof mode?.name === 'string' ? `${mode.name} [${avg} avg]: ` : `[${avg} avg]: `
+      modeText = typeof mode?.name === "string" ? `${mode.name} [${avg} avg]: ` : `[${avg} avg]: `;
     }
     const proPlayersString = proPlayers
       .map((m) => {
         const country: string =
           enableFlags === true && m.country_code.length > 0
             ? `${countryCodeEmoji(m.country_code)} `
-            : ''
+            : "";
         // Draft-only: heroes unknown, show names without the "(Hero)" suffix.
-        return heroesStatus ? `${country}${m.name}` : `${country}${m.name} (${m.heroName})`
+        return heroesStatus ? `${country}${m.name}` : `${country}${m.name} (${m.heroName})`;
       })
-      .join(' · ')
+      .join(" · ");
 
     return {
-      description: `${modeText}${proPlayersString || t('noNotable', { lng: locale })}`,
+      description: `${modeText}${proPlayersString || t("noNotable", { lng: locale })}`,
       playerList: proPlayers,
-    }
+    };
   } finally {
-    await mongo.close()
+    await mongo.close();
   }
-}
+};

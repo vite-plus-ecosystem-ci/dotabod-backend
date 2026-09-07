@@ -1,57 +1,57 @@
-import { findUserByName } from '../dota/lib/connected-streamers'
-import { DBSettings, getValueOrDefault } from '../settings'
-import { twitchChat } from '../steam/ws'
-import { suggestionContext } from './lib/suggestion-context'
+import { findUserByName } from "../dota/lib/connected-streamers";
+import { DBSettings, getValueOrDefault } from "../settings";
+import { twitchChat } from "../steam/ws";
+import { suggestionContext } from "./lib/suggestion-context";
 
 // Rate limiting constants
-const MAX_WHISPERS_PER_SECOND = 3
-const MAX_WHISPERS_PER_MINUTE = 100
+const MAX_WHISPERS_PER_SECOND = 3;
+const MAX_WHISPERS_PER_MINUTE = 100;
 
 // Rate limiting counters and queue
-let whispersInLastSecond = 0
-let whispersInLastMinute = 0
-const whisperQueue: { channel: string; text: string }[] = []
-let processingQueue = false
+let whispersInLastSecond = 0;
+let whispersInLastMinute = 0;
+const whisperQueue: { channel: string; text: string }[] = [];
+let processingQueue = false;
 
 const processQueue = async () => {
   if (processingQueue || whisperQueue.length === 0) {
-    return
+    return;
   }
-  processingQueue = true
+  processingQueue = true;
 
   while (whisperQueue.length > 0) {
     if (
       whispersInLastSecond < MAX_WHISPERS_PER_SECOND &&
       whispersInLastMinute < MAX_WHISPERS_PER_MINUTE
     ) {
-      const { channel, text } = whisperQueue.shift()!
-      sendWhisper(channel, text)
+      const { channel, text } = whisperQueue.shift()!;
+      sendWhisper(channel, text);
 
       // Wait for rate limit period before processing next message
-      await new Promise((resolve) => setTimeout(resolve, 1000 / MAX_WHISPERS_PER_SECOND))
+      await new Promise((resolve) => setTimeout(resolve, 1000 / MAX_WHISPERS_PER_SECOND));
     } else {
       // Wait until we're under the rate limit again
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
-  processingQueue = false
-}
+  processingQueue = false;
+};
 
 const sendWhisper = (channel: string, text: string) => {
-  const MAX_WHISPER_LENGTH = 10_000
-  const chunks = text.match(new RegExp(`.{1,${MAX_WHISPER_LENGTH}}`, 'ug')) ?? []
+  const MAX_WHISPER_LENGTH = 10_000;
+  const chunks = text.match(new RegExp(`.{1,${MAX_WHISPER_LENGTH}}`, "ug")) ?? [];
 
   chunks.forEach((chunk) => {
-    twitchChat.emit('whisper', channel, chunk)
-  })
+    twitchChat.emit("whisper", channel, chunk);
+  });
 
-  whispersInLastSecond += 1
-  whispersInLastMinute += 1
+  whispersInLastSecond += 1;
+  whispersInLastMinute += 1;
 
-  setTimeout(() => (whispersInLastSecond -= 1), 1000)
-  setTimeout(() => (whispersInLastMinute -= 1), 60_000)
-}
+  setTimeout(() => (whispersInLastSecond -= 1), 1000);
+  setTimeout(() => (whispersInLastMinute -= 1), 60_000);
+};
 
 // Chat client object
 export const chatClient = {
@@ -59,11 +59,11 @@ export const chatClient = {
     channel: string,
     text: string,
     reply_parent_message_id?: string,
-    bypassDisableCheck = false
+    bypassDisableCheck = false,
   ): void => {
-    const user = findUserByName(channel.toLowerCase().replace('#', ''))
-    const hasNewestScopes = user?.Account?.scope?.includes('channel:bot')
-    const providerAccountId = user?.Account?.providerAccountId
+    const user = findUserByName(channel.toLowerCase().replace("#", ""));
+    const hasNewestScopes = user?.Account?.scope?.includes("channel:bot");
+    const providerAccountId = user?.Account?.providerAccountId;
 
     if (
       user !== null &&
@@ -75,41 +75,41 @@ export const chatClient = {
         const isDisabled = getValueOrDefault(
           DBSettings.commandDisable,
           user.settings,
-          user.subscription
-        )
+          user.subscription,
+        );
         if (isDisabled) {
-          return
+          return;
         }
       }
 
       // Consume a pending command-suggestion suffix from the active command
       // context (set by CommandHandler.handleMessage). Appended to the first
       // outgoing message so we don't send a separate "Also try !x" line.
-      const ctx = suggestionContext.getStore()
-      let finalText = text
+      const ctx = suggestionContext.getStore();
+      let finalText = text;
       if (ctx?.suffix !== null && ctx?.suffix !== undefined && ctx.suffix.length > 0) {
-        finalText = `${text} · ${ctx.suffix}`
-        ctx.suffix = null
+        finalText = `${text} · ${ctx.suffix}`;
+        ctx.suffix = null;
       }
 
-      twitchChat.emit('say', providerAccountId, finalText, reply_parent_message_id)
+      twitchChat.emit("say", providerAccountId, finalText, reply_parent_message_id);
     }
   },
   // Like `say`, but drops any pending command-suggestion suffix first. For
   // "nothing to show" replies (e.g. the auto-clipping-disabled note) where a
   // trailing "Also try !x" would point viewers at an equally-dataless sibling.
   sayWithoutSuggestion: (channel: string, text: string, reply_parent_message_id?: string): void => {
-    const ctx = suggestionContext.getStore()
+    const ctx = suggestionContext.getStore();
     if (ctx) {
-      ctx.suffix = null
+      ctx.suffix = null;
     }
-    chatClient.say(channel, text, reply_parent_message_id)
+    chatClient.say(channel, text, reply_parent_message_id);
   },
   whisper: (channel: string, text: string | undefined) => {
     whisperQueue.push({
       channel,
-      text: text !== undefined && text.length > 0 ? text : 'Empty whisper message, monka',
-    })
-    void processQueue()
+      text: text !== undefined && text.length > 0 ? text : "Empty whisper message, monka",
+    });
+    void processQueue();
   },
-}
+};

@@ -1,252 +1,252 @@
-import { moderateText } from '@dotabod/profanity-filter'
-import { logger } from '@dotabod/shared-utils'
-import * as deepl from 'deepl-node'
-import { franc } from 'franc'
+import { moderateText } from "@dotabod/profanity-filter";
+import { logger } from "@dotabod/shared-utils";
+import * as deepl from "deepl-node";
+import { franc } from "franc";
 
-import { DBSettings, getValueOrDefault } from '../../../settings'
-import { chatClient } from '../../../twitch/chat-client'
-import { DotaEventTypes } from '../../../types'
-import type { ChatMessageEvent } from '../../../types'
-import { is8500Plus } from '../../../utils/index'
-import type { GSIHandlerType } from '../../gsi-handler-types'
-import { getHeroNameOrColor } from '../../lib/heroes'
-import { isPlayingMatch } from '../../lib/is-playing-match'
-import { MatchDataService } from '../../lib/matchData'
-import { server } from '../../server'
-import eventHandler from '../event-handler'
+import { DBSettings, getValueOrDefault } from "../../../settings";
+import { chatClient } from "../../../twitch/chat-client";
+import { DotaEventTypes } from "../../../types";
+import type { ChatMessageEvent } from "../../../types";
+import { is8500Plus } from "../../../utils/index";
+import type { GSIHandlerType } from "../../gsi-handler-types";
+import { getHeroNameOrColor } from "../../lib/heroes";
+import { isPlayingMatch } from "../../lib/is-playing-match";
+import { MatchDataService } from "../../lib/matchData";
+import { server } from "../../server";
+import eventHandler from "../event-handler";
 import {
   formatTranslatedInGameChatMessages,
   formatTranslatedSpeakerLabel,
   resolveTranslatedHeroName,
-} from './translation-message-format'
+} from "./translation-message-format";
 
-const disableTranslation = false
-const authKey = process.env.DEEPL_KEY ?? ''
-const deeplClient = new deepl.DeepLClient(authKey)
+const disableTranslation = false;
+const authKey = process.env.DEEPL_KEY ?? "";
+const deeplClient = new deepl.DeepLClient(authKey);
 
 // Mapping from app language codes to DeepL-supported target language codes
 // DeepL supported: BG, CS, DA, DE, EL, EN-GB, EN-US, ES, ET, FI, FR, HU, ID, IT, JA, KO, LT, LV, NB, NL, PL, PT-BR, PT-PT, RO, RU, SK, SL, SV, TR, UK, ZH
 const DEEPL_LANGUAGE_MAP: Record<string, string | null> = {
-  en: 'en-US',
-  'en-US': 'en-US',
-  'de-DE': 'DE',
-  'fr-FR': 'FR',
-  'es-ES': 'ES',
-  'pt-BR': 'PT-BR',
-  'pt-PT': 'PT-PT',
-  'ru-RU': 'RU',
-  'ja-JP': 'JA',
-  'ko-KR': 'KO',
-  'zh-CN': 'ZH',
-  'zh-TW': 'ZH',
-  'pl-PL': 'PL',
-  'it-IT': 'IT',
-  'nl-NL': 'NL',
-  'tr-TR': 'TR',
-  'uk-UA': 'UK',
-  'cs-CZ': 'CS',
-  'da-DK': 'DA',
-  'fi-FI': 'FI',
-  'el-GR': 'EL',
-  'hu-HU': 'HU',
-  'no-NO': 'NB',
-  'sv-SE': 'SV',
-  'ro-RO': 'RO',
+  en: "en-US",
+  "en-US": "en-US",
+  "de-DE": "DE",
+  "fr-FR": "FR",
+  "es-ES": "ES",
+  "pt-BR": "PT-BR",
+  "pt-PT": "PT-PT",
+  "ru-RU": "RU",
+  "ja-JP": "JA",
+  "ko-KR": "KO",
+  "zh-CN": "ZH",
+  "zh-TW": "ZH",
+  "pl-PL": "PL",
+  "it-IT": "IT",
+  "nl-NL": "NL",
+  "tr-TR": "TR",
+  "uk-UA": "UK",
+  "cs-CZ": "CS",
+  "da-DK": "DA",
+  "fi-FI": "FI",
+  "el-GR": "EL",
+  "hu-HU": "HU",
+  "no-NO": "NB",
+  "sv-SE": "SV",
+  "ro-RO": "RO",
   // Unsupported languages map to null - skip translation for these
   // Afrikaans not supported
-  'af-ZA': null,
+  "af-ZA": null,
   // Arabic not supported
-  'ar-SA': null,
+  "ar-SA": null,
   // Catalan not supported
-  'ca-ES': null,
+  "ca-ES": null,
   // Farsi not supported
-  'fa-IR': null,
+  "fa-IR": null,
   // Hebrew not supported
-  'he-IL': null,
+  "he-IL": null,
   // Serbian not supported
-  'sr-SP': null,
+  "sr-SP": null,
   // Thai not supported
-  'th-TH': null,
+  "th-TH": null,
   // Tagalog not supported
-  'tl-PH': null,
+  "tl-PH": null,
   // Vietnamese not supported
-  'vi-VN': null,
-}
+  "vi-VN": null,
+};
 
 const getDeepLLanguage = function getDeepLLanguage(appLanguage: string): string | null {
-  return DEEPL_LANGUAGE_MAP[appLanguage] ?? null
-}
+  return DEEPL_LANGUAGE_MAP[appLanguage] ?? null;
+};
 
 // Chatting detection constants
 // Minimum words to consider as "chatting"
-const CHATTING_WORD_THRESHOLD = 10
+const CHATTING_WORD_THRESHOLD = 10;
 // Minimum messages within time window
-const CHATTING_MESSAGE_THRESHOLD = 3
+const CHATTING_MESSAGE_THRESHOLD = 3;
 // 5 seconds in milliseconds
-const CHATTING_TIME_WINDOW = 5000
+const CHATTING_TIME_WINDOW = 5000;
 // 30 seconds cooldown between "Chatting" messages
-const CHATTING_COOLDOWN = 30_000
+const CHATTING_COOLDOWN = 30_000;
 // Disable chatting detection for now
-const disableChatterMessage = true
+const disableChatterMessage = true;
 
 // Track messages per player for chatting detection
 interface PlayerMessage {
-  timestamp: number
-  wordCount: number
+  timestamp: number;
+  wordCount: number;
 }
 
-const playerMessages = new Map<string, PlayerMessage[]>()
-const lastChattingMessage = new Map<string, number>()
+const playerMessages = new Map<string, PlayerMessage[]>();
+const lastChattingMessage = new Map<string, number>();
 
 // Debounce constants for translation
 // 5 seconds
-const TRANSLATION_DEBOUNCE_TIME = 5000
+const TRANSLATION_DEBOUNCE_TIME = 5000;
 
 // Buffer for translation messages
 interface TranslationMessage {
-  message: string
-  playerId: number
-  speakerLabel: string
-  timestamp: number
+  message: string;
+  playerId: number;
+  speakerLabel: string;
+  timestamp: number;
 }
 
 const translationBuffers = new Map<
   string,
   { messages: TranslationMessage[]; timeout: NodeJS.Timeout | null }
->()
+>();
 
 const detectNonLatinCharacters = function detectNonLatinCharacters(message: string): boolean {
-  const hasCyrillic = /[\u0400-\u04FF]/u.test(message)
-  const hasArabic = /[\u0600-\u06FF]/u.test(message)
-  const hasChinese = /[\u4E00-\u9FFF]/u.test(message)
-  const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF]/u.test(message)
-  const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF]/u.test(message)
-  return hasCyrillic || hasArabic || hasChinese || hasJapanese || hasKorean
-}
+  const hasCyrillic = /[\u0400-\u04FF]/u.test(message);
+  const hasArabic = /[\u0600-\u06FF]/u.test(message);
+  const hasChinese = /[\u4E00-\u9FFF]/u.test(message);
+  const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF]/u.test(message);
+  const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF]/u.test(message);
+  return hasCyrillic || hasArabic || hasChinese || hasJapanese || hasKorean;
+};
 
 const isLikelyEnglish = function isLikelyEnglish(message: string): boolean {
   const englishWords =
-    /\b(the|and|or|but|in|on|at|to|for|of|with|by|an|a|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|could|should|may|might|must|can|shall|this|that|these|those|here|there|where|when|why|how|what|who|which|all|some|any|every|most|many|much|few|little|no|not|yes|ok|okay|hi|hello|hey|bye|good|bad|big|small|long|short|hot|cold|new|old|high|low|right|wrong|true|false|first|last|next|now|then|soon|later|before|after|up|down|in|out|on|off|over|under|above|below|left|right|front|back|inside|outside|open|close|full|empty|fast|slow|easy|hard|quick|quickly|slowly|carefully|well|badly|better|best|worse|worst|more|most|less|least|many|much|few|little|some|any|every|all|no|none|nothing|something|anything|everything|everyone|someone|anyone|noone)\b/giu
+    /\b(the|and|or|but|in|on|at|to|for|of|with|by|an|a|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|could|should|may|might|must|can|shall|this|that|these|those|here|there|where|when|why|how|what|who|which|all|some|any|every|most|many|much|few|little|no|not|yes|ok|okay|hi|hello|hey|bye|good|bad|big|small|long|short|hot|cold|new|old|high|low|right|wrong|true|false|first|last|next|now|then|soon|later|before|after|up|down|in|out|on|off|over|under|above|below|left|right|front|back|inside|outside|open|close|full|empty|fast|slow|easy|hard|quick|quickly|slowly|carefully|well|badly|better|best|worse|worst|more|most|less|least|many|much|few|little|some|any|every|all|no|none|nothing|something|anything|everything|everyone|someone|anyone|noone)\b/giu;
 
-  const wordCount = message.split(/\s+/u).length
-  const englishWordMatches = (message.match(englishWords) ?? []).length
-  const englishRatio = wordCount > 0 ? englishWordMatches / wordCount : 0
-  const hasNonLatinChars = detectNonLatinCharacters(message)
+  const wordCount = message.split(/\s+/u).length;
+  const englishWordMatches = (message.match(englishWords) ?? []).length;
+  const englishRatio = wordCount > 0 ? englishWordMatches / wordCount : 0;
+  const hasNonLatinChars = detectNonLatinCharacters(message);
 
-  return !hasNonLatinChars && englishRatio > 0.3 && /^[a-zA-Z\s\d.,!?\-'"()]+$/u.test(message)
-}
+  return !hasNonLatinChars && englishRatio > 0.3 && /^[a-zA-Z\s\d.,!?\-'"()]+$/u.test(message);
+};
 
 const normalizeText = function normalizeText(text: string): string {
   return (
     text
       // Remove punctuation
-      .replaceAll(/[^\w\s]/gu, '')
+      .replaceAll(/[^\w\s]/gu, "")
       // Normalize spaces
-      .replaceAll(/\s+/gu, ' ')
+      .replaceAll(/\s+/gu, " ")
       .toLowerCase()
       .trim()
-  )
-}
+  );
+};
 
 const shouldTriggerChattingAlert = function shouldTriggerChattingAlert(
   clientName: string,
   playerId: number,
-  wordCount: number
+  wordCount: number,
 ): number {
-  const compositeKey = `${clientName}-${playerId}`
-  const now = Date.now()
-  const messages = playerMessages.get(compositeKey) ?? []
+  const compositeKey = `${clientName}-${playerId}`;
+  const now = Date.now();
+  const messages = playerMessages.get(compositeKey) ?? [];
 
   // Clean old messages outside the time window
-  const recentMessages = messages.filter((msg) => now - msg.timestamp < CHATTING_TIME_WINDOW)
-  recentMessages.push({ timestamp: now, wordCount })
+  const recentMessages = messages.filter((msg) => now - msg.timestamp < CHATTING_TIME_WINDOW);
+  recentMessages.push({ timestamp: now, wordCount });
 
   // Update stored messages
-  playerMessages.set(compositeKey, recentMessages)
+  playerMessages.set(compositeKey, recentMessages);
 
   // Check if we've sent a "Chatting" message recently
-  const lastMessageTime = lastChattingMessage.get(compositeKey) ?? 0
+  const lastMessageTime = lastChattingMessage.get(compositeKey) ?? 0;
   if (now - lastMessageTime < CHATTING_COOLDOWN) {
-    return 0
+    return 0;
   }
 
   // Check thresholds and calculate severity
-  const messageCount = recentMessages.length
-  const totalWords = recentMessages.reduce((sum, msg) => sum + msg.wordCount, 0)
+  const messageCount = recentMessages.length;
+  const totalWords = recentMessages.reduce((sum, msg) => sum + msg.wordCount, 0);
 
   // Calculate severity based on message count and word count
-  const messageSeverity = Math.floor(messageCount / CHATTING_MESSAGE_THRESHOLD)
-  const wordSeverity = Math.floor(totalWords / CHATTING_WORD_THRESHOLD)
-  const totalSeverity = messageSeverity + wordSeverity
+  const messageSeverity = Math.floor(messageCount / CHATTING_MESSAGE_THRESHOLD);
+  const wordSeverity = Math.floor(totalWords / CHATTING_WORD_THRESHOLD);
+  const totalSeverity = messageSeverity + wordSeverity;
 
   // Return number of "Chatting" messages to send (max 8)
-  return Math.min(8, Math.max(0, totalSeverity))
-}
+  return Math.min(8, Math.max(0, totalSeverity));
+};
 
 const sendChattingAlert = function sendChattingAlert(
   dotaClient: GSIHandlerType,
   playerId: number,
-  count: number
+  count: number,
 ): void {
-  const compositeKey = `${dotaClient.client.name}-${playerId}`
-  const now = Date.now()
-  lastChattingMessage.set(compositeKey, now)
+  const compositeKey = `${dotaClient.client.name}-${playerId}`;
+  const now = Date.now();
+  lastChattingMessage.set(compositeKey, now);
 
   // Send "Chatting" multiple times based on severity
   for (let i = 0; i < count; i += 1) {
-    chatClient.say(dotaClient.client.name, 'Chatting')
+    chatClient.say(dotaClient.client.name, "Chatting");
   }
-}
+};
 
 const processTranslationBuffer = async function processTranslationBuffer(
   buffer: TranslationMessage[],
   dotaClient: GSIHandlerType,
   translateInChat: boolean,
   translateOnOverlay: boolean,
-  typedLanguage: deepl.TargetLanguageCode
+  typedLanguage: deepl.TargetLanguageCode,
 ) {
   if (buffer.length === 0) {
-    return
+    return;
   }
 
   // Translate all messages in parallel
   const translationPromises = buffer.map(async (item) => {
-    const detectedLang = franc(item.message, { minLength: 3 })
-    const isEnglish = detectedLang === 'eng' || detectedLang === 'sco'
+    const detectedLang = franc(item.message, { minLength: 3 });
+    const isEnglish = detectedLang === "eng" || detectedLang === "sco";
 
-    if (!isEnglish && !isLikelyEnglish(item.message) && detectedLang !== 'und') {
+    if (!isEnglish && !isLikelyEnglish(item.message) && detectedLang !== "und") {
       try {
-        const { text } = await deeplClient.translateText(item.message, null, typedLanguage)
-        const moderatedTranslation = await moderateText(text)
+        const { text } = await deeplClient.translateText(item.message, null, typedLanguage);
+        const moderatedTranslation = await moderateText(text);
 
         // Skip if translation is identical or too short
-        const normalizedOriginal = normalizeText(item.message)
-        const normalizedTranslation = normalizeText(text)
+        const normalizedOriginal = normalizeText(item.message);
+        const normalizedTranslation = normalizeText(text);
         if (normalizedTranslation === normalizedOriginal || normalizedTranslation.length < 3) {
-          return null
+          return null;
         }
 
         return {
           speakerLabel: item.speakerLabel,
           translation: moderatedTranslation,
-        }
+        };
       } catch (error) {
-        logger.error('[Translate] Error:', { error, message: item.message })
-        return null
+        logger.error("[Translate] Error:", { error, message: item.message });
+        return null;
       }
     }
-    return null
-  })
+    return null;
+  });
 
-  const translations = await Promise.all(translationPromises)
-  const validTranslations = translations.filter((t) => t !== null)
+  const translations = await Promise.all(translationPromises);
+  const validTranslations = translations.filter((t) => t !== null);
 
   if (validTranslations.length === 0) {
-    return
+    return;
   }
 
   // Group translations by hero and merge messages from same hero
-  const heroMessages = new Map<string, string[]>()
+  const heroMessages = new Map<string, string[]>();
   for (const translation of validTranslations) {
     if (
       translation.translation !== null &&
@@ -254,55 +254,55 @@ const processTranslationBuffer = async function processTranslationBuffer(
       translation.translation.length > 0
     ) {
       if (!heroMessages.has(translation.speakerLabel)) {
-        heroMessages.set(translation.speakerLabel, [])
+        heroMessages.set(translation.speakerLabel, []);
       }
-      heroMessages.get(translation.speakerLabel)!.push(translation.translation)
+      heroMessages.get(translation.speakerLabel)!.push(translation.translation);
     }
   }
 
   // Format the merged message
-  const mergedParts: string[] = []
+  const mergedParts: string[] = [];
   for (const [heroName, messages] of heroMessages) {
     if (messages.length === 1) {
-      mergedParts.push(`${heroName}: ${messages[0]}`)
+      mergedParts.push(`${heroName}: ${messages[0]}`);
     } else {
       // Multiple messages from same hero - join with commas
-      mergedParts.push(`${heroName}: ${messages.join(', ')}`)
+      mergedParts.push(`${heroName}: ${messages.join(", ")}`);
     }
   }
 
-  const mergedMessage = mergedParts.join(' | ')
+  const mergedMessage = mergedParts.join(" | ");
 
   if (translateOnOverlay) {
-    server.io.to(dotaClient.client.token).emit('chatMessage', {
+    server.io.to(dotaClient.client.token).emit("chatMessage", {
       message: mergedMessage,
       timestamp: Date.now(),
-    })
+    });
   }
 
   if (translateInChat) {
     const translatedChatMessages = formatTranslatedInGameChatMessages(
       mergedMessage,
-      dotaClient.client.locale
-    )
+      dotaClient.client.locale,
+    );
     for (const translatedChatMessage of translatedChatMessages) {
-      chatClient.say(dotaClient.client.name, translatedChatMessage)
+      chatClient.say(dotaClient.client.name, translatedChatMessage);
     }
   }
-}
+};
 
 eventHandler.registerEvent(`event:${DotaEventTypes.ChatMessage}`, {
   handler: async (dotaClient, event: ChatMessageEvent) => {
     if (!dotaClient.client.stream_online) {
-      return
+      return;
     }
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      return
+      return;
     }
 
-    const message = await moderateText(event.message?.trim())
-    if (message === null || message === undefined || message.length === 0 || message === '***') {
-      return
+    const message = await moderateText(event.message?.trim());
+    if (message === null || message === undefined || message.length === 0 || message === "***") {
+      return;
     }
 
     // Check for chatting behavior
@@ -314,86 +314,86 @@ eventHandler.registerEvent(`event:${DotaEventTypes.ChatMessage}`, {
         DBSettings.chatters,
         dotaClient.client.settings,
         dotaClient.client.subscription,
-        'chattingSpamEmote'
-      )
+        "chattingSpamEmote",
+      );
 
       if (chattingEmoteEnabled) {
-        const wordCount = message.split(/\s+/u).length
+        const wordCount = message.split(/\s+/u).length;
         const chattingSeverity = shouldTriggerChattingAlert(
           dotaClient.client.name,
           event.player_id,
-          wordCount
-        )
+          wordCount,
+        );
         if (chattingSeverity > 0) {
-          sendChattingAlert(dotaClient, event.player_id, chattingSeverity)
+          sendChattingAlert(dotaClient, event.player_id, chattingSeverity);
         }
       }
     }
 
     // Translation logic with debouncing
     if (disableTranslation || authKey.length === 0) {
-      return
+      return;
     }
 
     const translateInChat = getValueOrDefault(
       DBSettings.autoTranslate,
       dotaClient.client.settings,
-      dotaClient.client.subscription
-    )
+      dotaClient.client.subscription,
+    );
 
     const translateOnOverlay = getValueOrDefault(
       DBSettings.translateOnOverlay,
       dotaClient.client.settings,
-      dotaClient.client.subscription
-    )
+      dotaClient.client.subscription,
+    );
 
     if (!translateInChat && !translateOnOverlay) {
-      return
+      return;
     }
 
     // Check global chatter access
     const toLanguage = getValueOrDefault(
       DBSettings.translationLanguage,
       dotaClient.client.settings,
-      dotaClient.client.subscription
-    )
+      dotaClient.client.subscription,
+    );
 
     // Validate and convert language code to DeepL-supported format
-    const deeplLanguage = getDeepLLanguage(toLanguage)
+    const deeplLanguage = getDeepLLanguage(toLanguage);
     if (deeplLanguage === null || deeplLanguage.length === 0) {
       // Language not supported by DeepL, skip translation to avoid API errors
-      return
+      return;
     }
-    const typedLanguage = deeplLanguage as deepl.TargetLanguageCode
+    const typedLanguage = deeplLanguage as deepl.TargetLanguageCode;
 
-    const clientKey = dotaClient.client.name
-    let buffer = translationBuffers.get(clientKey)
+    const clientKey = dotaClient.client.name;
+    let buffer = translationBuffers.get(clientKey);
     if (!buffer) {
-      buffer = { messages: [], timeout: null }
-      translationBuffers.set(clientKey, buffer)
+      buffer = { messages: [], timeout: null };
+      translationBuffers.set(clientKey, buffer);
     }
 
     // Get hero name
-    const roster = await new MatchDataService(dotaClient.client).resolveRoster()
-    const { players } = roster
-    let playerIdIndex = players.findIndex((p) => p.slot === event.player_id)
-    const foundInMatchPlayers = playerIdIndex !== -1
+    const roster = await new MatchDataService(dotaClient.client).resolveRoster();
+    const { players } = roster;
+    let playerIdIndex = players.findIndex((p) => p.slot === event.player_id);
+    const foundInMatchPlayers = playerIdIndex !== -1;
     if (!foundInMatchPlayers) {
-      playerIdIndex = event.player_id
+      playerIdIndex = event.player_id;
     }
-    const heroName = getHeroNameOrColor(players[playerIdIndex]?.heroId ?? 0, playerIdIndex)
+    const heroName = getHeroNameOrColor(players[playerIdIndex]?.heroId ?? 0, playerIdIndex);
     const displayHeroName = resolveTranslatedHeroName({
       foundInMatchPlayers,
       heroName,
       isHighMmr: is8500Plus(dotaClient.client),
       locale: dotaClient.client.locale,
       playerId: event.player_id,
-    })
+    });
     const speakerLabel = formatTranslatedSpeakerLabel(
       displayHeroName,
       event.player_id,
-      dotaClient.client.locale
-    )
+      dotaClient.client.locale,
+    );
 
     // Add to buffer
     buffer.messages.push({
@@ -401,21 +401,21 @@ eventHandler.registerEvent(`event:${DotaEventTypes.ChatMessage}`, {
       playerId: event.player_id,
       speakerLabel,
       timestamp: Date.now(),
-    })
+    });
 
     // Set timeout if not already set
     buffer.timeout ??= setTimeout(async () => {
-      const currentBuffer = translationBuffers.get(clientKey)
+      const currentBuffer = translationBuffers.get(clientKey);
       if (currentBuffer) {
         await processTranslationBuffer(
           currentBuffer.messages,
           dotaClient,
           translateInChat,
           translateOnOverlay,
-          typedLanguage
-        )
-        translationBuffers.delete(clientKey)
+          typedLanguage,
+        );
+        translationBuffers.delete(clientKey);
       }
-    }, TRANSLATION_DEBOUNCE_TIME)
+    }, TRANSLATION_DEBOUNCE_TIME);
   },
-})
+});

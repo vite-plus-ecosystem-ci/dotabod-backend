@@ -1,17 +1,17 @@
-import { supabase } from '@dotabod/shared-utils'
-import { t } from 'i18next'
+import { supabase } from "@dotabod/shared-utils";
+import { t } from "i18next";
 
-import { MULTIPLIER_PARTY } from '../../db/get-wl'
-import { updateMmr } from '../../dota/lib/update-mmr'
-import { dotabodMatchHistoryUrl } from '../../utils/index'
-import { chatClient } from '../chat-client'
-import commandHandler from '../lib/command-handler'
+import { MULTIPLIER_PARTY } from "../../db/get-wl";
+import { updateMmr } from "../../dota/lib/update-mmr";
+import { dotabodMatchHistoryUrl } from "../../utils/index";
+import { chatClient } from "../chat-client";
+import commandHandler from "../lib/command-handler";
 
 interface PartyMmr {
-  currentMmr: number
-  wasParty: boolean
-  didWin: boolean
-  isDoubledown: boolean
+  currentMmr: number;
+  wasParty: boolean;
+  didWin: boolean;
+  isDoubledown: boolean;
 }
 
 const togglePartyMmr = function togglePartyMmr({
@@ -20,43 +20,43 @@ const togglePartyMmr = function togglePartyMmr({
   didWin,
   isDoubledown,
 }: PartyMmr) {
-  const newmmr = currentMmr
-  const baseDelta = isDoubledown ? MULTIPLIER_PARTY : MULTIPLIER_PARTY / 2
-  const delta = wasParty ? -baseDelta : baseDelta
-  return didWin ? newmmr - delta : newmmr + delta
-}
+  const newmmr = currentMmr;
+  const baseDelta = isDoubledown ? MULTIPLIER_PARTY : MULTIPLIER_PARTY / 2;
+  const delta = wasParty ? -baseDelta : baseDelta;
+  return didWin ? newmmr - delta : newmmr + delta;
+};
 
-commandHandler.registerCommand('fixparty', {
-  aliases: ['fixsolo'],
+commandHandler.registerCommand("fixparty", {
+  aliases: ["fixsolo"],
   cooldown: 0,
   handler: async (message) => {
     const { data } = await supabase
-      .from('matches')
-      .select('won, is_party, id, is_doubledown')
-      .eq('userId', message.channel.client.token)
-      .not('won', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-    const bet = data ? data[0] : null
+      .from("matches")
+      .select("won, is_party, id, is_doubledown")
+      .eq("userId", message.channel.client.token)
+      .not("won", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const bet = data ? data[0] : null;
 
     if (!bet) {
       chatClient.say(
         message.channel.name,
-        t('noLastMatch', { emote: 'PauseChamp', lng: message.channel.client.locale }),
-        message.user.messageId
-      )
-      return
+        t("noLastMatch", { emote: "PauseChamp", lng: message.channel.client.locale }),
+        message.user.messageId,
+      );
+      return;
     }
 
     chatClient.say(
       message.channel.name,
-      t('toggleMatch', {
-        context: bet.is_party ? 'solo' : 'party',
+      t("toggleMatch", {
+        context: bet.is_party ? "solo" : "party",
         lng: message.channel.client.locale,
         url: dotabodMatchHistoryUrl(message.channel.client),
       }),
-      message.user.messageId
-    )
+      message.user.messageId,
+    );
 
     await updateMmr({
       channel: message.channel.name,
@@ -69,15 +69,15 @@ commandHandler.registerCommand('fixparty', {
       }),
       steam32Id: message.channel.client.steam32Id,
       tellChat: !message.channel.client.stream_online,
-    })
+    });
 
     await supabase
-      .from('matches')
+      .from("matches")
       .update({
         is_party: !bet.is_party,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', bet.id)
+      .eq("id", bet.id);
   },
   permission: 2,
-})
+});

@@ -1,16 +1,16 @@
-import { getTwitchAPI, logger } from '@dotabod/shared-utils'
-import { t } from 'i18next'
+import { getTwitchAPI, logger } from "@dotabod/shared-utils";
+import { t } from "i18next";
 
-import type { SocketClient } from '../types'
-import { chatClient } from './chat-client'
+import type { SocketClient } from "../types";
+import { chatClient } from "./chat-client";
 
 // Maps for alt account detection
-const altAccountCache: Record<string, boolean> = {}
-const lastAltAccountMessageTimestamps: Record<string, number> = {}
+const altAccountCache: Record<string, boolean> = {};
+const lastAltAccountMessageTimestamps: Record<string, number> = {};
 // 5 minutes
-const ALT_ACCOUNT_COOLDOWN_MS = 300_000
+const ALT_ACCOUNT_COOLDOWN_MS = 300_000;
 
-const speak = true
+const speak = true;
 
 // Function to check for alt accounts with caching and cooldown
 export const checkAltAccount = async function checkAltAccount(
@@ -19,86 +19,86 @@ export const checkAltAccount = async function checkAltAccount(
   twitchChannelId: string,
   userInfo: { userId: string },
   messageId: string,
-  client: SocketClient
+  client: SocketClient,
 ) {
   // If cached as an alt account, check cooldown before sending a message.
   if (altAccountCache[chattersUsername]) {
-    const now = Date.now()
-    const lastTime = lastAltAccountMessageTimestamps[chattersUsername] || 0
+    const now = Date.now();
+    const lastTime = lastAltAccountMessageTimestamps[chattersUsername] || 0;
     if (now - lastTime < ALT_ACCOUNT_COOLDOWN_MS) {
-      return
+      return;
     }
 
     if (speak) {
       chatClient.say(
         channel,
-        t('altAccount', {
-          emote: 'hesRight',
-          emote2: 'PepeMods',
-          lng: client.locale || 'en',
+        t("altAccount", {
+          emote: "hesRight",
+          emote2: "PepeMods",
+          lng: client.locale || "en",
           name: chattersUsername,
         }),
-        messageId
-      )
+        messageId,
+      );
     }
-    lastAltAccountMessageTimestamps[chattersUsername] = now
-    return
+    lastAltAccountMessageTimestamps[chattersUsername] = now;
+    return;
   }
 
   if (Object.hasOwn(altAccountCache, chattersUsername)) {
-    return
+    return;
   }
 
   // Not cached, perform the check
   try {
-    const api = await getTwitchAPI(twitchChannelId)
-    const userData = await api.users.getUserByName(chattersUsername)
+    const api = await getTwitchAPI(twitchChannelId);
+    const userData = await api.users.getUserByName(chattersUsername);
     if (!userData) {
-      altAccountCache[chattersUsername] = false
-      return
+      altAccountCache[chattersUsername] = false;
+      return;
     }
 
-    const accountCreationDate = userData.creationDate
+    const accountCreationDate = userData.creationDate;
     const {
       data: [follow],
-    } = await api.channels.getChannelFollowers(twitchChannelId, userInfo.userId)
+    } = await api.channels.getChannelFollowers(twitchChannelId, userInfo.userId);
     if (follow === undefined) {
-      altAccountCache[chattersUsername] = false
-      return
+      altAccountCache[chattersUsername] = false;
+      return;
     }
 
-    const followageDate = follow.followDate
-    const timeDifference = followageDate.getTime() - accountCreationDate.getTime()
-    const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24))
-    const isAlt = daysDifference >= 0 && daysDifference < 10
+    const followageDate = follow.followDate;
+    const timeDifference = followageDate.getTime() - accountCreationDate.getTime();
+    const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
+    const isAlt = daysDifference >= 0 && daysDifference < 10;
 
-    altAccountCache[chattersUsername] = isAlt
+    altAccountCache[chattersUsername] = isAlt;
 
     if (isAlt) {
-      const now = Date.now()
-      const lastTime = lastAltAccountMessageTimestamps[chattersUsername] || 0
+      const now = Date.now();
+      const lastTime = lastAltAccountMessageTimestamps[chattersUsername] || 0;
       if (now - lastTime >= ALT_ACCOUNT_COOLDOWN_MS) {
         if (speak) {
           chatClient.say(
             channel,
-            t('altAccount', {
-              emote: 'hesRight',
-              emote2: 'PepeMods',
-              lng: client.locale || 'en',
+            t("altAccount", {
+              emote: "hesRight",
+              emote2: "PepeMods",
+              lng: client.locale || "en",
               name: chattersUsername,
             }),
-            messageId
-          )
+            messageId,
+          );
         }
-        lastAltAccountMessageTimestamps[chattersUsername] = now
+        lastAltAccountMessageTimestamps[chattersUsername] = now;
       }
     }
   } catch (error) {
-    logger.error('Error checking alt account', { channel, error, user: chattersUsername })
+    logger.error("Error checking alt account", { channel, error, user: chattersUsername });
     // Don't retry on error
-    altAccountCache[chattersUsername] = false
+    altAccountCache[chattersUsername] = false;
   }
-}
+};
 
 //await checkAltAccount('masondota2', 'loco42001', '40754777', { userId: '899787215' }, 'message', {
 //  locale: 'en',

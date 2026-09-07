@@ -1,10 +1,10 @@
 export interface AegisRes {
-  expireS: number
-  playerId: number
-  eventPlayerId?: number
-  holderKillCountAtPickup?: number
-  expireTime: string
-  expireDate: Date
-  snatched: boolean
-  heroName: string | null
+  expireS: number;
+  playerId: number;
+  eventPlayerId?: number;
+  holderKillCountAtPickup?: number;
+  expireTime: string;
+  expireDate: Date;
+  snatched: boolean;
+  heroName: string | null;
 }

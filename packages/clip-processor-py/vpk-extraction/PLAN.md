@@ -21,11 +21,11 @@ The detector globs `assets/dota_heroes/{id}_*.png`, crops, and resizes each temp
 
 ## Source comparison (real VPK vs the GitHub mirrors)
 
-| Source | Has the binary icon art? | Notes |
-| --- | --- | --- |
-| **`dotabuff/d2vpkr`** | **No** | Only tracks `dota/resource` (cursor, flash3, localization, overviews) and `dota/scripts` (VDF→JSON text). README states it tracks "only a subset of files." There is **no** `panorama/images/heroes` tree at all. This is what our dotaconstants pipeline reads — it is text/data only. |
+| Source                                 | Has the binary icon art?           | Notes                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`dotabuff/d2vpkr`**                  | **No**                             | Only tracks `dota/resource` (cursor, flash3, localization, overviews) and `dota/scripts` (VDF→JSON text). README states it tracks "only a subset of files." There is **no** `panorama/images/heroes` tree at all. This is what our dotaconstants pipeline reads — it is text/data only.                   |
 | **`SteamDatabase/GameTracking-Dota2`** | **No (art), Yes (file _listing_)** | Tracks the panorama _directory structure_ and the authoritative VPK index `game/dota/pak01_dir.txt`, but **not** the binary `.vtex_c` texture content (`panorama/images` contains only a `temp/` folder). Excellent as the authoritative source of exact paths + variant names, useless as an art source. |
-| **Real Dota 2 client VPK (app 570)** | **Yes** | The only source that actually contains the `npc_dota_hero_*_png.vtex_c` icon textures. Requires DepotDownloader/SteamCMD + VRF decompile. |
+| **Real Dota 2 client VPK (app 570)**   | **Yes**                            | The only source that actually contains the `npc_dota_hero_*_png.vtex_c` icon textures. Requires DepotDownloader/SteamCMD + VRF decompile.                                                                                                                                                                 |
 
 Conclusion: **the real VPK is required for the art.** We _do_, however, lean on `GameTracking-Dota2/game/dota/pak01_dir.txt` as a free, hourly-updated **manifest of exactly which icon files (and variants) exist** — useful both for the CI change-detection ("did the icon set change?") trigger and to know what to expect after extraction.
 

@@ -1,36 +1,36 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 
-import type { Database } from './supabase-types'
+import type { Database } from "./supabase-types";
 
 // Placeholders let the module import cleanly when env vars are absent
 // (e.g. unit tests without Doppler). Any real network call against the
 // resulting client will still fail, which is the desired behavior outside
 // of an integration environment.
-const supabaseUrl = process.env.DB_URL ?? 'https://placeholder.invalid'
-const supabaseKey = process.env.DB_SECRET ?? 'placeholder-key'
+const supabaseUrl = process.env.DB_URL ?? "https://placeholder.invalid";
+const supabaseKey = process.env.DB_SECRET ?? "placeholder-key";
 
 if (
-  process.env.NODE_ENV !== 'test' &&
+  process.env.NODE_ENV !== "test" &&
   (process.env.DB_URL === undefined ||
     process.env.DB_URL.length === 0 ||
     process.env.DB_SECRET === undefined ||
     process.env.DB_SECRET.length === 0)
 ) {
   console.warn(
-    '[shared-utils] DB_URL or DB_SECRET missing; supabase client is using placeholder credentials and any real query will fail.'
-  )
+    "[shared-utils] DB_URL or DB_SECRET missing; supabase client is using placeholder credentials and any real query will fail.",
+  );
 }
 
-type SupabaseClient = ReturnType<typeof createClient<Database>>
+type SupabaseClient = ReturnType<typeof createClient<Database>>;
 
-let supabaseInstance: SupabaseClient | null = null
+let supabaseInstance: SupabaseClient | null = null;
 
 export const getSupabaseClient = (): SupabaseClient => {
   supabaseInstance ??= createClient<Database>(supabaseUrl, supabaseKey, {
     auth: { persistSession: false },
-  })
-  return supabaseInstance
-}
+  });
+  return supabaseInstance;
+};
 
-const supabase = getSupabaseClient()
-export default supabase
+const supabase = getSupabaseClient();
+export default supabase;

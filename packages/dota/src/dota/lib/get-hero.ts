@@ -1,10 +1,10 @@
-import { heroes } from './hero-list'
+import { heroes } from "./hero-list";
 
-export type HeroNames = `npc_dota_hero_${string}`
+export type HeroNames = `npc_dota_hero_${string}`;
 
 export default function handleGetHero(name?: string | null) {
   if (name === null || name === undefined || name.length < 3) {
-    return null
+    return null;
   }
-  return heroes[name]
+  return heroes[name];
 }

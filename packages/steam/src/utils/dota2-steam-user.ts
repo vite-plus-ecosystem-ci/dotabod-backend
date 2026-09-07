@@ -1,5 +1,5 @@
-import { EventEmitter } from 'node:events'
-import { createRequire } from 'node:module'
+import { EventEmitter } from "node:events";
+import { createRequire } from "node:module";
 
 /**
  * Bridges DoctorMcKay's `steam-user` to the (unmaintained) `seishun/node-steam`
@@ -27,74 +27,77 @@ import { createRequire } from 'node:module'
 
 /** Options passed to `steam-user`'s `logOn` (only the fields we use). */
 export interface SteamLogOnDetails {
-  accountName?: string
-  password?: string
-  refreshToken?: string
-  machineName?: string
+  accountName?: string;
+  password?: string;
+  refreshToken?: string;
+  machineName?: string;
 }
 
 interface SteamUserEventRegistrar {
   (
-    event: 'receivedFromGC',
-    listener: (appid: number, msgType: number, payload: Buffer) => void
-  ): SteamUserClient
-  (event: 'loggedOn', listener: (details: unknown, parental: unknown) => void): SteamUserClient
-  (event: 'refreshToken', listener: (token: string) => void): SteamUserClient
-  (event: 'machineAuthToken', listener: (token: string) => void): SteamUserClient
-  (event: 'disconnected', listener: (eresult: number, msg?: string) => void): SteamUserClient
-  (event: 'error', listener: (err: { eresult?: number; message?: string }) => void): SteamUserClient
+    event: "receivedFromGC",
+    listener: (appid: number, msgType: number, payload: Buffer) => void,
+  ): SteamUserClient;
+  (event: "loggedOn", listener: (details: unknown, parental: unknown) => void): SteamUserClient;
+  (event: "refreshToken", listener: (token: string) => void): SteamUserClient;
+  (event: "machineAuthToken", listener: (token: string) => void): SteamUserClient;
+  (event: "disconnected", listener: (eresult: number, msg?: string) => void): SteamUserClient;
+  (
+    event: "error",
+    listener: (err: { eresult?: number; message?: string }) => void,
+  ): SteamUserClient;
 }
 
 /** The slice of a `steam-user` instance these shims (and steam.ts) depend on. */
 export interface SteamUserClient {
-  steamID: { toString: () => string } | null
+  steamID: { toString: () => string } | null;
   /** Not provided by steam-user; we set it ourselves so node-dota2 can read it. */
-  loggedOn?: boolean
-  logOn: (details: SteamLogOnDetails) => void
-  logOff: () => void
-  gamesPlayed: (apps: unknown, force?: boolean) => void
+  loggedOn?: boolean;
+  logOn: (details: SteamLogOnDetails) => void;
+  logOff: () => void;
+  gamesPlayed: (apps: unknown, force?: boolean) => void;
   getPersonas: (steamIds: string[]) => Promise<{
-    personas: Record<string, { player_name?: string }>
-  }>
+    personas: Record<string, { player_name?: string }>;
+  }>;
   sendToGC: (
     appid: number,
     msgType: number,
     header: Record<string, unknown> | null,
     body: Buffer,
-    callback?: (appid: number, msgType: number, payload: Buffer) => void
-  ) => void
-  on: SteamUserEventRegistrar
-  removeAllListeners: () => this
+    callback?: (appid: number, msgType: number, payload: Buffer) => void,
+  ) => void;
+  on: SteamUserEventRegistrar;
+  removeAllListeners: () => this;
 }
 
 /** The v1 SteamGameCoordinator header shape node-dota2 constructs. */
 interface GCHeader {
-  msg: number
-  proto?: Record<string, unknown>
+  msg: number;
+  proto?: Record<string, unknown>;
 }
 
 const toBuffer = (data: Buffer | Uint8Array): Buffer =>
-  Buffer.isBuffer(data) ? data : Buffer.from(data)
+  Buffer.isBuffer(data) ? data : Buffer.from(data);
 
 /** Emulates `steam.SteamGameCoordinator` on top of a `steam-user` instance. */
 export class SteamGameCoordinatorShim extends EventEmitter {
-  private readonly user: SteamUserClient
-  private readonly appid: number
+  private readonly user: SteamUserClient;
+  private readonly appid: number;
 
   constructor(user: SteamUserClient, appid: number) {
-    super()
-    this.user = user
-    this.appid = appid
+    super();
+    this.user = user;
+    this.appid = appid;
 
-    this.user.on('receivedFromGC', (incomingAppid, msgType, payload) => {
+    this.user.on("receivedFromGC", (incomingAppid, msgType, payload) => {
       if (incomingAppid !== this.appid) {
-        return
+        return;
       }
       // node-dota2 reads only `header.msg`. Pushes have no reply channel, so the
       // third 'message' arg (callback) is always null — node-dota2 then calls the
       // handler with `(body)` only, matching v1 behaviour for non-job messages.
-      this.emit('message', { msg: msgType, proto: {} }, toBuffer(payload), null)
-    })
+      this.emit("message", { msg: msgType, proto: {} }, toBuffer(payload), null);
+    });
   }
 
   /**
@@ -106,38 +109,38 @@ export class SteamGameCoordinatorShim extends EventEmitter {
   send(
     header: GCHeader,
     body: Buffer | Uint8Array,
-    callback?: (header: GCHeader, body: Buffer) => void
+    callback?: (header: GCHeader, body: Buffer) => void,
   ): void {
     const jobCb = callback
       ? (_appid: number, msgType: number, payload: Buffer) => {
-          callback({ msg: msgType, proto: {} }, toBuffer(payload))
+          callback({ msg: msgType, proto: {} }, toBuffer(payload));
         }
-      : undefined
-    this.user.sendToGC(this.appid, header.msg, {}, toBuffer(body), jobCb)
+      : undefined;
+    this.user.sendToGC(this.appid, header.msg, {}, toBuffer(body), jobCb);
   }
 }
 
 /** Emulates the only slice of `steam.SteamUser` node-dota2 uses: `gamesPlayed`. */
 export class SteamUserShim {
-  private readonly user: SteamUserClient
+  private readonly user: SteamUserClient;
   constructor(user: SteamUserClient) {
-    this.user = user
+    this.user = user;
   }
 
   // node-dota2 calls gamesPlayed([{game_id: 570}]) on launch and gamesPlayed([])
   // on exit; steam-user accepts both forms directly.
   gamesPlayed(apps: unknown): void {
-    this.user.gamesPlayed(apps)
+    this.user.gamesPlayed(apps);
   }
 }
 
 export const patchNodeDota2GcForSteamUser = function patchNodeDota2GcForSteamUser(): void {
-  const localRequire = createRequire(import.meta.url)
-  const dota2Require = createRequire(localRequire.resolve('dota2'))
-  const dota2Steam = dota2Require('steam') as {
-    SteamGameCoordinator: unknown
-    SteamUser: unknown
-  }
-  dota2Steam.SteamGameCoordinator = SteamGameCoordinatorShim
-  dota2Steam.SteamUser = SteamUserShim
-}
+  const localRequire = createRequire(import.meta.url);
+  const dota2Require = createRequire(localRequire.resolve("dota2"));
+  const dota2Steam = dota2Require("steam") as {
+    SteamGameCoordinator: unknown;
+    SteamUser: unknown;
+  };
+  dota2Steam.SteamGameCoordinator = SteamGameCoordinatorShim;
+  dota2Steam.SteamUser = SteamUserShim;
+};

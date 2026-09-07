@@ -17,20 +17,25 @@ object:
 
 ```js
 function verifySignature(rawBody, signature, timestamp) {
-  const publicKey = process.env.DISCORD_PUBLIC_KEY
-  if (!publicKey || !signature || !timestamp) return false
+  const publicKey = process.env.DISCORD_PUBLIC_KEY;
+  if (!publicKey || !signature || !timestamp) return false;
   try {
     const key = crypto.createPublicKey({
       key: Buffer.concat([
-        Buffer.from('302a300506032b6570032100', 'hex'), // Ed25519 SPKI prefix
-        Buffer.from(publicKey, 'hex'),
+        Buffer.from("302a300506032b6570032100", "hex"), // Ed25519 SPKI prefix
+        Buffer.from(publicKey, "hex"),
       ]),
-      format: 'der',
-      type: 'spki',
-    })
-    return crypto.verify(null, Buffer.from(timestamp + rawBody), key, Buffer.from(signature, 'hex'))
+      format: "der",
+      type: "spki",
+    });
+    return crypto.verify(
+      null,
+      Buffer.from(timestamp + rawBody),
+      key,
+      Buffer.from(signature, "hex"),
+    );
   } catch {
-    return false
+    return false;
   }
 }
 ```
@@ -47,12 +52,12 @@ and does not interfere with it:
 ```ts
 app.use(
   json({
-    limit: '1mb',
+    limit: "1mb",
     verify: (req, _res, buf) => {
-      ;(req as any).rawBody = buf.toString()
+      (req as any).rawBody = buf.toString();
     },
   }),
-)
+);
 ```
 
 Verified against `packages/dota`: valid → `200 {"type":1}`, tampered → `401`. On
@@ -67,8 +72,8 @@ the UI permissions are a convenience any server admin can loosen. So the allowed
 role check runs in the handler, against `body.member.roles`:
 
 ```js
-const ALLOWED_ROLE_IDS = ['1041465470911529044', '1074881475691945984']
-const roles = body.member?.roles || []
+const ALLOWED_ROLE_IDS = ["1041465470911529044", "1074881475691945984"];
+const roles = body.member?.roles || [];
 if (!roles.some((r) => ALLOWED_ROLE_IDS.includes(r))) {
   /* refuse, ephemeral */
 }
@@ -91,9 +96,9 @@ lookup a single request:
 ```js
 const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${channelId}`, {
   headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
-})
-const url = (await res.json()).embeds?.[0]?.url
-const ticketId = url?.match(/\/ticket\/(\d+)/)?.[1] ?? null
+});
+const url = (await res.json()).embeds?.[0]?.url;
+const ticketId = url?.match(/\/ticket\/(\d+)/)?.[1] ?? null;
 ```
 
 Requires Read Message History on the channel. The consequence worth knowing: this
@@ -105,7 +110,7 @@ say so plainly rather than guessing at a ticket.
 `getTicketThread()` in `src/lib/hubspot-conversations.ts` reads the recipient as:
 
 ```js
-const recipientEmail = incoming?.senders?.[0]?.deliveryIdentifier?.value
+const recipientEmail = incoming?.senders?.[0]?.deliveryIdentifier?.value;
 ```
 
 It never checks `deliveryIdentifier.type`. Chat-widget threads carry

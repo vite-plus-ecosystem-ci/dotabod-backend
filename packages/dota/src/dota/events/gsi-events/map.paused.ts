@@ -1,40 +1,40 @@
-import { t } from 'i18next'
+import { t } from "i18next";
 
-import { DBSettings, getValueOrDefault } from '../../../settings'
-import { isPlayingMatch } from '../../lib/is-playing-match'
-import { say } from '../../say'
-import { server } from '../../server'
-import eventHandler from '../event-handler'
+import { DBSettings, getValueOrDefault } from "../../../settings";
+import { isPlayingMatch } from "../../lib/is-playing-match";
+import { say } from "../../say";
+import { server } from "../../server";
+import eventHandler from "../event-handler";
 
-eventHandler.registerEvent('map:paused', {
+eventHandler.registerEvent("map:paused", {
   handler: (dotaClient, isPaused: boolean) => {
     if (!dotaClient.client.stream_online) {
-      return
+      return;
     }
 
     if (!isPlayingMatch(dotaClient.client.gsi)) {
-      return
+      return;
     }
 
     const chatterSettings = getValueOrDefault(
       DBSettings.chatters,
       dotaClient.client.settings,
       dotaClient.client.subscription,
-      'pause'
-    )
+      "pause",
+    );
     if (!chatterSettings.pause.enabled) {
-      return
+      return;
     }
 
     // Necessary to let the frontend know, so we can pause any rosh / aegis / etc timers
-    server.io.to(dotaClient.getToken()).emit('paused', isPaused)
+    server.io.to(dotaClient.getToken()).emit("paused", isPaused);
 
     if (isPaused) {
       say(
         dotaClient.client,
-        t('chatters.pause', { emote: 'PauseChamp', lng: dotaClient.client.locale }),
-        { chattersKey: 'pause' }
-      )
+        t("chatters.pause", { emote: "PauseChamp", lng: dotaClient.client.locale }),
+        { chattersKey: "pause" },
+      );
     }
   },
-})
+});
