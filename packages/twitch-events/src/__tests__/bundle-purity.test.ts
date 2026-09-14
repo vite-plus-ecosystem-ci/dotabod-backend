@@ -6,7 +6,7 @@ import { execSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 
 // Regression guard for the Node 24 ERR_AMBIGUOUS_MODULE_SYNTAX crash:
 //   subscriptionHealthCheck.ts had `if (require.main === module)` at the

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { buildSharedUtilsMock, initTestI18n } from '../../__tests__/shared-mocks.ts'
 import type { RosterPlayer } from '../../dota/lib/matchData'

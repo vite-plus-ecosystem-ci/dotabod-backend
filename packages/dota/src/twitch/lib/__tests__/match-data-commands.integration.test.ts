@@ -1,5 +1,5 @@
 import { t } from 'i18next'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vite-plus/test'
 
 import { createPacketStub } from '../../../__tests__/shared-mocks.ts'
 import { LOBBY_TYPE_RANKED } from '../../../db/get-wl.ts'

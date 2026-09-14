@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vite-plus/test'
 
 // retryTransient only pulls `logger` from the shared-utils barrel; stub it so
 // the test stays offline and doesn't initialise the real winston/supabase deps.

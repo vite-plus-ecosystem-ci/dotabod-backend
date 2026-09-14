@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 
 import { GcWatchdog } from '../utils/gc-watchdog'
 import type { GcAction } from '../utils/gc-watchdog'

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 
 import type { DelayedGames } from '../../../../../types'
 import type { ResolverContext } from '../../resolvers/roster-resolver'
