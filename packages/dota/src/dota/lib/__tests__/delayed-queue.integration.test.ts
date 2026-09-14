@@ -2,7 +2,7 @@
  * Integration test for DelayedQueue without external dependencies
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 
 import { DelayedQueue } from '../delayed-queue'
 

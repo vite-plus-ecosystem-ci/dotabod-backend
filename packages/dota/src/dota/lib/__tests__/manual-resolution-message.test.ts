@@ -1,5 +1,5 @@
 import { t } from 'i18next'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test'
 
 import { initTestI18n } from '../../../__tests__/shared-mocks.ts'
 

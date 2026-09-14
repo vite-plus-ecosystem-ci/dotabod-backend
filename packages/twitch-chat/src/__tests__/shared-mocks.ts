@@ -7,7 +7,7 @@
 // module spec don't collide when the whole suite runs together. Import the SUT
 // from here, not from its real path. (The pure transform tests don't touch
 // these modules, so they import their SUTs directly.)
-import { vi } from 'vitest'
+import { vi } from 'vite-plus/test'
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 type LogValue = JsonValue | Error | Date | undefined

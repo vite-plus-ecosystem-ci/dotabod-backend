@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 // Route through the shared harness so `ws` and `@dotabod/shared-utils` are
 // mocked once, process-wide, without competing factories.

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vite-plus/test'
 
 import { createPacketStub } from '../../../__tests__/shared-mocks.ts'
 // setupMocks MUST be imported before any dota source modules — its top-level

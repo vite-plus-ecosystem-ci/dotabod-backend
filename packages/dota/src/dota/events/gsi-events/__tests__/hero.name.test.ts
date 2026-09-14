@@ -2,7 +2,7 @@
 // refunds + reopens the Twitch prediction on a mid-game hero swap but did
 // NOT update the matches row's hero_name — leaving stale hero info that
 // surfaced in !unresolved formatting and chat copy until closeBets ran.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import {
   buildSharedUtilsMock,

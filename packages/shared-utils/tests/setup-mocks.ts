@@ -1,7 +1,7 @@
 // Test harness for shared-utils. Mocks supabase, @twurple/auth, and logger so
 // each test can drive specific code paths without real network or DB access.
 // Filename intentionally not `.test.ts` so bun's runner ignores it.
-import { vi } from 'vitest'
+import { vi } from 'vite-plus/test'
 
 export const utilsState: {
   // Recorded supabase writes for assertions.

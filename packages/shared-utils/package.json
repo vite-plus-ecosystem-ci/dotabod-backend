@@ -14,9 +14,9 @@
   },
   "scripts": {
     "prebuild": "rm -rf dist",
-    "build": "tsdown --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
+    "build": "vp pack --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vp test run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.21.0",
