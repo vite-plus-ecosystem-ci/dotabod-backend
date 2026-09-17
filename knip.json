@@ -24,7 +24,8 @@
     },
     "packages/shared-utils": {},
     "packages/steam": {
-      "entry": ["healthcheck.mjs"]
+      "entry": ["healthcheck.mjs"],
+      "ignoreDependencies": ["steam-crypto"]
     },
     "packages/twitch-chat": {
       "entry": ["src/**/__tests__/**/*.ts"]
