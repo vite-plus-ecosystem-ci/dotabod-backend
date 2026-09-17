@@ -2,6 +2,7 @@ import antiSlop from 'ultracite/oxlint/anti-slop'
 import core from 'ultracite/oxlint/core'
 import { selectJsPlugins } from 'ultracite/oxlint/js-plugins'
 import vitest from 'ultracite/oxlint/vitest'
+import type { OxlintConfig } from 'vite-plus/lint'
 
 // React Doctor is deliberately omitted: this is a Node.js service workspace.
 // eslint-plugin-github currently loads typescript-eslint, which rejects the
@@ -9,7 +10,7 @@ import vitest from 'ultracite/oxlint/vitest'
 const backendJsPlugins = selectJsPlugins(['sonarjs'])
 const agentIgnorePatterns = ['.agents/**']
 
-export default {
+const config: OxlintConfig = {
   categories: {
     correctness: 'error',
   },
@@ -48,3 +49,5 @@ export default {
     ],
   },
 }
+
+export default config

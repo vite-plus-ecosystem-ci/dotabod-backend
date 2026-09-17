@@ -1,8 +1,9 @@
 import ultracite from 'ultracite/oxfmt'
+import type { FormatConfig } from 'vite-plus/fmt'
 
 const agentIgnorePatterns = ['.agents/**']
 
-export default {
+const config: FormatConfig = {
   ...ultracite,
   // Crowdin writes locale JSON with no trailing newline; oxfmt adds one back.
   // Formatting them created a push loop between the crowdin-download and
@@ -20,3 +21,5 @@ export default {
   singleQuote: true,
   useTabs: false,
 }
+
+export default config

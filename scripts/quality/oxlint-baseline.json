@@ -36214,7 +36214,7 @@
     }
   },
   "policy": {
-    "configSha256": "bd01a75a9dcb72257e1db3fadaaa8dc52bf5b6a1840e0771d614d192a0207ddc",
+    "configSha256": "85352b41a2df4bb49d406dc4edead95076b097f7dddbf087ce3e95e612b32828",
     "invocation": [
       "--config",
       "oxlint.config.ts",
