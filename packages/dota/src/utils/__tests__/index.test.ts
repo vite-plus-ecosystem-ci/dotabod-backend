@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 
 import { createSocketClientStub } from '../../__tests__/shared-mocks.ts'
 import {

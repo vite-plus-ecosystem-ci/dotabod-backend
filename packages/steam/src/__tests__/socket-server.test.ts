@@ -1,7 +1,7 @@
 import type { Server } from 'socket.io'
 import { io as ioClient } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vite-plus/test'
 import { z } from 'zod'
 
 import { createSocketServer } from '../socket-server'

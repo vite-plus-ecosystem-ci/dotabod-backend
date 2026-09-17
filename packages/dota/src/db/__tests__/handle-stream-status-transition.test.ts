@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { createPacketStub } from '../../__tests__/shared-mocks'
 import { handleStreamStatusTransition } from '../handle-stream-status-transition'
