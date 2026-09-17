@@ -1,5 +1,5 @@
 import type { Json } from '@dotabod/shared-utils'
-import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { gameEnd } from '../../__tests__/fixtures/game-end'
 import {

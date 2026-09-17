@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createPacketStub } from '../../__tests__/shared-mocks'
 import type { Packet } from '../../types'

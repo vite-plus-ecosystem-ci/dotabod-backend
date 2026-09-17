@@ -1,6 +1,6 @@
 import { once } from 'node:events'
 
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { createHealthApp } from '../health-app.ts'

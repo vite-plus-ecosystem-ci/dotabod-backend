@@ -6,7 +6,7 @@
 // through this single harness, otherwise competing factories for the same
 // module spec collide when the whole suite runs together (passes in isolation,
 // fails together). Import the SUTs from here, not from their real paths.
-import { vi } from 'vite-plus/test'
+import { vi } from 'vitest'
 
 import type { TwitchEventSubResponse } from '../interfaces.ts'
 import type { TwitchEventTypes } from '../twitch-event-types.ts'

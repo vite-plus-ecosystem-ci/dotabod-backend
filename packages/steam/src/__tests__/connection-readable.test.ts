@@ -2,7 +2,7 @@ import { on, once } from 'node:events'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it } from 'vitest'
 
 // The legacy node-steam connection parses uint32LE length + "VT01" magic
 // frames through net.Socket's readable event. This guards the bun readable

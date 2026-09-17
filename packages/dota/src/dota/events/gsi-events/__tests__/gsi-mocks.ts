@@ -1,7 +1,7 @@
 // Test harness for GSI event handlers. Drives `events.emit(...)` directly
 // and asserts on captured chat output / redis writes / socket emits.
 // Filename intentionally not `.test.ts` so bun's runner ignores it.
-import { vi } from 'vite-plus/test'
+import { vi } from 'vitest'
 
 import {
   buildSharedUtilsMock,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it } from 'vitest'
 
 import { formatTimeAgo, formatUnresolvedMatch } from '../unresolved-matches.ts'
 import type { UnresolvedMatch } from '../unresolved-matches.ts'

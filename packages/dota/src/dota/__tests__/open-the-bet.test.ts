@@ -4,7 +4,7 @@ import type { Database } from '@dotabod/shared-utils'
 // cleared (player abandoned + requeued) between `openBets()` validating and
 // `openTheBet()` running. The fix captures both values at validation time and
 // passes them through the delayed callback closure.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import {

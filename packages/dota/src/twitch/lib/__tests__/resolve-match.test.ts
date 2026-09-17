@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vite-plus/test'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createPacketStub } from '../../../__tests__/shared-mocks.ts'
 import {

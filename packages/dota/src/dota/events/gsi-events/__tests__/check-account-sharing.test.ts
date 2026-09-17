@@ -10,7 +10,7 @@
 // audit row WITHOUT touching the settings row. These tests pin that behavior.
 import { setTimeout as delay } from 'node:timers/promises'
 
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   buildSharedUtilsMock,

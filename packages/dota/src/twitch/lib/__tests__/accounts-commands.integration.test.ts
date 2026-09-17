@@ -1,5 +1,5 @@
 import { t } from 'i18next'
-import { beforeEach, describe, expect, it } from 'vite-plus/test'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { commandHandler, liveGsi, makeMessage, resetState, state } from './setup-mocks.ts'
 

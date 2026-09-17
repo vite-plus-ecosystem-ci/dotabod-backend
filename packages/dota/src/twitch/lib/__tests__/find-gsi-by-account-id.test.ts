@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it } from 'vitest'
 
 import { createPacketStub, createSocketClientStub } from '../../../__tests__/shared-mocks'
 import { findAccountFromCmd } from '../find-gsi-by-account-id'

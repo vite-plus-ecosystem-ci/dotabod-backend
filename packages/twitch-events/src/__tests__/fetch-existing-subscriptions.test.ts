@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vite-plus/test'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { EventSubStatus } from '../interfaces.ts'
 import type { TwitchEventTypes } from '../twitch-event-types.ts'

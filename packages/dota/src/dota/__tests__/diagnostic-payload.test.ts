@@ -1,6 +1,6 @@
 import { gzipSync } from 'node:zlib'
 
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it } from 'vitest'
 
 import { DIAGNOSTIC_PAYLOAD_BYTES, getDiagnosticPayload } from '../diagnostic-payload'
 
