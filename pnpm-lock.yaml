@@ -46,6 +46,9 @@ importers:
       oxlint:
         specifier: 1.83.0
         version: 1.83.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.0.0-commit.fba044cf40fea5a7bf4a2ee97822f174eab33dfa(@types/node@24.13.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.1))
+      oxlint-tsgolint:
+        specifier: 7.0.2001
+        version: 7.0.2001
       ts-morph:
         specifier: ^28.0.0
         version: 28.0.0
@@ -3432,7 +3435,7 @@ packages:
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   steam-resources@https://codeload.github.com/dotabod/node-steam-resources/tar.gz/57ee94899194c3c5a090722632ef3b5df00a3e45:
-    resolution: {gitHosted: true, integrity: sha512-bcksZjb/Sa6Q7A5Uh+GWiU5AfoW6u12B1lk7VN+yWNO4AOqpAGK6F0eiEILuS1ngjxHzX57M3IHCahncsLGYig==, tarball: https://codeload.github.com/dotabod/node-steam-resources/tar.gz/57ee94899194c3c5a090722632ef3b5df00a3e45}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/dotabod/node-steam-resources/tar.gz/57ee94899194c3c5a090722632ef3b5df00a3e45}
     version: 1.2.2
 
   steam-session@1.9.4:
@@ -3460,7 +3463,7 @@ packages:
       - steam-resources
 
   steam@https://codeload.github.com/dotabod/node-steam/tar.gz/e9aa23d43a7a06090a2d96eb4e39aa889c7b8cbb:
-    resolution: {gitHosted: true, integrity: sha512-0kny/0AfwRcRv4qghIkpFJ2MVCMC8gjVd/EakCRIIbC5WI9J4nl8N4NTT75HxGW6p/Gf/nxCiFLgUxvH5b2x2Q==, tarball: https://codeload.github.com/dotabod/node-steam/tar.gz/e9aa23d43a7a06090a2d96eb4e39aa889c7b8cbb}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/dotabod/node-steam/tar.gz/e9aa23d43a7a06090a2d96eb4e39aa889c7b8cbb}
     version: 1.4.1
     engines: {node: '>=4.1.1'}
 
