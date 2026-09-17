@@ -1,4 +1,3 @@
-import { defineConfig } from 'oxlint'
 import antiSlop from 'ultracite/oxlint/anti-slop'
 import core from 'ultracite/oxlint/core'
 import { selectJsPlugins } from 'ultracite/oxlint/js-plugins'
@@ -10,7 +9,7 @@ import vitest from 'ultracite/oxlint/vitest'
 const backendJsPlugins = selectJsPlugins(['sonarjs'])
 const agentIgnorePatterns = ['.agents/**']
 
-export default defineConfig({
+export default {
   categories: {
     correctness: 'error',
   },
@@ -48,4 +47,4 @@ export default defineConfig({
       },
     ],
   },
-})
+}

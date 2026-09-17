@@ -1,5 +1,14 @@
 import { t } from 'i18next'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test'
 
 import { createPacketStub } from '../../../__tests__/shared-mocks.ts'
 import { commandHandler, makeMessage, resetState, state } from './setup-mocks.ts'

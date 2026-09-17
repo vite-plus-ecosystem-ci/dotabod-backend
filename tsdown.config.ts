@@ -1,11 +1,11 @@
-import { defineConfig } from "vite-plus/pack";
+import { defineConfig } from 'vite-plus/pack'
 
 export default defineConfig({
-  deps: { resolveDepSubpath: true },
   cwd: process.cwd(),
+  deps: { resolveDepSubpath: true },
   dts: {
-    generator: "tsgo",
+    generator: 'tsgo',
   },
-  outExtensions: () => ({ js: ".js" }),
-  platform: "node",
-});
+  outExtensions: () => ({ js: '.js' }),
+  platform: 'node',
+})

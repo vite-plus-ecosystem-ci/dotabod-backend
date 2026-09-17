@@ -36214,7 +36214,7 @@
     }
   },
   "policy": {
-    "configSha256": "71e5626fadcb9f332c83fa527595a9da3ec36ead324badf713ee22aec986b205",
+    "configSha256": "bd01a75a9dcb72257e1db3fadaaa8dc52bf5b6a1840e0771d614d192a0207ddc",
     "invocation": [
       "--config",
       "oxlint.config.ts",
@@ -36225,7 +36225,7 @@
       "--format",
       "json"
     ],
-    "oxlintVersion": "Version: 1.81.0"
+    "oxlintVersion": "Version: 1.83.0"
   },
   "version": 2
 }

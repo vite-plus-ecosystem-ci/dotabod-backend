@@ -1,9 +1,8 @@
-import { defineConfig } from 'oxfmt'
 import ultracite from 'ultracite/oxfmt'
 
 const agentIgnorePatterns = ['.agents/**']
 
-export default defineConfig({
+export default {
   ...ultracite,
   // Crowdin writes locale JSON with no trailing newline; oxfmt adds one back.
   // Formatting them created a push loop between the crowdin-download and
@@ -20,4 +19,4 @@ export default defineConfig({
   semi: false,
   singleQuote: true,
   useTabs: false,
-})
+}
