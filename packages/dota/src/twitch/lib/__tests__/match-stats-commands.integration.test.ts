@@ -1,108 +1,108 @@
-import { t } from 'i18next'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { t } from "i18next";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 
-import { createPacketStub } from '../../../__tests__/shared-mocks.ts'
-import { commandHandler, liveGsi, makeMessage, resetState, state } from './setup-mocks.ts'
+import { createPacketStub } from "../../../__tests__/shared-mocks.ts";
+import { commandHandler, liveGsi, makeMessage, resetState, state } from "./setup-mocks.ts";
 
 // !items and !stats read live player data. Ordinary pubs still stop at the disabled
 // spectate-friend path, while SourceTV matches can use the server_steam_id already
 // published by Valve to request delayed realtime stats.
-const valveDisabled = t('matchDataValveDisabled', { lng: 'en' })
-const notLive = t('notLive', { emote: 'PauseChamp', lng: 'en' })
-const notPlaying = t('notPlaying', { emote: 'PauseChamp', lng: 'en' })
+const valveDisabled = t("matchDataValveDisabled", { lng: "en" });
+const notLive = t("notLive", { emote: "PauseChamp", lng: "en" });
+const notPlaying = t("notPlaying", { emote: "PauseChamp", lng: "en" });
 
 beforeEach(() => {
-  resetState()
-  commandHandler.cooldowns.clear()
-})
+  resetState();
+  commandHandler.cooldowns.clear();
+});
 
-describe('!items', () => {
-  it('blocks when the stream is offline', async () => {
+describe("!items", () => {
+  it("blocks when the stream is offline", async () => {
     await commandHandler.handleMessage(
       makeMessage({
         clientOverrides: { stream_online: false },
-        content: '!items',
-      })
-    )
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(notLive)
-  })
+        content: "!items",
+      }),
+    );
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(notLive);
+  });
 
-  it('reports notPlaying when there is no live match id', async () => {
-    await commandHandler.handleMessage(makeMessage({ content: '!items' }))
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(notPlaying)
-  })
+  it("reports notPlaying when there is no live match id", async () => {
+    await commandHandler.handleMessage(makeMessage({ content: "!items" }));
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(notPlaying);
+  });
 
-  it('rejects an unknown hero argument with the active match hero list', async () => {
+  it("rejects an unknown hero argument with the active match hero list", async () => {
     state.delayedGame = {
-      match: { match_id: '7777777777', server_steam_id: '90292108836096020' },
+      match: { match_id: "7777777777", server_steam_id: "90292108836096020" },
       players: [
         { accountid: 111, heroid: 2 },
         { accountid: 99_999, heroid: 1 },
       ],
-    }
+    };
 
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!item distiller' })
-    )
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!item distiller" }),
+    );
 
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toContain('Invalid hero specified')
-    expect(state.chatSayCalls[0].message).toContain('Axe')
-    expect(state.chatSayCalls[0].message).toContain('Anti-Mage')
-    expect(state.chatSayCalls[0].message.trimEnd().endsWith('from')).toBeFalsy()
-  })
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toContain("Invalid hero specified");
+    expect(state.chatSayCalls[0].message).toContain("Axe");
+    expect(state.chatSayCalls[0].message).toContain("Anti-Mage");
+    expect(state.chatSayCalls[0].message.trimEnd().endsWith("from")).toBeFalsy();
+  });
 
-  it('rejects a globally valid hero that is not in the current match', async () => {
+  it("rejects a globally valid hero that is not in the current match", async () => {
     state.delayedGame = {
-      match: { match_id: '7777777777', server_steam_id: '90292108836096020' },
+      match: { match_id: "7777777777", server_steam_id: "90292108836096020" },
       players: [
         { accountid: 111, heroid: 2 },
         { accountid: 99_999, heroid: 1 },
       ],
-    }
+    };
 
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!items pudge' })
-    )
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!items pudge" }),
+    );
 
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toContain('Invalid hero specified')
-    expect(state.chatSayCalls[0].message).toContain('Axe')
-    expect(state.chatSayCalls[0].message).toContain('Anti-Mage')
-    expect(state.chatSayCalls[0].message.trimEnd().endsWith('from')).toBeFalsy()
-  })
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toContain("Invalid hero specified");
+    expect(state.chatSayCalls[0].message).toContain("Axe");
+    expect(state.chatSayCalls[0].message).toContain("Anti-Mage");
+    expect(state.chatSayCalls[0].message.trimEnd().endsWith("from")).toBeFalsy();
+  });
 
-  it('reports gameNotFound for a non-numeric match id', async () => {
+  it("reports gameNotFound for a non-numeric match id", async () => {
     await commandHandler.handleMessage(
       makeMessage({
-        clientOverrides: { gsi: createPacketStub({ map: { matchid: '0' } }) },
-        content: '!items',
-      })
-    )
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(t('gameNotFound', { lng: 'en' }))
-  })
+        clientOverrides: { gsi: createPacketStub({ map: { matchid: "0" } }) },
+        content: "!items",
+      }),
+    );
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(t("gameNotFound", { lng: "en" }));
+  });
 
-  it('reports the Valve-disabled message for a live non-spectator match', async () => {
+  it("reports the Valve-disabled message for a live non-spectator match", async () => {
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!items' })
-    )
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(valveDisabled)
-  })
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!items" }),
+    );
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(valveDisabled);
+  });
 
-  it('reports delayed items for the matching account in a SourceTV game', async () => {
+  it("reports delayed items for the matching account in a SourceTV game", async () => {
     state.delayedGame = {
-      match: { match_id: '7777777777', server_steam_id: '90292108836096020' },
+      match: { match_id: "7777777777", server_steam_id: "90292108836096020" },
       players: [
         { accountid: 111, heroid: 2 },
         { accountid: 99_999, heroid: 1 },
       ],
-    }
+    };
     state.steamSocketResponse = {
-      match: { match_id: '7777777777', server_steam_id: '90292108836096020' },
+      match: { match_id: "7777777777", server_steam_id: "90292108836096020" },
       teams: [
         {
           players: [
@@ -112,51 +112,51 @@ describe('!items', () => {
         },
         { players: [] },
       ],
-    }
+    };
 
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!items' })
-    )
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!items" }),
+    );
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toContain('Blink Dagger · Iron Branch x2')
-  })
-})
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toContain("Blink Dagger · Iron Branch x2");
+  });
+});
 
-describe('!stats', () => {
-  it('reports notPlaying when there is no live match id', async () => {
-    await commandHandler.handleMessage(makeMessage({ content: '!stats' }))
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(notPlaying)
-  })
+describe("!stats", () => {
+  it("reports notPlaying when there is no live match id", async () => {
+    await commandHandler.handleMessage(makeMessage({ content: "!stats" }));
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(notPlaying);
+  });
 
-  it('reports the Valve-disabled message for a live non-spectator match', async () => {
+  it("reports the Valve-disabled message for a live non-spectator match", async () => {
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!stats' })
-    )
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(valveDisabled)
-  })
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!stats" }),
+    );
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(valveDisabled);
+  });
 
-  it('routes the !kda alias to the same handler', async () => {
+  it("routes the !kda alias to the same handler", async () => {
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!kda' })
-    )
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(valveDisabled)
-  })
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!kda" }),
+    );
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(valveDisabled);
+  });
 
-  it('reports delayed stats for the matching account in a SourceTV game', async () => {
+  it("reports delayed stats for the matching account in a SourceTV game", async () => {
     state.delayedGame = {
-      match: { match_id: '7777777777', server_steam_id: '90292108836096020' },
+      match: { match_id: "7777777777", server_steam_id: "90292108836096020" },
       players: [
         { accountid: 111, heroid: 2 },
         { accountid: 99_999, heroid: 1 },
       ],
-    }
+    };
     state.steamSocketResponse = {
-      match: { match_id: '7777777777', server_steam_id: '90292108836096020' },
+      match: { match_id: "7777777777", server_steam_id: "90292108836096020" },
       teams: [
         {
           players: [
@@ -188,16 +188,16 @@ describe('!stats', () => {
         },
         { players: [] },
       ],
-    }
+    };
 
     await commandHandler.handleMessage(
-      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: '!stats' })
-    )
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+      makeMessage({ clientOverrides: { gsi: liveGsi() }, content: "!stats" }),
+    );
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    expect(state.chatSayCalls).toHaveLength(1)
+    expect(state.chatSayCalls).toHaveLength(1);
     expect(state.chatSayCalls[0].message).toContain(
-      'KDA 7/2/11 · LH 184 · DN 13 · G 2400 · NW 12345 · LVL 18'
-    )
-  })
-})
+      "KDA 7/2/11 · LH 184 · DN 13 · G 2400 · NW 12345 · LVL 18",
+    );
+  });
+});
