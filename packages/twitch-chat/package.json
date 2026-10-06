@@ -14,8 +14,8 @@
     "docker:production": "node dist/index.js",
     "docker:development": "tsx watch src/index.ts",
     "prebuild": "rm -rf dist",
-    "build": "tsdown --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
-    "test": "vitest run",
+    "build": "vp pack --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
+    "test": "vp test run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

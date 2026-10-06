@@ -1,10 +1,16 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig } from "vite-plus/pack";
 
 export default defineConfig({
+  deps: {
+    // tsdown <0.23 compatibility: resolve external dependency subpaths.
+    // Remove to preserve subpath imports as written (the new default).
+    // https://tsdown.dev/options/dependencies#deps-resolvedepsubpath
+    resolveDepSubpath: true,
+  },
   cwd: process.cwd(),
   dts: {
-    generator: 'tsgo',
+    generator: "tsgo",
   },
-  outExtensions: () => ({ js: '.js' }),
-  platform: 'node',
-})
+  outExtensions: () => ({ js: ".js" }),
+  platform: "node",
+});
