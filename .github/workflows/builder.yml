@@ -105,8 +105,10 @@ jobs:
             image=moby/buildkit:latest
           buildkitd-flags: --debug
 
+      # Ecosystem-ci smoke test: the vite-plus-ecosystem-ci fork has no GHA_PAT for
+      # ghcr.io, so skip the login and build the image without pushing it.
       - name: Login to ghcr
-        if: github.actor != 'dependabot[bot]'
+        if: ${{ github.actor != 'dependabot[bot]' && github.repository_owner != 'vite-plus-ecosystem-ci' }}
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -122,7 +124,8 @@ jobs:
         with:
           # Dependabot workflows cannot access GHA_PAT. Still build its images
           # as a validation check, but only publish non-Dependabot builds.
-          push: ${{ github.actor != 'dependabot[bot]' }}
+          # Ecosystem-ci smoke test: never push from the fork (no registry credentials).
+          push: ${{ github.actor != 'dependabot[bot]' && github.repository_owner != 'vite-plus-ecosystem-ci' }}
           provenance: false
           targets: ${{ matrix.service }}
           set: |
