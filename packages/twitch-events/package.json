@@ -14,7 +14,7 @@
     "docker:production": "node dist/index.js",
     "docker:development": "tsx watch src/index.ts",
     "prebuild": "rm -rf dist",
-    "build": "vp pack --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
+    "build": "vp pack src/index.ts -f esm -d dist --sourcemap",
     "subscription-health-check": "tsx src/scripts/runSubscriptionHealthCheck.ts",
     "test": "vp test run",
     "typecheck": "tsc --noEmit"
