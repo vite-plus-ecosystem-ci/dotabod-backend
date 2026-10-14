@@ -53,7 +53,9 @@ jobs:
           command: pnpm install --frozen-lockfile
       - name: Format, lint, typecheck + dead-code check
         run: pnpm run quality
+      # Ecosystem-ci smoke test: vp migrate rewrote the `test` script to `vp test run`;
+      # run the same here (vitest is no longer a direct devDependency).
       - name: Run tests
-        run: pnpm exec vitest run
+        run: pnpm exec vp test run
       - name: Build all packages
         run: pnpm run build:all
