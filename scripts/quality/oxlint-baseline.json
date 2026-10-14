@@ -1,65 +1,5 @@
 {
   "diagnostics": {
-    "003b2c8c081a70f625426b7025bf3c23cdd5a951e503055ed8ec1a8fa4c436b3": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-member-access)",
-        "file": "packages/twitch-events/src/subscribe-chat-messages-for-user.ts",
-        "labels": [
-          {
-            "context": [
-              "",
-              "logger.error(`Authentication error: ${subscribeReq.status} ${errorMessage}`, {",
-              "broadcaster_user_id: broadcasterId,"
-            ],
-            "message": "",
-            "span": "error"
-          }
-        ],
-        "message": "Unsafe member access .error on an `error` typed value.",
-        "severity": "error"
-      }
-    },
-    "003d5173b29dc1fb4b36ec20327297e68ce442782f7a0985a6b44ea1632aa02f": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-return)",
-        "file": "packages/dota/src/dota/events/gsi-events/__tests__/fetch-online-users.ts",
-        "labels": [
-          {
-            "context": [
-              "const { data } = await supabase.from('users').select('id').eq('stream_online', true).limit(count)",
-              "return data ?? []",
-              "}"
-            ],
-            "message": "",
-            "span": "return data ?? []"
-          }
-        ],
-        "message": "Unsafe return of a value of type error.",
-        "severity": "error"
-      }
-    },
-    "0053ad4f3a6e2ca1acca5ab9b5da0111f1b686556a590f780a8d7237deedc5b5": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-assignment)",
-        "file": "packages/dota/src/db/handle-scheduled-messages.ts",
-        "labels": [
-          {
-            "context": [
-              "// Check if this message has already been delivered to this user",
-              "const { data: existingDelivery, error: deliveryError } = await supabase",
-              ".from('MessageDelivery')"
-            ],
-            "message": "",
-            "span": "{ data: existingDelivery, error: deliveryError } = await supabase\n        .from('MessageDelivery')\n        .select('*')\n        .eq('scheduledMessageId', message.id)\n        .eq('userId', userId)\n        .single()"
-          }
-        ],
-        "message": "Unsafe assignment of an error typed value.",
-        "severity": "error"
-      }
-    },
     "005a8a0b21e6abb8a053cd90002b1c19e723241c023b80cded9a20acc832511e": {
       "count": 1,
       "diagnostic": {
@@ -80,106 +20,6 @@
         "severity": "error"
       }
     },
-    "00613c5c67645c1332c05a3d81ebc24ede0dcd347bbb26d1e12df491057ba2ff": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(strict-boolean-expressions)",
-        "file": "packages/dota/src/dota/lib/announce-features.ts",
-        "labels": [
-          {
-            "context": [
-              ".insert({ isRead: false, type: 'NEW_FEATURE', userId: client.token })",
-              "if (notifyError) {",
-              "logger.error('[feature-announce] failed to create dashboard notification', {"
-            ],
-            "message": "",
-            "span": "notifyError"
-          }
-        ],
-        "message": "Unexpected any value in conditional.",
-        "severity": "error"
-      }
-    },
-    "0066e82a6e56b3e209bfd137e80d15fa0bf6f7015ac0d0a60ac4b12d1b4d382c": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/twitch-events/src/index.ts",
-        "labels": [
-          {
-            "context": [
-              "if (subsToCleanup.length === 0) {",
-              "logger.info('[TWITCHEVENTS] No subscriptions to clean up')",
-              "return"
-            ],
-            "message": "",
-            "span": "logger.info"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
-    "0075112fe58d62b8d14cad1f37f701bb4bdc11de8abbdf1e401b76a6b853934d": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-member-access)",
-        "file": "packages/dota/src/dota/gsi-handler.ts",
-        "labels": [
-          {
-            "context": [
-              "playerName !== null && playerName !== undefined && playerName.length > 0 ? playerName : null",
-              "const { error } = await supabase.from('steam_accounts').insert({",
-              "mmr,"
-            ],
-            "message": "",
-            "span": "from"
-          }
-        ],
-        "message": "Unsafe member access .from on an `error` typed value.",
-        "severity": "error"
-      }
-    },
-    "0080027f5fa279d59e44a2b1ec89d4830bc77c27376a403b19084f5dc9dc02bd": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(TS7006)",
-        "file": "packages/dota/src/dota/events/gsi-events/__tests__/check-account-sharing.test.ts",
-        "labels": [
-          {
-            "context": [
-              "commandDisable: {",
-              "disable: async (userId, reason, metadata) => {",
-              "state.commandDisableCalls.push({ kind: 'disable', metadata, reason, userId })"
-            ],
-            "message": "",
-            "span": "userId"
-          }
-        ],
-        "message": "Parameter 'userId' implicitly has an 'any' type.",
-        "severity": "error"
-      }
-    },
-    "0090aae9ee8e81882935d5ea5da072ce17703eb343a19bbbe8fa1e333572bc87": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/lib/refund-twitch-bets.ts",
-        "labels": [
-          {
-            "context": [
-              "export const refundTwitchBet = async (twitchId: string, specificPredictionId?: string) => {",
-              "const api = await getTwitchAPI(twitchId)",
-              ""
-            ],
-            "message": "",
-            "span": "getTwitchAPI"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
     "009fbdfe38355c9cd4430b7980aca62b1227585a8a43cc47cdc647300295a87b": {
       "count": 1,
       "diagnostic": {
@@ -197,114 +37,6 @@
           }
         ],
         "message": "This type assertion has no `SAFETY:` justification. State the checked invariant immediately before the assertion or its containing statement.",
-        "severity": "error"
-      }
-    },
-    "00acc3d7d6e992fd9c00c700cf5689704a1c765bfcdaf70f79576bd4fcdd94a3": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-member-access)",
-        "file": "packages/twitch-events/src/twitch/lib/revoke-event.ts",
-        "labels": [
-          {
-            "context": [
-              "})",
-              ".eq('provider', 'twitch')",
-              ".eq('providerAccountId', providerAccountId)"
-            ],
-            "message": "",
-            "span": "eq"
-          }
-        ],
-        "message": "Unsafe member access .eq on an `error` typed value.",
-        "severity": "error"
-      }
-    },
-    "00b060f81d9e8eee87196d5e8f3800d8b949973dd7f248afe72eba476c26eb38": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-assignment)",
-        "file": "packages/dota/src/db/get-db-user.ts",
-        "labels": [
-          {
-            "context": ["", "const userInfo = {", "...user,"],
-            "message": "",
-            "span": "userInfo = {\n    ...user,\n    Account: {\n      ...Account,\n      obtainment_timestamp:\n        Account.obtainment_timestamp === null ||\n        Account.obtainment_timestamp === undefined ||\n        Account.obtainment_timestamp === ''\n          ? null\n          : new Date(Account.obtainment_timestamp),\n      requires_refresh: Account.requires_refresh ?? false,\n    },\n    mmr: user.mmr || user.SteamAccount[0]?.mmr || 0,\n    steam32Id:\n      user.steam32Id === null || user.steam32Id === undefined || user.steam32Id === 0\n        ? (user.SteamAccount[0]?.steam32Id ?? 0)\n        : user.steam32Id,\n    stream_start_date:\n      user.stream_start_date === null ||\n      user.stream_start_date === undefined ||\n      user.stream_start_date.length === 0\n        ? null\n        : new Date(user.stream_start_date),\n    subscription,\n    token: user.id,\n  }"
-          }
-        ],
-        "message": "Unsafe assignment of an any value.",
-        "severity": "error"
-      }
-    },
-    "00b09e246be90e6405eb0fce6527fb6264af06d3a52f1bba265954a88a15f2a3": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/lib/close-twitch-bet.ts",
-        "labels": [
-          {
-            "context": [
-              "} catch (error) {",
-              "logger.error('[BETS] Could not resolve prediction', { error, token: twitchId })",
-              "}"
-            ],
-            "message": "",
-            "span": "logger.error"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
-    "00cee713fb99e1188bda3817f46cba1ad8c2f8b463ceb11854c9889103355ce6": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/twitch-chat/src/event-handlers/update-user-event.ts",
-        "labels": [
-          {
-            "context": ["", "const { data: user } = await supabase", ".from('accounts')"],
-            "message": "",
-            "span": "supabase\n        .from('accounts')\n        .select('userId')\n        .eq('providerAccountId', event.user_id)\n        .eq"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
-    "00d7b3581961b91af35a8b8c738cfddcab5106d081a340d2140acdde67a9bf07": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-assignment)",
-        "file": "packages/twitch-chat/src/event-handlers/online-event.ts",
-        "labels": [
-          {
-            "context": [
-              "logger.error('Failed to fetch user account', {",
-              "error: userError.message,",
-              "twitchId: data?.payload?.event.broadcaster_user_id,"
-            ],
-            "message": "",
-            "span": "error: userError.message"
-          }
-        ],
-        "message": "Unsafe assignment of an error typed value.",
-        "severity": "error"
-      }
-    },
-    "00de9ac5b2d0b736a7e3c8cdff84d82c22633d5c5f5522ee89b46f97191b1ff7": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/commands/setdelay.ts",
-        "labels": [
-          {
-            "context": ["", "await supabase.from('settings').upsert(", "{"],
-            "message": "",
-            "span": "supabase.from"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
         "severity": "error"
       }
     },
@@ -348,22 +80,6 @@
         "severity": "error"
       }
     },
-    "01389ad7d5779ac0322d799ecdc24f8f3900830225b4ca841fe538104cf09810": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/commands/fixparty.ts",
-        "labels": [
-          {
-            "context": ["", "await supabase", ".from('matches')"],
-            "message": "",
-            "span": "supabase\n      .from('matches')\n      .update"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
     "01411ff2ddbf265cb207f121a073bd36c76402c5019135e1de2884ba41734e4c": {
       "count": 1,
       "diagnostic": {
@@ -390,46 +106,6 @@
           }
         ],
         "message": "Function `padTo2Digits` does not capture any variables from its parent scope",
-        "severity": "error"
-      }
-    },
-    "016ae4ddce4f8c8eb03f7afad8d9a613a2aa746e533ec7f52bb2e8fce4f3d535": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/commands/fixparty.ts",
-        "labels": [
-          {
-            "context": [
-              "handler: async (message) => {",
-              "const { data } = await supabase",
-              ".from('matches')"
-            ],
-            "message": "",
-            "span": "supabase\n      .from('matches')\n      .select('won, is_party, id, is_doubledown')\n      .eq('userId', message.channel.client.token)\n      .not('won', 'is', null)\n      .order('created_at', { ascending: false })\n      .limit"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
-    "0172918523ab05f34594beb68cb6ed1f663acb131a80d3afcab9c72548beb71a": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/commands/fixdbl.ts",
-        "labels": [
-          {
-            "context": [
-              "handler: async (message) => {",
-              "const { data } = await supabase",
-              ".from('matches')"
-            ],
-            "message": "",
-            "span": "supabase\n      .from('matches')\n      .select('won, is_party, id, is_doubledown')\n      .eq"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
         "severity": "error"
       }
     },
@@ -489,26 +165,6 @@
         "severity": "error"
       }
     },
-    "01a070182fe413d3043ff1c35a72db8379c697cfba6fa7c2bca22c3b784181dc": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/commands/np.ts",
-        "labels": [
-          {
-            "context": [
-              "} catch (error) {",
-              "logger.error('Error in addremovehandler command', { error })",
-              "}"
-            ],
-            "message": "",
-            "span": "logger.error"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
     "01a0d4cce1ab0b494c9bd63028cface19f15bcdfc2efaca0b272e4e5bfd003ff": {
       "count": 2,
       "diagnostic": {
@@ -549,46 +205,6 @@
         "severity": "error"
       }
     },
-    "01bde372fafcfa91f9e0f09da49011c4e07e9336a751a4d325ede6c00cf5eeb4": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/twitch/lib/resolve-match.ts",
-        "labels": [
-          {
-            "context": [
-              "",
-              "logger.info('[BETS] Retroactive resolution - match updated in database', {",
-              "isRanked,"
-            ],
-            "message": "",
-            "span": "logger.info"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
-    "01c93e0fa72cf834e34dfd81f607f789a009ecb3e6b833593207e6c77edc4df9": {
-      "count": 1,
-      "diagnostic": {
-        "code": "typescript(no-unsafe-call)",
-        "file": "packages/dota/src/dota/dota-patch-checker.ts",
-        "labels": [
-          {
-            "context": [
-              "} catch (error) {",
-              "logger.error('[DotaPatchChecker] Error checking for new Dota 2 patch:', { error })",
-              "return { isNewPatch: false, version: null }"
-            ],
-            "message": "",
-            "span": "logger.error"
-          }
-        ],
-        "message": "Unsafe call of a(n) `error` type typed value.",
-        "severity": "error"
-      }
-    },
     "01e298e55aa0ddbdad31803a282d6940c8597fd539d4219ddee4a206c3d7ea6d": {
       "count": 1,
       "diagnostic": {
@@ -606,6 +222,35 @@
           }
         ],
         "message": "Cannot find module '@dotabod/shared-utils' or its corresponding type declarations.",
+        "severity": "error"
+      }
+    },
+    "020fd6dd8b3f14a733cfe72dd0a720d7a8405e665010affd7b9f3dd55ec3cb9a": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-misused-promises)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'INSERT', schema: 'public', table: 'gift_subscriptions' },",
+              "async (payload: { new: Tables<'gift_subscriptions'> }) => {",
+              "const newObj = payload.new"
+            ],
+            "message": "",
+            "span": "=>"
+          },
+          {
+            "context": [
+              "{ event: 'INSERT', schema: 'public', table: 'gift_subscriptions' },",
+              "async (payload: { new: Tables<'gift_subscriptions'> }) => {",
+              "const newObj = payload.new"
+            ],
+            "message": "",
+            "span": "=>"
+          }
+        ],
+        "message": "Promise returned in function argument where a void return was expected.",
         "severity": "error"
       }
     },
@@ -13723,6 +13368,26 @@
           }
         ],
         "message": "Unsafe member access .eq on an `error` typed value.",
+        "severity": "error"
+      }
+    },
+    "25236714d8a7d20376dbc83c82958f828100763f34b5a35e66737115b8779189": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(strict-void-return)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'UPDATE', schema: 'public', table: 'accounts' },",
+              "async (payload: { new: Tables<'accounts'>; old: Partial<Tables<'accounts'>> }) => {",
+              "// watch the accounts table for requires_refresh to change from true to false"
+            ],
+            "message": "",
+            "span": "async (payload: { new: Tables<'accounts'>; old: Partial<Tables<'accounts'>> }) => {\n          // watch the accounts table for requires_refresh to change from true to false\n          // if it does, add the user to twurple authprovider again via addUser()\n          const newObj = payload.new\n          const oldObj = payload.old\n\n          if (newObj.requires_refresh === true && oldObj.requires_refresh === false) {\n            const client = findUser(newObj.userId)\n            if (client) {\n              await clearCacheForUser(client)\n            }\n            // Persist both keyspaces: getDBUser is called with either the user.id\n            // (GSI path) or the providerAccountId (Twitch chat / tooltips path).\n            // Add AFTER clearCacheForUser — see ban branch for rationale.\n            invalidTokens.add(newObj.userId)\n            if (newObj.providerAccountId) {\n              invalidTokens.add(newObj.providerAccountId)\n            }\n            return\n          }\n\n          if (\n            newObj.scope !== oldObj.scope ||\n            (newObj.requires_refresh === false && oldObj.requires_refresh === true) ||\n            newObj.access_token !== oldObj.access_token\n          ) {\n            const client = findUser(newObj.userId)\n            if (client?.Account) {\n              client.Account.scope = newObj.scope\n              client.Account.access_token = newObj.access_token\n              client.Account.refresh_token = newObj.refresh_token\n              client.Account.expires_at = newObj.expires_at\n              client.Account.expires_in = newObj.expires_in\n              client.Account.obtainment_timestamp = new Date(newObj.obtainment_timestamp ?? '')\n              const twitchId = newObj.providerAccountId\n              const authProvider = getAuthProvider()\n              authProvider.removeUser(twitchId)\n              getTwitchAPI(twitchId).catch((error) => {\n                logger.error('[TWITCHAPI] Error updating twurple token', {\n                  error,\n                  twitchId,\n                })\n              })\n            }\n          }\n\n          // The frontend will set it to false when they relogin\n          // Which allows us to update the authProvider object\n          if (newObj.requires_refresh === false && oldObj.requires_refresh === true) {\n            invalidTokens.delete(newObj.userId)\n            if (newObj.providerAccountId) {\n              invalidTokens.delete(newObj.providerAccountId)\n            }\n            logger.info('[WATCHER ACCOUNT] Refreshing account', {\n              twitchId: newObj.providerAccountId,\n            })\n\n            const client = findUser(newObj.userId)\n            if (client) {\n              await clearCacheForUser(client)\n            }\n          }\n        }"
+          }
+        ],
+        "message": "Async function used in a context where a void function is expected.",
         "severity": "error"
       }
     },
@@ -28843,6 +28508,35 @@
         "severity": "error"
       }
     },
+    "4d732d55ad55cafb4ab755b0b5d2a7ce31b6bd3e95696a506090edb6f7b815cb": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-misused-promises)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "old: Partial<Tables<'subscriptions'>>",
+              "}) => {",
+              "const newObj = payload.new"
+            ],
+            "message": "",
+            "span": "=>"
+          },
+          {
+            "context": [
+              "old: Partial<Tables<'subscriptions'>>",
+              "}) => {",
+              "const newObj = payload.new"
+            ],
+            "message": "",
+            "span": "=>"
+          }
+        ],
+        "message": "Promise returned in function argument where a void return was expected.",
+        "severity": "error"
+      }
+    },
     "4d915b4074afe26bb52caa50189689e415315be9cb8d94302275f5eca106fc40": {
       "count": 1,
       "diagnostic": {
@@ -33325,6 +33019,26 @@
           }
         ],
         "message": "Prefer await to then()/catch()/finally()",
+        "severity": "error"
+      }
+    },
+    "5a5171c63a291454d3dbae71a8eaba04da1626292bc2dc50ac89630a799d1f1c": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-assignment)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              ": new Date(Account.obtainment_timestamp),",
+              "requires_refresh: Account.requires_refresh ?? false,",
+              "},"
+            ],
+            "message": "",
+            "span": "requires_refresh: Account.requires_refresh ?? false"
+          }
+        ],
+        "message": "Unsafe assignment of an any value.",
         "severity": "error"
       }
     },
@@ -41055,6 +40769,26 @@
         "severity": "error"
       }
     },
+    "6fd4ce126a8cd14072edb07a2fcbc16711ed2edfeeeaa8f5daf76f10ddc2db0c": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-type-assertion)",
+        "file": "packages/dota/src/twitch/lib/__tests__/settings-commands.integration.test.ts",
+        "labels": [
+          {
+            "context": [
+              "expect(state.upsertCalls).toHaveLength(1)",
+              "const value = JSON.parse(state.upsertCalls[0].values.value as string)",
+              "expect(value.enabled).toBeFalsy()"
+            ],
+            "message": "",
+            "span": "state.upsertCalls[0].values.value as string"
+          }
+        ],
+        "message": "Unsafe type assertion: type 'string' is more narrow than the original type.",
+        "severity": "error"
+      }
+    },
     "6fded26d3b6f862ddd5f8093677394746e91558e882852f7580c04a818799da1": {
       "count": 1,
       "diagnostic": {
@@ -44168,6 +43902,26 @@
           }
         ],
         "message": "Use null instead.",
+        "severity": "error"
+      }
+    },
+    "7912b7e6ff98b1d46f5c3a6a6bbd0daa386ca4b35e908fc10a9f23120e4d736f": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-member-access)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              "obtainment_timestamp:",
+              "Account.obtainment_timestamp === null ||",
+              "Account.obtainment_timestamp === undefined ||"
+            ],
+            "message": "",
+            "span": "obtainment_timestamp"
+          }
+        ],
+        "message": "Unsafe member access .obtainment_timestamp on an `any` value.",
         "severity": "error"
       }
     },
@@ -48712,6 +48466,26 @@
         "severity": "error"
       }
     },
+    "859110fbde78c9d7215027cc8d7c4d063c3f3070cb5d70f6d1649b9f1179d260": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-member-access)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              "",
+              "twitchIdToToken.set(Account.providerAccountId, userInfo.id)",
+              "twitchNameToToken.set(userInfo.name.toLowerCase(), userInfo.id)"
+            ],
+            "message": "",
+            "span": "providerAccountId"
+          }
+        ],
+        "message": "Unsafe member access .providerAccountId on an `any` value.",
+        "severity": "error"
+      }
+    },
     "85a3e164eba99f885f9fb4ffe247a22adb55c83a3d97703d35ef5df60f06503b": {
       "count": 1,
       "diagnostic": {
@@ -50913,6 +50687,35 @@
         "severity": "error"
       }
     },
+    "8bc5b390e9db63d47dcafe32196a715446153d6b988b1df74b89333210855801": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-misused-promises)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'UPDATE', schema: 'public', table: 'users' },",
+              "async (payload: { new: Tables<'users'>; old: Partial<Tables<'users'>> }) => {",
+              "const newObj: Tables<'users'> = payload.new"
+            ],
+            "message": "",
+            "span": "=>"
+          },
+          {
+            "context": [
+              "{ event: 'UPDATE', schema: 'public', table: 'users' },",
+              "async (payload: { new: Tables<'users'>; old: Partial<Tables<'users'>> }) => {",
+              "const newObj: Tables<'users'> = payload.new"
+            ],
+            "message": "",
+            "span": "=>"
+          }
+        ],
+        "message": "Promise returned in function argument where a void return was expected.",
+        "severity": "error"
+      }
+    },
     "8bc72bf3fa869addc2bff30c48ed072dea986bcd14ba63821e8cbcc6a660c444": {
       "count": 2,
       "diagnostic": {
@@ -51210,6 +51013,35 @@
           }
         ],
         "message": "Unsafe type assertion: type '{ snatched: boolean; }' is more narrow than the original type.",
+        "severity": "error"
+      }
+    },
+    "8c89c56b5f9a8572b5b8ca262417584ca57107d848eff2b1e96035d5de6d5e8e": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(unbound-method)",
+        "file": "packages/dota/src/dota/lib/__tests__/invalid-tokens.test.ts",
+        "labels": [
+          {
+            "context": [
+              "const { supabase } = await import('@dotabod/shared-utils')",
+              "const originalFrom = supabase.from",
+              "supabase.from = () => {"
+            ],
+            "message": "",
+            "span": "from"
+          },
+          {
+            "context": [
+              "const { supabase } = await import('@dotabod/shared-utils')",
+              "const originalFrom = supabase.from",
+              "supabase.from = () => {"
+            ],
+            "message": "",
+            "span": "supabase.from"
+          }
+        ],
+        "message": "Avoid referencing unbound methods which may cause unintentional scoping of `this`.",
         "severity": "error"
       }
     },
@@ -53874,6 +53706,35 @@
         "severity": "error"
       }
     },
+    "93f24b710e28ab088e47ef55a4e465ebe46c1324c3057b4b34db3413fe3a54a7": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-misused-promises)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'UPDATE', schema: 'public', table: 'accounts' },",
+              "async (payload: { new: Tables<'accounts'>; old: Partial<Tables<'accounts'>> }) => {",
+              "// watch the accounts table for requires_refresh to change from true to false"
+            ],
+            "message": "",
+            "span": "=>"
+          },
+          {
+            "context": [
+              "{ event: 'UPDATE', schema: 'public', table: 'accounts' },",
+              "async (payload: { new: Tables<'accounts'>; old: Partial<Tables<'accounts'>> }) => {",
+              "// watch the accounts table for requires_refresh to change from true to false"
+            ],
+            "message": "",
+            "span": "=>"
+          }
+        ],
+        "message": "Promise returned in function argument where a void return was expected.",
+        "severity": "error"
+      }
+    },
     "9400eff46698261f4b14e2543f9a26b5537e5fee13aeee8545cca7ca9e2c7d7c": {
       "count": 1,
       "diagnostic": {
@@ -55034,6 +54895,35 @@
         "severity": "error"
       }
     },
+    "96a01a190aef4509657cbf5400da1655eac2d7021be29de0946a1c2a30d1b291": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-misused-promises)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'DELETE', schema: 'public', table: 'users' },",
+              "async (payload: { old: Partial<Tables<'users'>> }) => {",
+              "logger.info('Removing user', payload)"
+            ],
+            "message": "",
+            "span": "=>"
+          },
+          {
+            "context": [
+              "{ event: 'DELETE', schema: 'public', table: 'users' },",
+              "async (payload: { old: Partial<Tables<'users'>> }) => {",
+              "logger.info('Removing user', payload)"
+            ],
+            "message": "",
+            "span": "=>"
+          }
+        ],
+        "message": "Promise returned in function argument where a void return was expected.",
+        "severity": "error"
+      }
+    },
     "96b39cd53b727fecdeb2025ad80216f33a54890356d3f027ead596e9f29f8fce": {
       "count": 1,
       "diagnostic": {
@@ -55658,6 +55548,26 @@
         "severity": "error"
       }
     },
+    "9818b6c67d2dbb38fa0ed50b11be093339469a702a4afebdc15db921b999284e": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-member-access)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              "const Account = Array.isArray(user?.Account) ? user.Account[0] : user.Account",
+              "if (Account?.requires_refresh === true) {",
+              "invalidTokens.add(lookupToken)"
+            ],
+            "message": "",
+            "span": "requires_refresh"
+          }
+        ],
+        "message": "Unsafe member access .requires_refresh on an `any` value.",
+        "severity": "error"
+      }
+    },
     "983d131140140323c9d1fc04db3525d3435bedc1ba588f3cd5513a465c24551e": {
       "count": 1,
       "diagnostic": {
@@ -55979,6 +55889,26 @@
           }
         ],
         "message": "Unsafe member access .slice on an `error` typed value.",
+        "severity": "error"
+      }
+    },
+    "99040986a3c17def1aff8caf5baa301085216ca64195517050c9fa1ace18a97e": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(strict-void-return)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'DELETE', schema: 'public', table: 'subscriptions' },",
+              "async (payload: { old: Partial<Tables<'subscriptions'>> }) => {",
+              "const oldObj = payload.old"
+            ],
+            "message": "",
+            "span": "async (payload: { old: Partial<Tables<'subscriptions'>> }) => {\n          const oldObj = payload.old\n          if (!isNonEmptyString(oldObj.userId) || !isNonEmptyString(oldObj.id)) {\n            return\n          }\n          const client = findUser(oldObj.userId)\n\n          if (!client) {\n            return\n          }\n\n          if (client.subscription?.id === oldObj.id) {\n            // Check if user has any other active subscriptions\n            const activeSubscription = await supabase\n              .from('subscriptions')\n              .select('*')\n              .eq('userId', oldObj.userId)\n              .neq('id', oldObj.id)\n              .neq('isGift', true)\n              .in('status', ['ACTIVE', 'TRIALING'])\n              .order('transactionType', { ascending: false })\n              .limit(1)\n              .single()\n\n            if (activeSubscription.data) {\n              // Set the other active subscription\n              client.subscription = {\n                id: activeSubscription.data.id,\n                isGift: activeSubscription.data.isGift,\n                status: activeSubscription.data.status,\n                tier: activeSubscription.data.tier,\n              }\n            } else {\n              // No other active subscriptions found\n              client.subscription = undefined\n            }\n          }\n        }"
+          }
+        ],
+        "message": "Async function used in a context where a void function is expected.",
         "severity": "error"
       }
     },
@@ -59414,6 +59344,26 @@
         "severity": "error"
       }
     },
+    "a27a0559eeee4b43be3eb682945589c9d72854a79a73ddd683d8b6bd27fa0d8d": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(use-unknown-in-catch-callback-variable)",
+        "file": "packages/dota/src/twitch/lib/open-twitch-bet.ts",
+        "labels": [
+          {
+            "context": [
+              "})",
+              ".catch(async (error: { body?: string; stack?: string }) => {",
+              "if (isPredictionAlreadyActiveError(error)) {"
+            ],
+            "message": "",
+            "span": "error: { body?: string; stack?: string }"
+          }
+        ],
+        "message": "Prefer the safe `: unknown` for a `catch` callback variable.",
+        "severity": "error"
+      }
+    },
     "a28ba434e7bec7000c0487ef8775200815299594abb305801869e17a77d8bc31": {
       "count": 1,
       "diagnostic": {
@@ -62428,6 +62378,26 @@
         "severity": "error"
       }
     },
+    "a9f90638e0515ab4823c4595948ac34a92393fc5faff25448d4f70df5edfd39f": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-member-access)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              ": new Date(Account.obtainment_timestamp),",
+              "requires_refresh: Account.requires_refresh ?? false,",
+              "},"
+            ],
+            "message": "",
+            "span": "requires_refresh"
+          }
+        ],
+        "message": "Unsafe member access .requires_refresh on an `any` value.",
+        "severity": "error"
+      }
+    },
     "aa082f7173d2543bc11ffb2648563601fd1c49b8a8edd905cb133c57fc2c8ee6": {
       "count": 1,
       "diagnostic": {
@@ -65410,6 +65380,26 @@
           }
         ],
         "message": "This assertion chain discards type evidence. Keep the original precise type, or parse untrusted input at its boundary before narrowing it.",
+        "severity": "error"
+      }
+    },
+    "b3276a6e1d9a75083b3d3fea90a32be75c3da0a7a2e101fbe786748e6de84a27": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-member-access)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              "? null",
+              ": new Date(Account.obtainment_timestamp),",
+              "requires_refresh: Account.requires_refresh ?? false,"
+            ],
+            "message": "",
+            "span": "obtainment_timestamp"
+          }
+        ],
+        "message": "Unsafe member access .obtainment_timestamp on an `any` value.",
         "severity": "error"
       }
     },
@@ -71222,6 +71212,26 @@
         "severity": "error"
       }
     },
+    "c35454d19f2ba790911f8ca858c158af406f08185146ac2a81da760a182ce238": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(strict-void-return)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: '*', schema: 'public', table: 'steam_accounts' },",
+              "async (payload: {",
+              "new: Partial<Tables<'steam_accounts'>>"
+            ],
+            "message": "",
+            "span": "async (payload: {\n          new: Partial<Tables<'steam_accounts'>>\n          old: Partial<Tables<'steam_accounts'>>\n          eventType: string\n        }) => {\n          const newObj = payload.new\n          const oldObj = payload.old\n\n          if (payload.eventType === 'DELETE') {\n            logger.info('[WATCHER STEAM] Deleting steam account for', {\n              userId: oldObj.userId,\n            })\n\n            await this.clearSteamUsers([\n              oldObj.userId ?? '',\n              ...(Array.isArray(oldObj.connectedUserIds) ? oldObj.connectedUserIds : []),\n            ])\n\n            return\n          }\n\n          if (\n            !isNonEmptyString(newObj.userId) ||\n            newObj.leaderboard_rank === undefined ||\n            newObj.mmr === undefined ||\n            newObj.name === undefined ||\n            newObj.steam32Id === undefined\n          ) {\n            return\n          }\n\n          if (payload.eventType === 'UPDATE') {\n            const oldConnectedUserIds = new Set(oldObj.connectedUserIds ?? [])\n            const newConnectedUserIds = new Set(newObj.connectedUserIds ?? [])\n            const affectedUserIds = new Set<string>()\n\n            for (const userId of oldConnectedUserIds) {\n              if (!newConnectedUserIds.has(userId)) {\n                affectedUserIds.add(userId)\n              }\n            }\n\n            if (oldObj.userId !== newObj.userId) {\n              if (isNonEmptyString(oldObj.userId)) {\n                affectedUserIds.add(oldObj.userId)\n              }\n              affectedUserIds.add(newObj.userId)\n            }\n\n            if (affectedUserIds.size > 0) {\n              await this.clearSteamUsers(affectedUserIds)\n            }\n          }\n\n          const client = findUser(newObj.userId)\n\n          // Just here to update local memory\n          if (!client) {\n            return\n          }\n\n          logger.debug('[WATCHER STEAM] Updating steam accounts for', {\n            name: client.name,\n          })\n\n          const currentSteamIdx = client.SteamAccount.findIndex(\n            (s) => s.steam32Id === newObj.steam32Id\n          )\n          if (currentSteamIdx === -1) {\n            client.SteamAccount.push({\n              leaderboard_rank: newObj.leaderboard_rank,\n              mmr: newObj.mmr,\n              name: newObj.name,\n              steam32Id: newObj.steam32Id,\n            })\n          } else {\n            client.SteamAccount[currentSteamIdx].name = newObj.name\n            client.SteamAccount[currentSteamIdx].mmr = newObj.mmr\n            client.SteamAccount[currentSteamIdx].leaderboard_rank = newObj.leaderboard_rank\n          }\n\n          // Push an mmr update to overlay since it's the steam account rn\n          if (client.steam32Id === newObj.steam32Id) {\n            client.mmr = newObj.mmr\n\n            if (!client.stream_online) {\n              return\n            }\n\n            getRankDetail(newObj.mmr, newObj.steam32Id)\n              .then((deets) => {\n                server.io.to(client.token).emit('update-medal', deets)\n              })\n              .catch((error) => {\n                logger.info('[WATCHER STEAM] Error getting rank detail', { error })\n              })\n          }\n        }"
+          }
+        ],
+        "message": "Async function used in a context where a void function is expected.",
+        "severity": "error"
+      }
+    },
     "c355cc7821dc337f159bf12c64321b3e36685145967c1cc0a825b6319745b5c2": {
       "count": 1,
       "diagnostic": {
@@ -72198,6 +72208,26 @@
         "severity": "error"
       }
     },
+    "c5a2858dec1153fd9bb3386ba2a46c53f2c62ab22ae58caa3fe2684ba7eabd4f": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-unsafe-argument)",
+        "file": "packages/dota/src/db/get-db-user.ts",
+        "labels": [
+          {
+            "context": [
+              "? null",
+              ": new Date(Account.obtainment_timestamp),",
+              "requires_refresh: Account.requires_refresh ?? false,"
+            ],
+            "message": "",
+            "span": "Account.obtainment_timestamp"
+          }
+        ],
+        "message": "Unsafe argument of type any assigned to a parameter of type string | number | Date.",
+        "severity": "error"
+      }
+    },
     "c5bbc2c249ec9987c8765d884630b039289fb39d3125484a9e8f4a10c4782bb3": {
       "count": 1,
       "diagnostic": {
@@ -72267,6 +72297,27 @@
           }
         ],
         "message": "Unsafe member access .select on an `error` typed value.",
+        "severity": "error"
+      }
+    },
+    "c617cebb8b26e5ff0715425ef38bca8f11838e10e73a53d263a2715c0b4d2d6d": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(no-misused-promises)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": ["eventType: string", "}) => {", "const newObj = payload.new"],
+            "message": "",
+            "span": "=>"
+          },
+          {
+            "context": ["eventType: string", "}) => {", "const newObj = payload.new"],
+            "message": "",
+            "span": "=>"
+          }
+        ],
+        "message": "Promise returned in function argument where a void return was expected.",
         "severity": "error"
       }
     },
@@ -72679,6 +72730,26 @@
           }
         ],
         "message": "Unsafe argument of type error typed assigned to a parameter of type string | undefined.",
+        "severity": "error"
+      }
+    },
+    "c74f857638d29ec5d84b4c9d54aaa53babc40b21f13492cc16bc592bb81bc567": {
+      "count": 1,
+      "diagnostic": {
+        "code": "typescript(strict-void-return)",
+        "file": "packages/dota/src/db/watcher.ts",
+        "labels": [
+          {
+            "context": [
+              "{ event: 'DELETE', schema: 'public', table: 'users' },",
+              "async (payload: { old: Partial<Tables<'users'>> }) => {",
+              "logger.info('Removing user', payload)"
+            ],
+            "message": "",
+            "span": "async (payload: { old: Partial<Tables<'users'>> }) => {\n          logger.info('Removing user', payload)\n\n          const oldObj = payload.old\n          const client = findUser(oldObj.id ?? '')\n          if (client) {\n            logger.info('[WATCHER USER] Deleting user', { name: client.name })\n            const accountId = client.Account?.providerAccountId\n            await clearCacheForUser(client)\n            // User row is gone — allow a future re-onboarding under the same\n            // id to bypass the negative cache.\n            invalidTokens.delete(client.token)\n            if (isNonEmptyString(accountId)) {\n              invalidTokens.delete(accountId)\n            }\n            return\n          }\n        }"
+          }
+        ],
+        "message": "Async function used in a context where a void function is expected.",
         "severity": "error"
       }
     },
