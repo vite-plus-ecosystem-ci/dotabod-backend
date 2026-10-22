@@ -10,13 +10,13 @@
   "exports": "./dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
+    "dev": "vpx --watch src/index.ts",
     "docker:production": "node dist/index.js",
-    "docker:development": "tsx watch src/index.ts",
+    "docker:development": "vpx --watch src/index.ts",
     "prebuild": "rm -rf dist",
-    "build": "tsdown --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
+    "build": "vp pack --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vp test run"
   },
   "dependencies": {
     "@dotabod/shared-utils": "workspace:*",

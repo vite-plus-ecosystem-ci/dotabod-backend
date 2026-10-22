@@ -1,5 +1,5 @@
 packages:
-  - 'packages/*'
+  - "packages/*"
 
 # Required by non-legacy `pnpm deploy` (used in the Docker build). Causes
 # workspace deps to be hard-linked into each package's node_modules instead
@@ -19,18 +19,28 @@ patchedDependencies:
 minimumReleaseAgeExclude:
   # ecosystem-ci smoke test: preview builds and freshly pinned toolchain packages
   - vite-plus
-  - '@voidzero-dev/*'
-  - '@oxc-project/*'
+  - "@voidzero-dev/*"
+  - "@oxc-project/*"
   - oxlint
-  - '@oxlint/*'
+  - "@oxlint/*"
   - oxfmt
-  - '@oxfmt/*'
+  - "@oxfmt/*"
   - oxlint-tsgolint
-  - '@oxlint-tsgolint/*'
+  - "@oxlint-tsgolint/*"
   - vitest
-  - '@vitest/*'
+  - "@vitest/*"
   - tinybench
   - yuku-core
   - yuku-parser
-  - '@yuku-core/*'
-  - '@yuku-toolchain/*'
+  - "@yuku-core/*"
+  - "@yuku-toolchain/*"
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.0.0-commit.6bc2d240a024170c08fbc831f0c201c162afd22e
+  vite-plus: 0.0.0-commit.6bc2d240a024170c08fbc831f0c201c162afd22e
+overrides:
+  vite@*: "catalog:"
+peerDependencyRules:
+  allowAny:
+    - vite
+  allowedVersions:
+    vite: "*"
