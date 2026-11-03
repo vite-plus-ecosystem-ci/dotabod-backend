@@ -16,10 +16,10 @@
   },
   "scripts": {
     "prebuild": "rm -rf dist",
-    "build": "tsdown --config ../../tsdown.config.ts index.ts -f esm -d dist --sourcemap",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage",
+    "build": "vp pack --config ../../tsdown.config.ts index.ts -f esm -d dist --sourcemap",
+    "test": "vp test run",
+    "test:watch": "vp test watch",
+    "test:coverage": "vp test run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
