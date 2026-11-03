@@ -39,7 +39,10 @@
     "ultracite": "7.10.8",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "zod": "^4.5.4"
+    "zod": "^4.5.4",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005"
   },
   "packageManager": "pnpm@11.2.2"
 }
