@@ -2,11 +2,11 @@
 // doesn't pick up the package's @types/node from the workspace tree, so
 // without this it spuriously errors on the node:* imports below.
 /// <reference types="node" />
-import { execSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import path from 'node:path'
+import { execSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from "vite-plus/test";
 
 // Regression guard for the Node 24 ERR_AMBIGUOUS_MODULE_SYNTAX crash:
 //   subscriptionHealthCheck.ts had `if (require.main === module)` at the
@@ -21,59 +21,59 @@ import { describe, expect, it } from 'vitest'
 //
 // These tests fail FAST (source scan) and SLOW (actually build + parse).
 
-const SRC = path.dirname(import.meta.dirname)
-const PKG = path.dirname(SRC)
-const BUNDLE = path.join(PKG, 'dist', 'index.js')
+const SRC = path.dirname(import.meta.dirname);
+const PKG = path.dirname(SRC);
+const BUNDLE = path.join(PKG, "dist", "index.js");
 
 const walk = function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
-    const p = path.join(dir, entry)
+    const p = path.join(dir, entry);
     if (statSync(p).isDirectory()) {
       // CLI-only entries live under src/scripts/ and are never bundled.
-      if (entry === 'scripts' || entry === '__tests__') {
-        continue
+      if (entry === "scripts" || entry === "__tests__") {
+        continue;
       }
-      walk(p, out)
-    } else if (entry.endsWith('.ts')) {
-      out.push(p)
+      walk(p, out);
+    } else if (entry.endsWith(".ts")) {
+      out.push(p);
     }
   }
-  return out
-}
+  return out;
+};
 
-describe('bundle purity', () => {
-  it('no `require.main` in any module reachable from src/index.ts', () => {
-    const offenders: string[] = []
+describe("bundle purity", () => {
+  it("no `require.main` in any module reachable from src/index.ts", () => {
+    const offenders: string[] = [];
     for (const file of walk(SRC)) {
-      if (/\brequire\.main\b/u.test(readFileSync(file, 'utf-8'))) {
-        offenders.push(file)
+      if (/\brequire\.main\b/u.test(readFileSync(file, "utf-8"))) {
+        offenders.push(file);
       }
     }
-    expect(offenders).toStrictEqual([])
-  })
+    expect(offenders).toStrictEqual([]);
+  });
 
-  it('no `module.exports` in any module reachable from src/index.ts', () => {
-    const offenders: string[] = []
+  it("no `module.exports` in any module reachable from src/index.ts", () => {
+    const offenders: string[] = [];
     for (const file of walk(SRC)) {
-      if (/\bmodule\.exports\b/u.test(readFileSync(file, 'utf-8'))) {
-        offenders.push(file)
+      if (/\bmodule\.exports\b/u.test(readFileSync(file, "utf-8"))) {
+        offenders.push(file);
       }
     }
-    expect(offenders).toStrictEqual([])
-  })
+    expect(offenders).toStrictEqual([]);
+  });
 
-  it('dist/index.js parses cleanly as ESM (when present)', () => {
+  it("dist/index.js parses cleanly as ESM (when present)", () => {
     if (!existsSync(BUNDLE)) {
       // Skip in environments where the bundle isn't built yet (most local
       // test runs). CI will have it after `pnpm --filter @dotabod/twitch-events run build`.
-      return
+      return;
     }
     // node --check exits 0 on parseable input, non-zero (and prints to stderr)
     // on ERR_AMBIGUOUS_MODULE_SYNTAX / syntax errors.
-    expect(() => execSync(`node --check ${BUNDLE}`, { stdio: 'pipe' })).not.toThrow()
+    expect(() => execSync(`node --check ${BUNDLE}`, { stdio: "pipe" })).not.toThrow();
     // Belt and suspenders: the specific CJS marker the bundler shimmed should
     // never appear in a pure-ESM bundle with top-level await.
-    const bundle = readFileSync(BUNDLE, 'utf-8')
-    expect(bundle).not.toMatch(/__require\.main/u)
-  })
-})
+    const bundle = readFileSync(BUNDLE, "utf-8");
+    expect(bundle).not.toMatch(/__require\.main/u);
+  });
+});
