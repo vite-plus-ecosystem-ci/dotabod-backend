@@ -1,62 +1,62 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { createAppLogger } from '../src/logger-impl'
+import { createAppLogger } from "../src/logger-impl";
 
 // Build the genuine winston logger directly from the factory rather than mocking
 // '../src/logger'. Sibling tests' setupMocks globally mock that module (no
 // transports); re-pointing it here leaked the real logger into other files via
 // mock.restore(), so we avoid touching the module mock entirely.
 
-const originalEnv = { ...process.env }
+const originalEnv = { ...process.env };
 
 afterEach(() => {
-  process.env = { ...originalEnv }
-})
+  process.env = { ...originalEnv };
+});
 
 // Winston delivers to transports via a stream, so flush a tick before asserting.
-const flush = async () => await new Promise((resolve) => setTimeout(resolve, 0))
+const flush = async () => await new Promise((resolve) => setTimeout(resolve, 0));
 
 const isLogInfo = function isLogInfo(value: unknown): value is Record<PropertyKey, unknown> {
-  return typeof value === 'object' && value !== null
-}
+  return typeof value === "object" && value !== null;
+};
 
 const captureLogs = async function captureLogs(
-  emit: (logger: ReturnType<typeof createAppLogger>) => void
+  emit: (logger: ReturnType<typeof createAppLogger>) => void,
 ) {
-  const logger = createAppLogger()
-  const transport = logger.transports[0]
-  const captured: Record<PropertyKey, unknown>[] = []
-  vi.spyOn(transport, 'log').mockImplementation((info: unknown, next?: () => void) => {
+  const logger = createAppLogger();
+  const transport = logger.transports[0];
+  const captured: Record<PropertyKey, unknown>[] = [];
+  vi.spyOn(transport, "log").mockImplementation((info: unknown, next?: () => void) => {
     if (isLogInfo(info)) {
-      captured.push(info)
+      captured.push(info);
     }
-    next?.()
-  })
-  emit(logger)
-  await flush()
-  return captured
-}
+    next?.();
+  });
+  emit(logger);
+  await flush();
+  return captured;
+};
 
-describe('shared-utils logger', () => {
-  it('passes level, message and structured metadata through to the transport', async () => {
-    const captured = await captureLogs((logger) => logger.error('boom', { requestId: 'abc-123' }))
+describe("shared-utils logger", () => {
+  it("passes level, message and structured metadata through to the transport", async () => {
+    const captured = await captureLogs((logger) => logger.error("boom", { requestId: "abc-123" }));
 
-    expect(captured).toHaveLength(1)
-    const info = captured[0]
-    expect(info?.level).toContain('error')
-    expect(info?.message).toBe('boom')
-    expect(info?.requestId).toBe('abc-123')
+    expect(captured).toHaveLength(1);
+    const info = captured[0];
+    expect(info?.level).toContain("error");
+    expect(info?.message).toBe("boom");
+    expect(info?.requestId).toBe("abc-123");
     // The printf format renders a single line carrying message + metadata.
-    const line = String(info?.[Symbol.for('message')])
-    expect(line).toContain('boom')
-    expect(line).toContain('abc-123')
-  })
+    const line = String(info?.[Symbol.for("message")]);
+    expect(line).toContain("boom");
+    expect(line).toContain("abc-123");
+  });
 
-  it('extracts the stack when an Error is supplied as metadata', async () => {
-    const err = new Error('kaboom')
-    const captured = await captureLogs((logger) => logger.error('failed', { e: err }))
+  it("extracts the stack when an Error is supplied as metadata", async () => {
+    const err = new Error("kaboom");
+    const captured = await captureLogs((logger) => logger.error("failed", { e: err }));
 
-    expect(captured).toHaveLength(1)
-    expect(captured[0]?.['e.stack']).toContain('kaboom')
-  })
-})
+    expect(captured).toHaveLength(1);
+    expect(captured[0]?.["e.stack"]).toContain("kaboom");
+  });
+});
