@@ -1,98 +1,98 @@
-import { t } from 'i18next'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { t } from "i18next";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { commandHandler, makeMessage, resetState, state } from './setup-mocks.ts'
+import { commandHandler, makeMessage, resetState, state } from "./setup-mocks.ts";
 
 // !today reads getTodayHeroStats, which terminates its supabase query on
 // `.order()` and resolves to `state.recentList` (see setupMocks).
 interface TodayMatch {
-  matchId: string
-  hero_name: string | null
-  won: boolean
+  matchId: string;
+  hero_name: string | null;
+  won: boolean;
 }
 
 const setMatches = (matches: TodayMatch[]) => {
-  state.recentList = matches
-}
+  state.recentList = matches;
+};
 
-const match = (hero_name: string, won: boolean, matchId = '1'): TodayMatch => ({
+const match = (hero_name: string, won: boolean, matchId = "1"): TodayMatch => ({
   hero_name,
   matchId,
   won,
-})
+});
 
 beforeEach(() => {
-  resetState()
-  commandHandler.cooldowns.clear()
-})
+  resetState();
+  commandHandler.cooldowns.clear();
+});
 
 afterEach(() => {
-  vi.useRealTimers()
-})
+  vi.useRealTimers();
+});
 
-describe('!today', () => {
-  it('queries from the current stream start date', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-09-04T18:45:00.000Z'))
+describe("!today", () => {
+  it("queries from the current stream start date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-04T18:45:00.000Z"));
 
     await commandHandler.handleMessage(
       makeMessage({
-        clientOverrides: { stream_start_date: new Date('2026-09-04T15:00:00.000Z') },
-        content: '!today',
-      })
-    )
+        clientOverrides: { stream_start_date: new Date("2026-09-04T15:00:00.000Z") },
+        content: "!today",
+      }),
+    );
 
     expect(state.gteCalls).toContainEqual({
-      column: 'created_at',
-      value: '2026-09-04T15:00:00.000Z',
-    })
-  })
+      column: "created_at",
+      value: "2026-09-04T15:00:00.000Z",
+    });
+  });
 
-  it('reports noGames when no resolved matches exist today', async () => {
-    setMatches([])
-    await commandHandler.handleMessage(makeMessage({ content: '!today' }))
-    expect(state.chatSayCalls).toHaveLength(1)
-    expect(state.chatSayCalls[0].message).toBe(t('today.noGames', { lng: 'en' }))
-  })
+  it("reports noGames when no resolved matches exist today", async () => {
+    setMatches([]);
+    await commandHandler.handleMessage(makeMessage({ content: "!today" }));
+    expect(state.chatSayCalls).toHaveLength(1);
+    expect(state.chatSayCalls[0].message).toBe(t("today.noGames", { lng: "en" }));
+  });
 
-  it('collapses to a single hero line when only one hero played', async () => {
-    setMatches([match('npc_dota_hero_lina', false)])
-    await commandHandler.handleMessage(makeMessage({ content: '!today' }))
+  it("collapses to a single hero line when only one hero played", async () => {
+    setMatches([match("npc_dota_hero_lina", false)]);
+    await commandHandler.handleMessage(makeMessage({ content: "!today" }));
 
-    expect(state.chatSayCalls).toHaveLength(1)
+    expect(state.chatSayCalls).toHaveLength(1);
     expect(state.chatSayCalls[0].message).toBe(
-      t('today.single', { heroName: 'Lina', lng: 'en', losses: 1, wins: 0 })
-    )
+      t("today.single", { heroName: "Lina", lng: "en", losses: 1, wins: 0 }),
+    );
     // The redundant summary (e.g. "0W 1L (1 game)") must not be appended.
-    expect(state.chatSayCalls[0].message).not.toContain('·')
-    expect(state.chatSayCalls[0].message).not.toContain('game')
-  })
+    expect(state.chatSayCalls[0].message).not.toContain("·");
+    expect(state.chatSayCalls[0].message).not.toContain("game");
+  });
 
-  it('collapses to one line for a single hero across multiple games', async () => {
+  it("collapses to one line for a single hero across multiple games", async () => {
     setMatches([
-      match('npc_dota_hero_lina', true),
-      match('npc_dota_hero_lina', false),
-      match('npc_dota_hero_lina', true),
-    ])
-    await commandHandler.handleMessage(makeMessage({ content: '!today' }))
+      match("npc_dota_hero_lina", true),
+      match("npc_dota_hero_lina", false),
+      match("npc_dota_hero_lina", true),
+    ]);
+    await commandHandler.handleMessage(makeMessage({ content: "!today" }));
 
-    expect(state.chatSayCalls).toHaveLength(1)
+    expect(state.chatSayCalls).toHaveLength(1);
     expect(state.chatSayCalls[0].message).toBe(
-      t('today.single', { heroName: 'Lina', lng: 'en', losses: 1, wins: 2 })
-    )
-  })
+      t("today.single", { heroName: "Lina", lng: "en", losses: 1, wins: 2 }),
+    );
+  });
 
-  it('shows the per-hero breakdown plus an aggregate summary for multiple heroes', async () => {
+  it("shows the per-hero breakdown plus an aggregate summary for multiple heroes", async () => {
     setMatches([
-      match('npc_dota_hero_lina', true),
-      match('npc_dota_hero_pudge', false),
-      match('npc_dota_hero_lina', false),
-      match('npc_dota_hero_lina', true),
-    ])
-    await commandHandler.handleMessage(makeMessage({ content: '!today' }))
+      match("npc_dota_hero_lina", true),
+      match("npc_dota_hero_pudge", false),
+      match("npc_dota_hero_lina", false),
+      match("npc_dota_hero_lina", true),
+    ]);
+    await commandHandler.handleMessage(makeMessage({ content: "!today" }));
 
-    expect(state.chatSayCalls).toHaveLength(1)
-    const summary = t('today.summary', { count: 4, lng: 'en', losses: 2, total: 4, wins: 2 })
-    expect(state.chatSayCalls[0].message).toBe(`Lina 2W 1L | Pudge 1L · ${summary}`)
-  })
-})
+    expect(state.chatSayCalls).toHaveLength(1);
+    const summary = t("today.summary", { count: 4, lng: "en", losses: 2, total: 4, wins: 2 });
+    expect(state.chatSayCalls[0].message).toBe(`Lina 2W 1L | Pudge 1L · ${summary}`);
+  });
+});
