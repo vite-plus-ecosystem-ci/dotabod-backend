@@ -39,6 +39,15 @@ importers:
       lefthook:
         specifier: ^2.1.12
         version: 2.1.12
+      oxfmt:
+        specifier: 0.78.0
+        version: 0.78.0(vite-plus@0.0.0-commit.a86fd1603196e23718d16144a472ad91b4ba21be(@types/node@24.13.3)(@vitest/ui@5.1.0(vitest@5.1.0))(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.0))
+      oxlint:
+        specifier: 1.93.0
+        version: 1.93.0(oxlint-tsgolint@7.0.2006)(vite-plus@0.0.0-commit.a86fd1603196e23718d16144a472ad91b4ba21be(@types/node@24.13.3)(@vitest/ui@5.1.0(vitest@5.1.0))(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.0))
+      oxlint-tsgolint:
+        specifier: 7.0.2006
+        version: 7.0.2006
       ts-morph:
         specifier: ^28.0.0
         version: 28.0.0
