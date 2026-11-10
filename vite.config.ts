@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite-plus'
 
-import oxfmtConfig from './oxfmt.config.ts'
+import oxfmtConfig from './oxfmt.config.js'
 import tsdownConfig from './tsdown.config.js'
 
 export default defineConfig({
