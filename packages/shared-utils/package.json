@@ -14,7 +14,7 @@
   },
   "scripts": {
     "prebuild": "rm -rf dist",
-    "build": "vp pack --config ../../tsdown.config.ts src/index.ts -f esm -d dist --sourcemap",
+    "build": "vp pack src/index.ts -f esm -d dist --sourcemap",
     "typecheck": "tsc --noEmit",
     "test": "vp test run"
   },
