@@ -1,19 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
-import { createPacketStub, createSocketClientStub } from "../../__tests__/shared-mocks";
-import type { DotaRetentionTelemetry } from "../retention-telemetry";
+import { createPacketStub, createSocketClientStub } from '../../__tests__/shared-mocks'
+import type { DotaRetentionTelemetry } from '../retention-telemetry'
 import {
   buildDotaRetentionTelemetry,
   RETENTION_TELEMETRY_INTERVAL_MS,
   startDotaRetentionTelemetry,
-} from "../retention-telemetry";
+} from '../retention-telemetry'
 
 const registries = {
   lookingUpToken: 7,
   pendingCheckAuth: 8,
   twitchIdToToken: 9,
   twitchNameToToken: 10,
-};
+}
 
 const memoryUsage = {
   arrayBuffers: 6,
@@ -21,34 +21,34 @@ const memoryUsage = {
   heapTotal: 3,
   heapUsed: 4,
   rss: 2,
-};
+}
 
-describe("Dota retention telemetry", () => {
+describe('Dota retention telemetry', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-  });
+    vi.useFakeTimers()
+  })
 
   afterEach(() => {
-    vi.useRealTimers();
-  });
+    vi.useRealTimers()
+  })
 
-  it("counts handlers using the freshest retained live or pending packet", () => {
-    const now = 1_000_000;
+  it('counts handlers using the freshest retained live or pending packet', () => {
+    const now = 1_000_000
     const telemetry = buildDotaRetentionTelemetry({
       clients: [
         createSocketClientStub({
-          gsi: createPacketStub({ map: { matchid: "fresh-match" } }),
+          gsi: createPacketStub({ map: { matchid: 'fresh-match' } }),
           gsiUpdatedAt: now - 1000,
           stream_online: true,
         }),
         createSocketClientStub({
-          gsi: createPacketStub({ map: { matchid: "stale-live-match" } }),
+          gsi: createPacketStub({ map: { matchid: 'stale-live-match' } }),
           gsiUpdatedAt: now - 100_000,
-          pendingGsi: createPacketStub({ map: { matchid: "fresh-pending-match" } }),
+          pendingGsi: createPacketStub({ map: { matchid: 'fresh-pending-match' } }),
           pendingGsiUpdatedAt: now - 1000,
         }),
         createSocketClientStub({
-          pendingGsi: createPacketStub({ map: { matchid: "stale-pending-match" } }),
+          pendingGsi: createPacketStub({ map: { matchid: 'stale-pending-match' } }),
           pendingGsiUpdatedAt: now - 100_000,
         }),
         createSocketClientStub(),
@@ -59,7 +59,7 @@ describe("Dota retention telemetry", () => {
       now,
       registries,
       uptimeSeconds: 123.5,
-    });
+    })
 
     expect(telemetry).toStrictEqual({
       gsiHandlers: {
@@ -85,13 +85,13 @@ describe("Dota retention telemetry", () => {
       },
       registries,
       uptimeSeconds: 123.5,
-    });
-  });
+    })
+  })
 
-  it("logs only aggregates on schedule and stops cleanly", async () => {
-    const privateUserId = "private-user-token";
-    const privatePacketValue = "private-packet-value";
-    const now = 1_000_000;
+  it('logs only aggregates on schedule and stops cleanly', async () => {
+    const privateUserId = 'private-user-token'
+    const privatePacketValue = 'private-packet-value'
+    const now = 1_000_000
     const telemetry = buildDotaRetentionTelemetry({
       clients: [
         createSocketClientStub({
@@ -106,8 +106,8 @@ describe("Dota retention telemetry", () => {
       now,
       registries,
       uptimeSeconds: 123.5,
-    });
-    const log = vi.fn<(message: string, value: DotaRetentionTelemetry) => void>();
+    })
+    const log = vi.fn<(message: string, value: DotaRetentionTelemetry) => void>()
     const expectedTelemetry = {
       gsiHandlers: {
         freshHandlers: 1,
@@ -132,22 +132,22 @@ describe("Dota retention telemetry", () => {
       },
       registries,
       uptimeSeconds: 123.5,
-    };
-    const stop = startDotaRetentionTelemetry({ collect: () => telemetry, log });
+    }
+    const stop = startDotaRetentionTelemetry({ collect: () => telemetry, log })
 
-    await vi.advanceTimersByTimeAsync(RETENTION_TELEMETRY_INTERVAL_MS - 1);
-    expect(log).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(RETENTION_TELEMETRY_INTERVAL_MS - 1)
+    expect(log).not.toHaveBeenCalled()
 
-    await vi.advanceTimersByTimeAsync(1);
-    expect(log).toHaveBeenCalledExactlyOnceWith("[DOTA] Retention telemetry", expectedTelemetry);
-    const serializedLog = JSON.stringify(log.mock.calls);
+    await vi.advanceTimersByTimeAsync(1)
+    expect(log).toHaveBeenCalledExactlyOnceWith('[DOTA] Retention telemetry', expectedTelemetry)
+    const serializedLog = JSON.stringify(log.mock.calls)
     expect([
       serializedLog.includes(privateUserId),
       serializedLog.includes(privatePacketValue),
-    ]).toStrictEqual([false, false]);
+    ]).toStrictEqual([false, false])
 
-    stop();
-    await vi.advanceTimersByTimeAsync(RETENTION_TELEMETRY_INTERVAL_MS);
-    expect(log).toHaveBeenCalledExactlyOnceWith("[DOTA] Retention telemetry", expectedTelemetry);
-  });
-});
+    stop()
+    await vi.advanceTimersByTimeAsync(RETENTION_TELEMETRY_INTERVAL_MS)
+    expect(log).toHaveBeenCalledExactlyOnceWith('[DOTA] Retention telemetry', expectedTelemetry)
+  })
+})

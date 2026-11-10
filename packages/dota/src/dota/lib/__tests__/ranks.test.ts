@@ -3,44 +3,42 @@
 // mock.module's ranks to stub getRankTitle/getRankDescription/getDotabodRankProfile).
 // rankTierToMmr/mmrToRankTier/estimateMMR/getRankDetail are preserved real via
 // that harness's spread, so they're stable no matter the suite run order.
-import { once } from "node:events";
-import { createServer } from "node:http";
+import { once } from 'node:events'
+import { createServer } from 'node:http'
 
-import { Server } from "socket.io";
-import { io } from "socket.io-client";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { z } from "zod";
+import { Server } from 'socket.io'
+import { io } from 'socket.io-client'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { z } from 'zod'
 
-import { buildSharedUtilsMock } from "../../../__tests__/shared-mocks.ts";
+import { buildSharedUtilsMock } from '../../../__tests__/shared-mocks.ts'
 
 const noopLogger = {
   debug: () => {},
   error: () => {},
   info: () => {},
   warn: () => {},
-};
+}
 
 // ranks.ts -> getWL imports `supabase`/`logger` from shared-utils at load time;
 // these helpers never touch it at runtime, so a no-op surface is enough.
-vi.doMock("@dotabod/shared-utils", () =>
-  buildSharedUtilsMock({ logger: noopLogger, supabase: {} }),
-);
+vi.doMock('@dotabod/shared-utils', () => buildSharedUtilsMock({ logger: noopLogger, supabase: {} }))
 
-const { rankTierToMmr, mmrToRankTier, estimateMMR, getRankDetail } = await import("../ranks.ts");
-const { default: RedisClient } = await import("../../../db/redis-client.ts");
-const { steamSocket } = await import("../../../steam/ws.ts");
+const { rankTierToMmr, mmrToRankTier, estimateMMR, getRankDetail } = await import('../ranks.ts')
+const { default: RedisClient } = await import('../../../db/redis-client.ts')
+const { steamSocket } = await import('../../../steam/ws.ts')
 
 interface CachedMedal {
-  mmr: number;
-  standing: number | null;
+  mmr: number
+  standing: number | null
 }
 
 interface MedalCacheState {
-  cached: CachedMedal | null;
-  cardStanding: number | null;
-  steamError: string | null;
-  expireCalls: { key: string; seconds: number }[];
-  setCalls: { key: string; value: CachedMedal }[];
+  cached: CachedMedal | null
+  cardStanding: number | null
+  steamError: string | null
+  expireCalls: { key: string; seconds: number }[]
+  setCalls: { key: string; value: CachedMedal }[]
 }
 
 const medalCache: MedalCacheState = {
@@ -49,7 +47,7 @@ const medalCache: MedalCacheState = {
   expireCalls: [],
   setCalls: [],
   steamError: null,
-};
+}
 
 // The leaderboard branch reads `${steam32Id}:medal` from Redis and falls back to
 // the steam service's getCard. Redis is an in-memory fake; getCard goes to a real
@@ -57,170 +55,170 @@ const medalCache: MedalCacheState = {
 Object.assign(RedisClient.getInstance(), {
   client: {
     expire: async (key: string, seconds: number) => {
-      medalCache.expireCalls.push({ key, seconds });
-      return await Promise.resolve(true);
+      medalCache.expireCalls.push({ key, seconds })
+      return await Promise.resolve(true)
     },
     json: {
       get: async () => await Promise.resolve(medalCache.cached),
       set: async (key: string, _path: string, value: CachedMedal) => {
-        medalCache.setCalls.push({ key, value });
-        return await Promise.resolve("OK");
+        medalCache.setCalls.push({ key, value })
+        return await Promise.resolve('OK')
       },
     },
   },
-});
-type SteamAck = (error: string | null, card: { leaderboard_rank: number | null } | null) => void;
+})
+type SteamAck = (error: string | null, card: { leaderboard_rank: number | null } | null) => void
 
-const httpServer = createServer();
-const steamServer = new Server(httpServer);
-steamServer.on("connection", (socket) => {
-  socket.on("getCard", (_accountId: number, respond: SteamAck) => {
+const httpServer = createServer()
+const steamServer = new Server(httpServer)
+steamServer.on('connection', (socket) => {
+  socket.on('getCard', (_accountId: number, respond: SteamAck) => {
     if (medalCache.steamError !== null) {
-      respond(medalCache.steamError, null);
-      return;
+      respond(medalCache.steamError, null)
+      return
     }
-    respond(null, { leaderboard_rank: medalCache.cardStanding });
-  });
-});
-await once(httpServer.listen(0, "127.0.0.1"), "listening");
-const { port } = z.object({ port: z.number() }).parse(httpServer.address());
-const steamClient = io(`http://127.0.0.1:${port}`);
-Object.assign(steamSocket, { timeout: (ms: number) => steamClient.timeout(ms) });
+    respond(null, { leaderboard_rank: medalCache.cardStanding })
+  })
+})
+await once(httpServer.listen(0, '127.0.0.1'), 'listening')
+const { port } = z.object({ port: z.number() }).parse(httpServer.address())
+const steamClient = io(`http://127.0.0.1:${port}`)
+Object.assign(steamSocket, { timeout: (ms: number) => steamClient.timeout(ms) })
 
-describe("mmrToRankTier", () => {
-  it("returns 0 (uncalibrated) for non-positive mmr", () => {
-    expect(mmrToRankTier(0)).toBe(0);
-    expect(mmrToRankTier(-50)).toBe(0);
-  });
+describe('mmrToRankTier', () => {
+  it('returns 0 (uncalibrated) for non-positive mmr', () => {
+    expect(mmrToRankTier(0)).toBe(0)
+    expect(mmrToRankTier(-50)).toBe(0)
+  })
 
-  it("returns 80 (immortal) at or above the highest rank mmr", () => {
-    expect(mmrToRankTier(5619)).toBe(80);
-    expect(mmrToRankTier(9000)).toBe(80);
-  });
+  it('returns 80 (immortal) at or above the highest rank mmr', () => {
+    expect(mmrToRankTier(5619)).toBe(80)
+    expect(mmrToRankTier(9000)).toBe(80)
+  })
 
-  it("maps mmr into the medal*10+stars tier", () => {
+  it('maps mmr into the medal*10+stars tier', () => {
     // Herald 1
-    expect(mmrToRankTier(100)).toBe(11);
+    expect(mmrToRankTier(100)).toBe(11)
     // Legend 1
-    expect(mmrToRankTier(3080)).toBe(51);
+    expect(mmrToRankTier(3080)).toBe(51)
     // Divine 2
-    expect(mmrToRankTier(5000)).toBe(72);
-  });
-});
+    expect(mmrToRankTier(5000)).toBe(72)
+  })
+})
 
-describe("rankTierToMmr", () => {
-  it("returns 0 for falsy / zero rank tiers", () => {
-    expect(rankTierToMmr(0)).toBe(0);
-    expect(rankTierToMmr("")).toBe(0);
-  });
+describe('rankTierToMmr', () => {
+  it('returns 0 for falsy / zero rank tiers', () => {
+    expect(rankTierToMmr(0)).toBe(0)
+    expect(rankTierToMmr('')).toBe(0)
+  })
 
-  it("returns 6000 for immortal rank tiers above 77", () => {
-    expect(rankTierToMmr(80)).toBe(6000);
-  });
+  it('returns 6000 for immortal rank tiers above 77', () => {
+    expect(rankTierToMmr(80)).toBe(6000)
+  })
 
-  it("returns the midpoint of the rank range", () => {
+  it('returns the midpoint of the rank range', () => {
     // Herald 1
-    expect(rankTierToMmr(11)).toBe((0 + 153) / 2);
+    expect(rankTierToMmr(11)).toBe((0 + 153) / 2)
     // Herald 5
-    expect(rankTierToMmr(15)).toBe((616 + 769) / 2);
-  });
+    expect(rankTierToMmr(15)).toBe((616 + 769) / 2)
+  })
 
-  it("floors stars above 5 to 5", () => {
+  it('floors stars above 5 to 5', () => {
     // rank tier 18 -> medal 1, stars capped at 5 -> same as Herald 5
-    expect(rankTierToMmr(18)).toBe(rankTierToMmr(15));
-  });
-});
+    expect(rankTierToMmr(18)).toBe(rankTierToMmr(15))
+  })
+})
 
-describe("estimateMMR", () => {
-  it("returns 8500 for out-of-range leaderboard ranks", () => {
-    expect(estimateMMR(0, "EUROPE")).toBe(8500);
-    expect(estimateMMR(5001, "EUROPE")).toBe(8500);
-  });
+describe('estimateMMR', () => {
+  it('returns 8500 for out-of-range leaderboard ranks', () => {
+    expect(estimateMMR(0, 'EUROPE')).toBe(8500)
+    expect(estimateMMR(5001, 'EUROPE')).toBe(8500)
+  })
 
-  it("computes region-specific base mmr (ln(1)=0 makes rank 1 the base constant)", () => {
-    expect(estimateMMR(1, "EUROPE")).toBe(15_300);
-    expect(estimateMMR(1, "US EAST")).toBe(14_900);
-    expect(estimateMMR(1, "BRAZIL")).toBe(14_150);
-  });
-});
+  it('computes region-specific base mmr (ln(1)=0 makes rank 1 the base constant)', () => {
+    expect(estimateMMR(1, 'EUROPE')).toBe(15_300)
+    expect(estimateMMR(1, 'US EAST')).toBe(14_900)
+    expect(estimateMMR(1, 'BRAZIL')).toBe(14_150)
+  })
+})
 
-describe("getRankDetail", () => {
-  it("returns null for non-positive mmr", async () => {
-    await expect(getRankDetail(0)).resolves.toBeNull();
-    await expect(getRankDetail(-10)).resolves.toBeNull();
-  });
+describe('getRankDetail', () => {
+  it('returns null for non-positive mmr', async () => {
+    await expect(getRankDetail(0)).resolves.toBeNull()
+    await expect(getRankDetail(-10)).resolves.toBeNull()
+  })
 
-  it("returns rank progression details for an in-range mmr", async () => {
-    const detail = await getRankDetail(100);
-    if (!detail || "standing" in detail) {
-      throw new Error("Expected an in-range rank detail");
+  it('returns rank progression details for an in-range mmr', async () => {
+    const detail = await getRankDetail(100)
+    if (!detail || 'standing' in detail) {
+      throw new Error('Expected an in-range rank detail')
     }
-    expect(detail.myRank?.title).toBe("Herald☆1");
-    expect(detail.nextMMR).toBe(154);
-    expect(detail.mmrToNextRank).toBe(54);
+    expect(detail.myRank?.title).toBe('Herald☆1')
+    expect(detail.nextMMR).toBe(154)
+    expect(detail.mmrToNextRank).toBe(54)
     // ceil(54 / 25)
-    expect(detail.winsToNextRank).toBe(3);
-  });
+    expect(detail.winsToNextRank).toBe(3)
+  })
 
-  it("routes to the leaderboard lookup at the exact top-of-range boundary, matching mmrToRankTier(5619) === 80 (immortal)", async () => {
-    const detail = await getRankDetail(5619);
-    expect(detail).not.toBeNull();
+  it('routes to the leaderboard lookup at the exact top-of-range boundary, matching mmrToRankTier(5619) === 80 (immortal)', async () => {
+    const detail = await getRankDetail(5619)
+    expect(detail).not.toBeNull()
     // The leaderboard-branch shape carries `standing`; the in-range shape doesn't.
-    expect(detail && "standing" in detail).toBeTruthy();
-  });
-});
+    expect(detail && 'standing' in detail).toBeTruthy()
+  })
+})
 
-describe("getRankDetail leaderboard cache", () => {
+describe('getRankDetail leaderboard cache', () => {
   beforeEach(() => {
-    medalCache.cached = null;
-    medalCache.cardStanding = 0;
-    medalCache.expireCalls = [];
-    medalCache.setCalls = [];
-    medalCache.steamError = null;
-  });
+    medalCache.cached = null
+    medalCache.cardStanding = 0
+    medalCache.expireCalls = []
+    medalCache.setCalls = []
+    medalCache.steamError = null
+  })
 
   afterAll(async () => {
-    steamClient.close();
-    await steamServer.close();
-  });
+    steamClient.close()
+    await steamServer.close()
+  })
 
-  it("caches a fetched standing with a TTL so it cannot go stale forever", async () => {
-    medalCache.cardStanding = 42;
+  it('caches a fetched standing with a TTL so it cannot go stale forever', async () => {
+    medalCache.cardStanding = 42
 
-    const detail = await getRankDetail(8000, 123);
+    const detail = await getRankDetail(8000, 123)
 
-    expect(detail).toMatchObject({ standing: 42 });
-    expect(medalCache.expireCalls).toStrictEqual([{ key: "123:medal", seconds: 1800 }]);
-  });
+    expect(detail).toMatchObject({ standing: 42 })
+    expect(medalCache.expireCalls).toStrictEqual([{ key: '123:medal', seconds: 1800 }])
+  })
 
-  it("skipCache fetches a fresh standing instead of returning the cached one", async () => {
-    medalCache.cached = { mmr: 8000, standing: 500 };
-    medalCache.cardStanding = 42;
+  it('skipCache fetches a fresh standing instead of returning the cached one', async () => {
+    medalCache.cached = { mmr: 8000, standing: 500 }
+    medalCache.cardStanding = 42
 
-    const cached = await getRankDetail(8000, 123);
-    const fresh = await getRankDetail(8000, 123, { skipCache: true });
+    const cached = await getRankDetail(8000, 123)
+    const fresh = await getRankDetail(8000, 123, { skipCache: true })
 
-    expect(cached).toMatchObject({ standing: 500 });
-    expect(fresh).toMatchObject({ standing: 42 });
-    expect(medalCache.setCalls).toMatchObject([{ key: "123:medal", value: { standing: 42 } }]);
-  });
+    expect(cached).toMatchObject({ standing: 500 })
+    expect(fresh).toMatchObject({ standing: 42 })
+    expect(medalCache.setCalls).toMatchObject([{ key: '123:medal', value: { standing: 42 } }])
+  })
 
   it("treats Valve's null leaderboard_rank as an Immortal off the leaderboard", async () => {
-    medalCache.cardStanding = null;
+    medalCache.cardStanding = null
 
-    const detail = await getRankDetail(8000, 123);
+    const detail = await getRankDetail(8000, 123)
 
-    expect(detail).toMatchObject({ myRank: { image: "80.png" }, standing: null });
-    expect(detail).not.toHaveProperty("lookupFailed");
-    expect(medalCache.setCalls).toStrictEqual([]);
-  });
+    expect(detail).toMatchObject({ myRank: { image: '80.png' }, standing: null })
+    expect(detail).not.toHaveProperty('lookupFailed')
+    expect(medalCache.setCalls).toStrictEqual([])
+  })
 
-  it("flags a lookup the steam service could not answer", async () => {
-    medalCache.steamError = "Steam not connected";
+  it('flags a lookup the steam service could not answer', async () => {
+    medalCache.steamError = 'Steam not connected'
 
-    const detail = await getRankDetail(8000, 123, { skipCache: true });
+    const detail = await getRankDetail(8000, 123, { skipCache: true })
 
-    expect(detail).toMatchObject({ lookupFailed: true, standing: null });
-    expect(medalCache.setCalls).toStrictEqual([]);
-  });
-});
+    expect(detail).toMatchObject({ lookupFailed: true, standing: null })
+    expect(medalCache.setCalls).toStrictEqual([])
+  })
+})

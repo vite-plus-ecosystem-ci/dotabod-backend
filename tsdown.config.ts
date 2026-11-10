@@ -1,10 +1,10 @@
-import { defineConfig } from "vite-plus/pack";
+import { defineConfig } from 'vite-plus/pack'
 
 export default defineConfig({
   cwd: process.cwd(),
   dts: {
-    generator: "tsgo",
+    generator: 'tsgo',
   },
-  outExtensions: () => ({ js: ".js" }),
-  platform: "node",
-});
+  outExtensions: () => ({ js: '.js' }),
+  platform: 'node',
+})
