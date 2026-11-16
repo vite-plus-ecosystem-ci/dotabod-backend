@@ -1,26 +1,26 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from "vite-plus/test";
 
-import { VisionResolver } from '../../resolvers/vision-resolver'
+import { VisionResolver } from "../../resolvers/vision-resolver";
 
-const ctx = (matchId?: string) => ({ gsi: undefined, matchId })
+const ctx = (matchId?: string) => ({ gsi: undefined, matchId });
 
 describe(VisionResolver, () => {
-  it('defers when matchId is undefined', async () => {
-    let calls = 0
+  it("defers when matchId is undefined", async () => {
+    let calls = 0;
     const r = new VisionResolver(async () => {
-      calls += 1
-      return await Promise.resolve(null)
-    })
-    await expect(r.resolve(ctx())).resolves.toBeNull()
-    expect(calls).toBe(0)
-  })
+      calls += 1;
+      return await Promise.resolve(null);
+    });
+    await expect(r.resolve(ctx())).resolves.toBeNull();
+    expect(calls).toBe(0);
+  });
 
-  it('defers when fetcher returns null', async () => {
-    const r = new VisionResolver(async () => await Promise.resolve(null))
-    await expect(r.resolve(ctx('12345'))).resolves.toBeNull()
-  })
+  it("defers when fetcher returns null", async () => {
+    const r = new VisionResolver(async () => await Promise.resolve(null));
+    await expect(r.resolve(ctx("12345"))).resolves.toBeNull();
+  });
 
-  it('self-tags as vision-heroes when payload has heroes', async () => {
+  it("self-tags as vision-heroes when payload has heroes", async () => {
     const r = new VisionResolver(
       async () =>
         await Promise.resolve({
@@ -30,72 +30,72 @@ describe(VisionResolver, () => {
             hero_name: `h${i}`,
             match_score: 0,
             position: i,
-            team: i < 5 ? 'radiant' : 'dire',
-            variant: '',
+            team: i < 5 ? "radiant" : "dire",
+            variant: "",
           })),
-          match_id: '12345',
-        })
-    )
-    const out = await r.resolve(ctx('12345'))
-    expect(out?.source).toBe('vision-heroes')
-    expect(out?.matchPlayers.length).toBe(10)
-  })
+          match_id: "12345",
+        }),
+    );
+    const out = await r.resolve(ctx("12345"));
+    expect(out?.source).toBe("vision-heroes");
+    expect(out?.matchPlayers.length).toBe(10);
+  });
 
-  it('self-tags as vision-draft when payload has only draft_player_order', async () => {
+  it("self-tags as vision-draft when payload has only draft_player_order", async () => {
     const r = new VisionResolver(
       async () =>
         await Promise.resolve({
-          draft_player_order: ['A', 'B', 'C', 'D', 'E'],
+          draft_player_order: ["A", "B", "C", "D", "E"],
           heroes: [],
-          heroes_status: 'waiting',
-          match_id: '12345',
-        })
-    )
-    const out = await r.resolve(ctx('12345'))
-    expect(out?.source).toBe('vision-draft')
-    expect(out?.heroesStatus).toBe('waiting')
-    expect(out?.matchPlayers.length).toBe(5)
-  })
+          heroes_status: "waiting",
+          match_id: "12345",
+        }),
+    );
+    const out = await r.resolve(ctx("12345"));
+    expect(out?.source).toBe("vision-draft");
+    expect(out?.heroesStatus).toBe("waiting");
+    expect(out?.matchPlayers.length).toBe(5);
+  });
 
   it("preserves heroes_status: 'failed' for vision-draft", async () => {
     const r = new VisionResolver(
       async () =>
         await Promise.resolve({
-          draft_player_order: ['A', 'B'],
+          draft_player_order: ["A", "B"],
           heroes: [],
-          heroes_status: 'failed',
-          match_id: '12345',
-        })
-    )
-    const out = await r.resolve(ctx('12345'))
-    expect(out?.heroesStatus).toBe('failed')
-  })
+          heroes_status: "failed",
+          match_id: "12345",
+        }),
+    );
+    const out = await r.resolve(ctx("12345"));
+    expect(out?.heroesStatus).toBe("failed");
+  });
 
-  it('passes heroes_status through on the vision-heroes path (pick-screen roster)', async () => {
+  it("passes heroes_status through on the vision-heroes path (pick-screen roster)", async () => {
     // Pick-screen fallback payload: sentinel hero_ids, real names/ranks, heroes waiting.
     const r = new VisionResolver(
       async () =>
         await Promise.resolve({
           heroes: Array.from({ length: 10 }, (_, i) => ({
             hero_id: 0,
-            hero_localized_name: '',
-            hero_name: '',
+            hero_localized_name: "",
+            hero_name: "",
             match_score: 0,
             player_name: `p${i}`,
             position: i % 5,
-            team: i < 5 ? 'radiant' : 'dire',
-            variant: '',
+            team: i < 5 ? "radiant" : "dire",
+            variant: "",
           })),
-          heroes_status: 'waiting',
-          match_id: '12345',
-        })
-    )
-    const out = await r.resolve(ctx('12345'))
-    expect(out?.source).toBe('vision-heroes')
-    expect(out?.heroesStatus).toBe('waiting')
-  })
+          heroes_status: "waiting",
+          match_id: "12345",
+        }),
+    );
+    const out = await r.resolve(ctx("12345"));
+    expect(out?.source).toBe("vision-heroes");
+    expect(out?.heroesStatus).toBe("waiting");
+  });
 
-  it('leaves heroesStatus undefined for a normal vision-heroes roster', async () => {
+  it("leaves heroesStatus undefined for a normal vision-heroes roster", async () => {
     const r = new VisionResolver(
       async () =>
         await Promise.resolve({
@@ -105,29 +105,29 @@ describe(VisionResolver, () => {
             hero_name: `h${i}`,
             match_score: 0,
             position: i,
-            team: i < 5 ? 'radiant' : 'dire',
-            variant: '',
+            team: i < 5 ? "radiant" : "dire",
+            variant: "",
           })),
-          match_id: '12345',
-        })
-    )
-    const out = await r.resolve(ctx('12345'))
-    expect(out?.heroesStatus).toBeUndefined()
-  })
+          match_id: "12345",
+        }),
+    );
+    const out = await r.resolve(ctx("12345"));
+    expect(out?.heroesStatus).toBeUndefined();
+  });
 
-  it('defers when neither heroes nor draft names are present', async () => {
+  it("defers when neither heroes nor draft names are present", async () => {
     const r = new VisionResolver(
       async () =>
         await Promise.resolve({
           draft_player_order: [],
           heroes: [],
-          match_id: '12345',
-        })
-    )
-    await expect(r.resolve(ctx('12345'))).resolves.toBeNull()
-  })
+          match_id: "12345",
+        }),
+    );
+    await expect(r.resolve(ctx("12345"))).resolves.toBeNull();
+  });
 
-  describe('GSI self-hero correction', () => {
+  describe("GSI self-hero correction", () => {
     // Scores mirror the real miss on match 8916275620: one slot far weaker than the rest.
     const roster = (ids: number[], scores: number[]) =>
       ids.map((id, i) => ({
@@ -136,14 +136,14 @@ describe(VisionResolver, () => {
         hero_name: `h${id}`,
         match_score: scores[i],
         position: i % 5,
-        team: i < 5 ? 'Radiant' : 'Dire',
-        variant: '',
-      }))
+        team: i < 5 ? "Radiant" : "Dire",
+        variant: "",
+      }));
 
     const gsiWithHero = (heroId: number) => ({
-      gsi: { hero: { id: heroId }, player: { accountid: '1', id: 5, name: 'streamer' } } as never,
-      matchId: '12345',
-    })
+      gsi: { hero: { id: heroId }, player: { accountid: "1", id: 5, name: "streamer" } } as never,
+      matchId: "12345",
+    });
 
     it("rewrites the weakest slot when the roster is missing the streamer's hero", async () => {
       // Slot 5 (0.416) is the weakest — the misread one. GSI says the streamer is on hero 111.
@@ -152,59 +152,59 @@ describe(VisionResolver, () => {
           await Promise.resolve({
             heroes: roster(
               [33, 57, 3, 6, 13, 39, 100, 38, 138, 11],
-              [0.81, 0.78, 0.59, 0.69, 0.63, 0.416, 0.77, 0.55, 0.56, 0.68]
+              [0.81, 0.78, 0.59, 0.69, 0.63, 0.416, 0.77, 0.55, 0.56, 0.68],
             ),
-            match_id: '12345',
-          })
-      )
-      const out = await r.resolve(gsiWithHero(111))
+            match_id: "12345",
+          }),
+      );
+      const out = await r.resolve(gsiWithHero(111));
       expect(out?.matchPlayers.map((p) => p.heroid)).toStrictEqual([
         33, 57, 3, 6, 13, 111, 100, 38, 138, 11,
-      ])
-    })
+      ]);
+    });
 
-    it('leaves the roster untouched when it already contains the GSI hero', async () => {
-      const ids = [33, 57, 3, 6, 13, 39, 100, 38, 138, 11]
+    it("leaves the roster untouched when it already contains the GSI hero", async () => {
+      const ids = [33, 57, 3, 6, 13, 39, 100, 38, 138, 11];
       const r = new VisionResolver(
         async () =>
           await Promise.resolve({
             heroes: roster(ids, [0.81, 0.78, 0.59, 0.69, 0.63, 0.416, 0.77, 0.55, 0.56, 0.68]),
-            match_id: '12345',
-          })
-      )
-      const out = await r.resolve(gsiWithHero(39))
-      expect(out?.matchPlayers.map((p) => p.heroid)).toStrictEqual(ids)
-    })
+            match_id: "12345",
+          }),
+      );
+      const out = await r.resolve(gsiWithHero(39));
+      expect(out?.matchPlayers.map((p) => p.heroid)).toStrictEqual(ids);
+    });
 
-    it('leaves the roster untouched when GSI has no hero yet', async () => {
-      const ids = [33, 57, 3, 6, 13, 39, 100, 38, 138, 11]
+    it("leaves the roster untouched when GSI has no hero yet", async () => {
+      const ids = [33, 57, 3, 6, 13, 39, 100, 38, 138, 11];
       const r = new VisionResolver(
         async () =>
           await Promise.resolve({
             heroes: roster(ids, [0.81, 0.78, 0.59, 0.69, 0.63, 0.416, 0.77, 0.55, 0.56, 0.68]),
-            match_id: '12345',
-          })
-      )
+            match_id: "12345",
+          }),
+      );
       // hero.id === -1 is GSI's "no hero selected" sentinel.
-      const out = await r.resolve({ gsi: { hero: { id: -1 } } as never, matchId: '12345' })
-      expect(out?.matchPlayers.map((p) => p.heroid)).toStrictEqual(ids)
-    })
+      const out = await r.resolve({ gsi: { hero: { id: -1 } } as never, matchId: "12345" });
+      expect(out?.matchPlayers.map((p) => p.heroid)).toStrictEqual(ids);
+    });
 
-    it('attaches the streamer identity to the corrected slot', async () => {
+    it("attaches the streamer identity to the corrected slot", async () => {
       const r = new VisionResolver(
         async () =>
           await Promise.resolve({
             heroes: roster(
               [33, 57, 3, 6, 13, 39, 100, 38, 138, 11],
-              [0.81, 0.78, 0.59, 0.69, 0.63, 0.416, 0.77, 0.55, 0.56, 0.68]
+              [0.81, 0.78, 0.59, 0.69, 0.63, 0.416, 0.77, 0.55, 0.56, 0.68],
             ),
-            match_id: '12345',
-          })
-      )
-      const out = await r.resolve(gsiWithHero(111))
-      const self = out?.matchPlayers.find((p) => p.heroid === 111)
-      expect(self?.player_name).toBe('streamer')
-      expect(self?.accountid).toBe(1)
-    })
-  })
-})
+            match_id: "12345",
+          }),
+      );
+      const out = await r.resolve(gsiWithHero(111));
+      const self = out?.matchPlayers.find((p) => p.heroid === 111);
+      expect(self?.player_name).toBe("streamer");
+      expect(self?.accountid).toBe(1);
+    });
+  });
+});

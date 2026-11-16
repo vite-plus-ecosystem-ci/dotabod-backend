@@ -12,38 +12,38 @@
 // (`commandDisable.disable / .enable / .recordNotification`). If you're adding
 // a NON-inverted setting (e.g. bets), trackDisableReason is fine — that's
 // already used by openTwitchBet.ts.
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from "vite-plus/test";
 
 // import.meta.dirname → packages/shared-utils/tests; '../..' lifts to packages/.
-const REPO_PACKAGES = join(import.meta.dirname, '../..')
+const REPO_PACKAGES = join(import.meta.dirname, "../..");
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', '__tests__', 'tests', 'test'])
+const SKIP_DIRS = new Set(["node_modules", "dist", ".turbo", "__tests__", "tests", "test"]);
 
 // command-disable.ts is the facade — it's the only place allowed to call the
 // primitives with 'commandDisable'.
 const ALLOWED_FILES = new Set([
-  join(REPO_PACKAGES, 'shared-utils/src/disableReason/command-disable.ts'),
+  join(REPO_PACKAGES, "shared-utils/src/disableReason/command-disable.ts"),
   // The facade-pinning test itself contains the disallowed strings in patterns/comments.
-  join(REPO_PACKAGES, 'shared-utils/tests/command-disable-facade-pin.test.ts'),
-])
+  join(REPO_PACKAGES, "shared-utils/tests/command-disable-facade-pin.test.ts"),
+]);
 
 const walk = function* walk(dir: string): Generator<string> {
   for (const entry of readdirSync(dir)) {
     if (SKIP_DIRS.has(entry)) {
-      continue
+      continue;
     }
-    const full = join(dir, entry)
-    const st = statSync(full)
+    const full = join(dir, entry);
+    const st = statSync(full);
     if (st.isDirectory()) {
-      yield* walk(full)
-    } else if (st.isFile() && (entry.endsWith('.ts') || entry.endsWith('.tsx'))) {
-      yield full
+      yield* walk(full);
+    } else if (st.isFile() && (entry.endsWith(".ts") || entry.endsWith(".tsx"))) {
+      yield full;
     }
   }
-}
+};
 
 // Match `trackDisableReason(...'commandDisable'...)` and `trackResolveReason(...'commandDisable'...)`
 // across reasonable line wrapping. The pattern doesn't try to parse syntax — it
@@ -56,49 +56,49 @@ const VIOLATION_PATTERNS: RegExp[] = [
   // Catches the multi-line form where the setting key sits on its own line.
   /\btrackDisableReason\s*\([\s\S]{0,400}?['"]commandDisable['"]/u,
   /\btrackResolveReason\s*\([\s\S]{0,400}?['"]commandDisable['"]/u,
-]
+];
 
-describe('commandDisable facade pinning', () => {
-  it('no source file outside the facade calls trackDisableReason/trackResolveReason with commandDisable', () => {
-    const offenders: { file: string; snippet: string }[] = []
+describe("commandDisable facade pinning", () => {
+  it("no source file outside the facade calls trackDisableReason/trackResolveReason with commandDisable", () => {
+    const offenders: { file: string; snippet: string }[] = [];
 
     for (const file of walk(REPO_PACKAGES)) {
       if (ALLOWED_FILES.has(file)) {
-        continue
+        continue;
       }
-      const src = readFileSync(file, 'utf-8')
+      const src = readFileSync(file, "utf-8");
       // Cheap pre-filter to skip the vast majority of files.
-      if (!src.includes('commandDisable')) {
-        continue
+      if (!src.includes("commandDisable")) {
+        continue;
       }
-      if (!src.includes('trackDisableReason') && !src.includes('trackResolveReason')) {
-        continue
+      if (!src.includes("trackDisableReason") && !src.includes("trackResolveReason")) {
+        continue;
       }
 
       for (const pattern of VIOLATION_PATTERNS) {
-        const match = src.match(pattern)
+        const match = src.match(pattern);
         if (match) {
           offenders.push({
-            file: file.replace(REPO_PACKAGES, 'packages'),
+            file: file.replace(REPO_PACKAGES, "packages"),
             snippet: match[0].slice(0, 160),
-          })
-          break
+          });
+          break;
         }
       }
     }
 
     if (offenders.length > 0) {
       const msg = offenders
-        .map((o) => `  ${o.file}\n    ${o.snippet.replaceAll(/\s+/gu, ' ')}`)
-        .join('\n')
+        .map((o) => `  ${o.file}\n    ${o.snippet.replaceAll(/\s+/gu, " ")}`)
+        .join("\n");
       throw new Error(
         `Found direct trackDisableReason/trackResolveReason calls on 'commandDisable'.\n` +
           `Use the commandDisable facade (\`commandDisable.disable\`, \`commandDisable.enable\`,\n` +
           `\`commandDisable.recordNotification\`) — see packages/shared-utils/src/disableReason/command-disable.ts.\n` +
-          `Offenders:\n${msg}`
-      )
+          `Offenders:\n${msg}`,
+      );
     }
 
-    expect(offenders).toStrictEqual([])
-  })
-})
+    expect(offenders).toStrictEqual([]);
+  });
+});
