@@ -48,6 +48,9 @@ importers:
       ts-morph:
         specifier: ^28.0.0
         version: 28.0.0
+      tsrs:
+        specifier: 7.1.0-beta.tsrs2
+        version: 7.1.0-beta.tsrs2
       tsx:
         specifier: 4.23.13
         version: 4.23.13
