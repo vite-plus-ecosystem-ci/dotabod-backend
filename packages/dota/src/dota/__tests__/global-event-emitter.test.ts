@@ -1,12 +1,12 @@
-import type { Json } from '@dotabod/shared-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Json } from "@dotabod/shared-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { gameEnd } from '../../__tests__/fixtures/game-end'
+import { gameEnd } from "../../__tests__/fixtures/game-end";
 import {
   createGsiHandlerStub,
   createPacketStub,
   createSocketClientStub,
-} from '../../__tests__/shared-mocks'
+} from "../../__tests__/shared-mocks";
 import {
   events,
   fillMissingChanges,
@@ -14,498 +14,498 @@ import {
   processChanges,
   processUnmarkedKillListChanges,
   rebuildChanges,
-} from '../global-event-emitter'
-import type { GsiEventData, GsiEventRequest, GsiEventResponse } from '../global-event-emitter'
-import { gsiHandlers } from '../lib/consts'
+} from "../global-event-emitter";
+import type { GsiEventData, GsiEventRequest, GsiEventResponse } from "../global-event-emitter";
+import { gsiHandlers } from "../lib/consts";
 
 // The 19 listener names registered by dota/events/gsiEventLoader.ts in
 // production. Hardcoded so the test file is self-contained and doesn't
 // trigger handler imports (which need redis/supabase/twitch).
 const LISTENER_NAMES = [
-  'hero:alive',
-  'hero:id',
-  'hero:name',
-  'hero:smoked',
-  'map:game_state',
-  'map:paused',
-  'map:win_team',
-  'player:deaths',
-  'player:kill_list',
-  'player:kill_streak',
-  'newdata',
-  'saveHeroesForMatchId',
-  'event:roshan_killed',
-  'event:aegis_picked_up',
-  'event:aegis_denied',
-  'event:tip',
-  'event:bounty_rune_pickup',
-  'event:chat_message',
-  'event:generic_event',
-] as const
+  "hero:alive",
+  "hero:id",
+  "hero:name",
+  "hero:smoked",
+  "map:game_state",
+  "map:paused",
+  "map:win_team",
+  "player:deaths",
+  "player:kill_list",
+  "player:kill_streak",
+  "newdata",
+  "saveHeroesForMatchId",
+  "event:roshan_killed",
+  "event:aegis_picked_up",
+  "event:aegis_denied",
+  "event:tip",
+  "event:bounty_rune_pickup",
+  "event:chat_message",
+  "event:generic_event",
+] as const;
 
-type ListenerName = (typeof LISTENER_NAMES)[number]
+type ListenerName = (typeof LISTENER_NAMES)[number];
 interface Call {
-  args: [GsiEventData, string]
+  args: [GsiEventData, string];
 }
-const spies = new Map<ListenerName, Call[]>()
+const spies = new Map<ListenerName, Call[]>();
 
 // Listeners that existed before installSpies() wiped them. Restored in afterEach.
-type SavedListener = Parameters<typeof events.on>[1]
-let savedListeners: [string, SavedListener[]][] = []
-type JsonObject = Extract<Json, Record<string, Json | undefined>>
-type TestPacketInput = JsonObject | Parameters<typeof createPacketStub>[0]
+type SavedListener = Parameters<typeof events.on>[1];
+let savedListeners: [string, SavedListener[]][] = [];
+type JsonObject = Extract<Json, Record<string, Json | undefined>>;
+type TestPacketInput = JsonObject | Parameters<typeof createPacketStub>[0];
 
-const next = function next(): void {}
+const next = function next(): void {};
 
 const response: GsiEventResponse = {
   json: () => response,
   status: () => response,
-}
+};
 
 const installHandlerSnapshot = function installHandlerSnapshot() {
-  const client = createSocketClientStub({ stream_online: true, token: 'tkn' })
-  gsiHandlers.set('tkn', createGsiHandlerStub(client))
-}
+  const client = createSocketClientStub({ stream_online: true, token: "tkn" });
+  gsiHandlers.set("tkn", createGsiHandlerStub(client));
+};
 
 const installSpies = function installSpies() {
-  savedListeners = events.eventNames().map((name) => [name, events.rawListeners(name)])
-  events.removeAllListeners()
-  spies.clear()
+  savedListeners = events.eventNames().map((name) => [name, events.rawListeners(name)]);
+  events.removeAllListeners();
+  spies.clear();
   for (const name of LISTENER_NAMES) {
-    const calls: Call[] = []
-    spies.set(name, calls)
+    const calls: Call[] = [];
+    spies.set(name, calls);
     events.on(name, (data, token) => {
-      calls.push({ args: [data, token] })
-    })
+      calls.push({ args: [data, token] });
+    });
   }
-}
+};
 
 const runPost = function runPost(body: TestPacketInput) {
-  const packet = Object.assign(createPacketStub(), body)
+  const packet = Object.assign(createPacketStub(), body);
   const req: GsiEventRequest = {
-    body: Object.assign(packet, { auth: { token: 'tkn' } }),
-  }
-  processChanges('previously')(req, response, next)
-  processChanges('added')(req, response, next)
-  processUnmarkedKillListChanges(req, response, next)
-  newData(req, response)
-}
+    body: Object.assign(packet, { auth: { token: "tkn" } }),
+  };
+  processChanges("previously")(req, response, next);
+  processChanges("added")(req, response, next);
+  processUnmarkedKillListChanges(req, response, next);
+  newData(req, response);
+};
 
 // The production chain from gsi-server.ts, with the clock set to the packet's arrival time
 const runFilledPost = function runFilledPost(body: TestPacketInput, arrivedAtMs: number) {
-  vi.setSystemTime(arrivedAtMs)
-  const packet = Object.assign(createPacketStub(), body)
+  vi.setSystemTime(arrivedAtMs);
+  const packet = Object.assign(createPacketStub(), body);
   const req: GsiEventRequest = {
-    body: Object.assign(packet, { auth: { token: 'tkn' } }),
-  }
-  fillMissingChanges(req, response, next)
-  processChanges('previously')(req, response, next)
-  processChanges('added')(req, response, next)
-  processUnmarkedKillListChanges(req, response, next)
-  newData(req, response)
-  return req.body
-}
+    body: Object.assign(packet, { auth: { token: "tkn" } }),
+  };
+  fillMissingChanges(req, response, next);
+  processChanges("previously")(req, response, next);
+  processChanges("added")(req, response, next);
+  processUnmarkedKillListChanges(req, response, next);
+  newData(req, response);
+  return req.body;
+};
 
 // Sanitized from a live capture (2026-10-20): the game-end packet arrived after a
 // timed-out POST, so Dota sent it as full state without `previously`.
 const inProgressPacket = {
   map: {
     clock_time: 2486,
-    customgamename: '',
-    game_state: 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS',
-    matchid: '9054278051',
-    win_team: 'none',
+    customgamename: "",
+    game_state: "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS",
+    matchid: "9054278051",
+    win_team: "none",
   },
-  player: { activity: 'playing', team_name: 'radiant' },
+  player: { activity: "playing", team_name: "radiant" },
   previously: { map: { clock_time: 2485 } },
-}
+};
 const postGamePacket = {
   map: {
     clock_time: 2487,
-    customgamename: '',
-    game_state: 'DOTA_GAMERULES_STATE_POST_GAME',
-    matchid: '9054278051',
-    win_team: 'radiant',
+    customgamename: "",
+    game_state: "DOTA_GAMERULES_STATE_POST_GAME",
+    matchid: "9054278051",
+    win_team: "radiant",
   },
-  player: { activity: 'playing', team_name: 'radiant' },
-}
+  player: { activity: "playing", team_name: "radiant" },
+};
 
 const callCount = function callCount(name: ListenerName): number {
-  return spies.get(name)?.length ?? 0
-}
+  return spies.get(name)?.length ?? 0;
+};
 
 const callCountsByName = function callCountsByName() {
   return Object.fromEntries(
-    [...spies].filter(([, calls]) => calls.length > 0).map(([name, calls]) => [name, calls.length])
-  )
-}
+    [...spies].filter(([, calls]) => calls.length > 0).map(([name, calls]) => [name, calls.length]),
+  );
+};
 
-describe('global event emitter', () => {
+describe("global event emitter", () => {
   beforeEach(() => {
-    installSpies()
-  })
+    installSpies();
+  });
 
   afterEach(() => {
-    gsiHandlers.delete('tkn')
-    events.removeAllListeners()
+    gsiHandlers.delete("tkn");
+    events.removeAllListeners();
     for (const [name, listeners] of savedListeners) {
       for (const listener of listeners) {
-        events.on(name, listener)
+        events.on(name, listener);
       }
     }
-  })
+  });
 
-  describe('unmarked kill-list fallback', () => {
-    it('emits a positive increase when the one-shot kill-list marker packet was skipped', () => {
-      installHandlerSnapshot()
+  describe("unmarked kill-list fallback", () => {
+    it("emits a positive increase when the one-shot kill-list marker packet was skipped", () => {
+      installHandlerSnapshot();
       runPost({
-        map: { customgamename: '', matchid: 'match-1' },
+        map: { customgamename: "", matchid: "match-1" },
         player: {
-          activity: 'playing',
+          activity: "playing",
           kill_list: { victimid_2: 1, victimid_7: 1 },
-          team_name: 'radiant',
+          team_name: "radiant",
         },
-      })
+      });
 
       runPost({
-        map: { customgamename: '', matchid: 'match-1' },
+        map: { customgamename: "", matchid: "match-1" },
         player: {
-          activity: 'playing',
+          activity: "playing",
           kill_list: { victimid_2: 2, victimid_7: 1 },
-          team_name: 'radiant',
+          team_name: "radiant",
         },
         previously: { player: { gold: 100 } },
-      })
+      });
 
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [{ victimid_2: 2 }, 'tkn'] }])
-    })
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [{ victimid_2: 2 }, "tkn"] }]);
+    });
 
-    it('does not duplicate a normally marked kill-list dispatch', () => {
-      installHandlerSnapshot()
+    it("does not duplicate a normally marked kill-list dispatch", () => {
+      installHandlerSnapshot();
       runPost({
-        map: { customgamename: '', matchid: 'match-1' },
-        player: { activity: 'playing', kill_list: {}, team_name: 'radiant' },
-      })
+        map: { customgamename: "", matchid: "match-1" },
+        player: { activity: "playing", kill_list: {}, team_name: "radiant" },
+      });
 
       runPost({
         added: { player: { kill_list: { victimid_8: true } } },
-        map: { customgamename: '', matchid: 'match-1' },
+        map: { customgamename: "", matchid: "match-1" },
         player: {
-          activity: 'playing',
+          activity: "playing",
           kill_list: { victimid_8: 1 },
-          team_name: 'radiant',
+          team_name: "radiant",
         },
-      })
+      });
 
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [{ victimid_8: 1 }, 'tkn'] }])
-    })
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [{ victimid_8: 1 }, "tkn"] }]);
+    });
 
-    it('seeds a reconnect snapshot without treating its cumulative counts as new kills', () => {
-      installHandlerSnapshot()
+    it("seeds a reconnect snapshot without treating its cumulative counts as new kills", () => {
+      installHandlerSnapshot();
       runPost({
         added: { player: { kill_list: true } },
-        map: { customgamename: '', matchid: 'match-1' },
+        map: { customgamename: "", matchid: "match-1" },
         player: {
-          activity: 'playing',
+          activity: "playing",
           kill_list: { victimid_8: 3 },
-          team_name: 'radiant',
+          team_name: "radiant",
         },
-      })
+      });
 
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [{ victimid_8: 3 }, 'tkn'] }])
-    })
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [{ victimid_8: 3 }, "tkn"] }]);
+    });
 
-    it('does not carry a previous match snapshot into a new match', () => {
-      installHandlerSnapshot()
+    it("does not carry a previous match snapshot into a new match", () => {
+      installHandlerSnapshot();
       runPost({
-        map: { customgamename: '', matchid: 'match-1' },
+        map: { customgamename: "", matchid: "match-1" },
         player: {
-          activity: 'playing',
+          activity: "playing",
           kill_list: { victimid_8: 1 },
-          team_name: 'radiant',
+          team_name: "radiant",
         },
-      })
+      });
 
       runPost({
-        map: { customgamename: '', matchid: 'match-2' },
+        map: { customgamename: "", matchid: "match-2" },
         player: {
-          activity: 'playing',
+          activity: "playing",
           kill_list: { victimid_8: 2 },
-          team_name: 'radiant',
+          team_name: "radiant",
         },
-      })
+      });
 
-      expect(spies.get('player:kill_list')).toStrictEqual([])
-    })
-  })
+      expect(spies.get("player:kill_list")).toStrictEqual([]);
+    });
+  });
 
   describe(rebuildChanges, () => {
-    it('records the old value of each changed leaf, nested by object', () => {
+    it("records the old value of each changed leaf, nested by object", () => {
       expect(
         rebuildChanges(
-          { map: { clock_time: 1, game_state: 'A', matchid: 'm' } },
-          { map: { clock_time: 2, game_state: 'B', matchid: 'm' } }
-        )
-      ).toStrictEqual({ added: {}, previously: { map: { clock_time: 1, game_state: 'A' } } })
-    })
+          { map: { clock_time: 1, game_state: "A", matchid: "m" } },
+          { map: { clock_time: 2, game_state: "B", matchid: "m" } },
+        ),
+      ).toStrictEqual({ added: {}, previously: { map: { clock_time: 1, game_state: "A" } } });
+    });
 
-    it('marks every leaf of anything new as added', () => {
+    it("marks every leaf of anything new as added", () => {
       expect(
         rebuildChanges(
           { player: { kills: 1 } },
           {
-            hero: { alive: true, name: 'npc_dota_hero_lion' },
+            hero: { alive: true, name: "npc_dota_hero_lion" },
             player: { kill_list: { victimid_2: 1 }, kills: 1 },
-          }
-        )
+          },
+        ),
       ).toStrictEqual({
         added: { hero: { alive: true, name: true }, player: { kill_list: { victimid_2: true } } },
         previously: {},
-      })
-    })
+      });
+    });
 
-    it('marks a removed object true and keeps the old value of a removed leaf', () => {
+    it("marks a removed object true and keeps the old value of a removed leaf", () => {
       expect(
-        rebuildChanges({ hero: { smoked: true }, map: { matchid: 'm' } }, { hero: {} })
-      ).toStrictEqual({ added: {}, previously: { hero: { smoked: true }, map: true } })
-    })
+        rebuildChanges({ hero: { smoked: true }, map: { matchid: "m" } }, { hero: {} }),
+      ).toStrictEqual({ added: {}, previously: { hero: { smoked: true }, map: true } });
+    });
 
-    it('compares arrays by value', () => {
-      const before = { events: [{ event_type: 'tip' }] }
-      expect(rebuildChanges(before, { events: [{ event_type: 'tip' }] })).toStrictEqual({
+    it("compares arrays by value", () => {
+      const before = { events: [{ event_type: "tip" }] };
+      expect(rebuildChanges(before, { events: [{ event_type: "tip" }] })).toStrictEqual({
         added: {},
         previously: {},
-      })
+      });
       expect(rebuildChanges(before, { events: [] })).toStrictEqual({
         added: {},
         previously: before,
-      })
-    })
+      });
+    });
 
-    it('ignores skipped keys', () => {
+    it("ignores skipped keys", () => {
       expect(
         rebuildChanges(
           { provider: { timestamp: 1 } },
-          { auth: { token: 'tkn' }, provider: { timestamp: 2 } },
-          new Set(['auth', 'provider'])
-        )
-      ).toStrictEqual({ added: {}, previously: {} })
-    })
-  })
+          { auth: { token: "tkn" }, provider: { timestamp: 2 } },
+          new Set(["auth", "provider"]),
+        ),
+      ).toStrictEqual({ added: {}, previously: {} });
+    });
+  });
 
-  describe('rebuilt changes for packets that arrive without previously/added', () => {
+  describe("rebuilt changes for packets that arrive without previously/added", () => {
     beforeEach(() => {
-      vi.useFakeTimers({ toFake: ['Date'] })
-      installHandlerSnapshot()
-    })
+      vi.useFakeTimers({ toFake: ["Date"] });
+      installHandlerSnapshot();
+    });
 
     afterEach(() => {
-      vi.useRealTimers()
-    })
+      vi.useRealTimers();
+    });
 
-    it('emits the game end from a post-game packet sent without previously', () => {
-      runFilledPost(inProgressPacket, 1000)
-      runFilledPost(postGamePacket, 9000)
+    it("emits the game end from a post-game packet sent without previously", () => {
+      runFilledPost(inProgressPacket, 1000);
+      runFilledPost(postGamePacket, 9000);
 
-      expect(spies.get('map:win_team')).toStrictEqual([{ args: ['radiant', 'tkn'] }])
-      expect(spies.get('map:game_state')).toStrictEqual([
-        { args: ['DOTA_GAMERULES_STATE_POST_GAME', 'tkn'] },
-      ])
-    })
+      expect(spies.get("map:win_team")).toStrictEqual([{ args: ["radiant", "tkn"] }]);
+      expect(spies.get("map:game_state")).toStrictEqual([
+        { args: ["DOTA_GAMERULES_STATE_POST_GAME", "tkn"] },
+      ]);
+    });
 
-    it('control: the same packets emit no game end without the rebuild', () => {
-      runPost(inProgressPacket)
-      runPost(postGamePacket)
+    it("control: the same packets emit no game end without the rebuild", () => {
+      runPost(inProgressPacket);
+      runPost(postGamePacket);
 
-      expect(callCount('map:win_team')).toBe(0)
-      expect(callCount('map:game_state')).toBe(0)
-    })
+      expect(callCount("map:win_team")).toBe(0);
+      expect(callCount("map:game_state")).toBe(0);
+    });
 
-    it('leaves a packet that carries Dota sections untouched', () => {
-      const previously = { map: { clock_time: 2486 } }
-      runFilledPost(inProgressPacket, 1000)
-      const body = runFilledPost({ ...postGamePacket, previously }, 2000)
+    it("leaves a packet that carries Dota sections untouched", () => {
+      const previously = { map: { clock_time: 2486 } };
+      runFilledPost(inProgressPacket, 1000);
+      const body = runFilledPost({ ...postGamePacket, previously }, 2000);
 
-      expect(body.previously).toBe(previously)
-      expect(body.added).toBeUndefined()
-      expect(callCount('map:win_team')).toBe(0)
-    })
+      expect(body.previously).toBe(previously);
+      expect(body.added).toBeUndefined();
+      expect(callCount("map:win_team")).toBe(0);
+    });
 
-    it('does not rebuild from a baseline older than a minute', () => {
-      runFilledPost(inProgressPacket, 1000)
-      const body = runFilledPost(postGamePacket, 62_000)
+    it("does not rebuild from a baseline older than a minute", () => {
+      runFilledPost(inProgressPacket, 1000);
+      const body = runFilledPost(postGamePacket, 62_000);
 
-      expect(body.previously).toBeUndefined()
-      expect(callCount('map:win_team')).toBe(0)
-    })
+      expect(body.previously).toBeUndefined();
+      expect(callCount("map:win_team")).toBe(0);
+    });
 
-    it('does not rebuild the first packet a handler sees', () => {
-      const body = runFilledPost(postGamePacket, 1000)
+    it("does not rebuild the first packet a handler sees", () => {
+      const body = runFilledPost(postGamePacket, 1000);
 
-      expect(body.previously).toBeUndefined()
-      expect(callCount('map:win_team')).toBe(0)
-    })
+      expect(body.previously).toBeUndefined();
+      expect(callCount("map:win_team")).toBe(0);
+    });
 
-    it('does not rebuild without a GSI handler', () => {
-      gsiHandlers.delete('tkn')
-      runFilledPost(inProgressPacket, 1000)
-      const body = runFilledPost(postGamePacket, 2000)
+    it("does not rebuild without a GSI handler", () => {
+      gsiHandlers.delete("tkn");
+      runFilledPost(inProgressPacket, 1000);
+      const body = runFilledPost(postGamePacket, 2000);
 
-      expect(body.previously).toBeUndefined()
-    })
+      expect(body.previously).toBeUndefined();
+    });
 
-    it('gives previously readers the old value', () => {
+    it("gives previously readers the old value", () => {
       runFilledPost(
-        { map: inProgressPacket.map, player: { activity: 'playing', kill_streak: 2 } },
-        1000
-      )
+        { map: inProgressPacket.map, player: { activity: "playing", kill_streak: 2 } },
+        1000,
+      );
       const body = runFilledPost(
-        { map: inProgressPacket.map, player: { activity: 'playing', kill_streak: 3 } },
-        2000
-      )
+        { map: inProgressPacket.map, player: { activity: "playing", kill_streak: 3 } },
+        2000,
+      );
 
-      expect(body.previously?.player?.kill_streak).toBe(2)
-      expect(spies.get('player:kill_streak')).toStrictEqual([{ args: [3, 'tkn'] }])
-    })
+      expect(body.previously?.player?.kill_streak).toBe(2);
+      expect(spies.get("player:kill_streak")).toStrictEqual([{ args: [3, "tkn"] }]);
+    });
 
-    it('emits a kill once through the rebuilt section and the unmarked kill-list fallback', () => {
-      const player = { activity: 'playing', team_name: 'radiant' }
+    it("emits a kill once through the rebuilt section and the unmarked kill-list fallback", () => {
+      const player = { activity: "playing", team_name: "radiant" };
       runFilledPost(
         { map: inProgressPacket.map, player: { ...player, kill_list: { victimid_2: 1 } } },
-        1000
-      )
+        1000,
+      );
       runFilledPost(
         { map: inProgressPacket.map, player: { ...player, kill_list: { victimid_2: 2 } } },
-        2000
-      )
+        2000,
+      );
 
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [{ victimid_2: 2 }, 'tkn'] }])
-    })
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [{ victimid_2: 2 }, "tkn"] }]);
+    });
 
-    it('does not repeat a transition when Dota resumes diffing from the rebuilt packet', () => {
-      runFilledPost(inProgressPacket, 1000)
-      runFilledPost(postGamePacket, 9000)
+    it("does not repeat a transition when Dota resumes diffing from the rebuilt packet", () => {
+      runFilledPost(inProgressPacket, 1000);
+      runFilledPost(postGamePacket, 9000);
       runFilledPost(
         {
           map: { ...postGamePacket.map, clock_time: 2488 },
           player: postGamePacket.player,
           previously: { map: { clock_time: 2487 } },
         },
-        10_000
-      )
+        10_000,
+      );
 
-      expect(callCount('map:win_team')).toBe(1)
-      expect(callCount('map:game_state')).toBe(1)
-    })
-  })
+      expect(callCount("map:win_team")).toBe(1);
+      expect(callCount("map:game_state")).toBe(1);
+    });
+  });
 
-  describe('recursiveEmit dispatch — scalar leaf cases', () => {
-    it('fires hero:alive when previously.hero.alive present and body has the leaf', () => {
+  describe("recursiveEmit dispatch — scalar leaf cases", () => {
+    it("fires hero:alive when previously.hero.alive present and body has the leaf", () => {
       runPost({
         hero: { alive: false },
         previously: { hero: { alive: true } },
-      })
-      expect(spies.get('hero:alive')).toStrictEqual([{ args: [false, 'tkn'] }])
-    })
+      });
+      expect(spies.get("hero:alive")).toStrictEqual([{ args: [false, "tkn"] }]);
+    });
 
-    it('fires map:game_state and map:win_team in the same POST', () => {
+    it("fires map:game_state and map:win_team in the same POST", () => {
       runPost({
-        map: { game_state: 'POST_GAME', win_team: 'radiant' },
-        previously: { map: { game_state: 'X', win_team: 'none' } },
-      })
-      expect(callCount('map:game_state')).toBe(1)
-      expect(callCount('map:win_team')).toBe(1)
-    })
+        map: { game_state: "POST_GAME", win_team: "radiant" },
+        previously: { map: { game_state: "X", win_team: "none" } },
+      });
+      expect(callCount("map:game_state")).toBe(1);
+      expect(callCount("map:win_team")).toBe(1);
+    });
 
-    it('skips when body has no matching key (guard at recursiveEmit)', () => {
+    it("skips when body has no matching key (guard at recursiveEmit)", () => {
       runPost({
-        hero: { name: 'CM' },
+        hero: { name: "CM" },
         previously: { hero: { alive: true } },
-      })
-      expect(callCount('hero:alive')).toBe(0)
-    })
+      });
+      expect(callCount("hero:alive")).toBe(0);
+    });
 
-    it('newdata always fires once per POST', () => {
-      runPost({})
-      expect(callCount('newdata')).toBe(1)
-    })
-  })
+    it("newdata always fires once per POST", () => {
+      runPost({});
+      expect(callCount("newdata")).toBe(1);
+    });
+  });
 
-  describe('recursiveEmit dispatch — object subtree cases', () => {
-    it('projects an exact object listener payload to only changed keys', () => {
+  describe("recursiveEmit dispatch — object subtree cases", () => {
+    it("projects an exact object listener payload to only changed keys", () => {
       runPost({
         player: { kill_list: { victimid_2: 1, victimid_7: 4 } },
         previously: { player: { kill_list: { victimid_2: 0 } } },
-      })
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [{ victimid_2: 1 }, 'tkn'] }])
-    })
+      });
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [{ victimid_2: 1 }, "tkn"] }]);
+    });
 
-    it('projects newly added object fields to the exact object listener', () => {
+    it("projects newly added object fields to the exact object listener", () => {
       runPost({
         added: { player: { kill_list: { victimid_8: true } } },
         player: { kill_list: { victimid_3: 2, victimid_8: 1 } },
-      })
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [{ victimid_8: 1 }, 'tkn'] }])
-    })
+      });
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [{ victimid_8: 1 }, "tkn"] }]);
+    });
 
-    it('treats added object === true as the complete new object delta', () => {
+    it("treats added object === true as the complete new object delta", () => {
       runPost({
         added: { player: { kill_list: true } },
         player: { kill_list: { victimid_3: 2, victimid_8: 1 } },
-      })
-      expect(spies.get('player:kill_list')).toStrictEqual([
-        { args: [{ victimid_3: 2, victimid_8: 1 }, 'tkn'] },
-      ])
-    })
+      });
+      expect(spies.get("player:kill_list")).toStrictEqual([
+        { args: [{ victimid_3: 2, victimid_8: 1 }, "tkn"] },
+      ]);
+    });
 
-    it('continues dispatching unchanged scalar listener payloads', () => {
+    it("continues dispatching unchanged scalar listener payloads", () => {
       runPost({
         player: { deaths: 3 },
         previously: { player: { deaths: 2 } },
-      })
-      expect(spies.get('player:deaths')).toStrictEqual([{ args: [3, 'tkn'] }])
-    })
+      });
+      expect(spies.get("player:deaths")).toStrictEqual([{ args: [3, "tkn"] }]);
+    });
 
-    it('preserves URL-encoded string leaf values', () => {
+    it("preserves URL-encoded string leaf values", () => {
       runPost({
-        hero: { alive: 'false' },
-        previously: { hero: { alive: 'true' } },
-      })
-      expect(spies.get('hero:alive')).toStrictEqual([{ args: ['false', 'tkn'] }])
-    })
+        hero: { alive: "false" },
+        previously: { hero: { alive: "true" } },
+      });
+      expect(spies.get("hero:alive")).toStrictEqual([{ args: ["false", "tkn"] }]);
+    });
 
-    it('preserves safe unusual keys while dropping __proto__ from object payloads', () => {
-      const killList = { constructor: 2, prototype: 1 }
-      const previousKillList = { constructor: 0, prototype: 0 }
-      Object.defineProperty(killList, '__proto__', { enumerable: true, value: 3 })
-      Object.defineProperty(previousKillList, '__proto__', { enumerable: true, value: 0 })
+    it("preserves safe unusual keys while dropping __proto__ from object payloads", () => {
+      const killList = { constructor: 2, prototype: 1 };
+      const previousKillList = { constructor: 0, prototype: 0 };
+      Object.defineProperty(killList, "__proto__", { enumerable: true, value: 3 });
+      Object.defineProperty(previousKillList, "__proto__", { enumerable: true, value: 0 });
 
       runPost({
         player: { kill_list: killList },
         previously: { player: { kill_list: previousKillList } },
-      })
+      });
 
-      const payload = spies.get('player:kill_list')?.[0]?.args[0]
-      expect(payload).toStrictEqual({ constructor: 2, prototype: 1 })
-    })
+      const payload = spies.get("player:kill_list")?.[0]?.args[0];
+      expect(payload).toStrictEqual({ constructor: 2, prototype: 1 });
+    });
 
-    it('does not fire any listener for items:* subtree (no listeners registered there)', () => {
+    it("does not fire any listener for items:* subtree (no listeners registered there)", () => {
       runPost({
-        items: { slot0: { name: 'bar', purchaser: 2 } },
-        previously: { items: { slot0: { name: 'foo', purchaser: 1 } } },
-      })
-      expect(callCountsByName()).toStrictEqual({ newdata: 1 })
-    })
+        items: { slot0: { name: "bar", purchaser: 2 } },
+        previously: { items: { slot0: { name: "foo", purchaser: 1 } } },
+      });
+      expect(callCountsByName()).toStrictEqual({ newdata: 1 });
+    });
 
-    it('does not fire any listener for abilities:* subtree', () => {
+    it("does not fire any listener for abilities:* subtree", () => {
       runPost({
-        abilities: { ability0: { level: 1, name: 'fireball' } },
-        previously: { abilities: { ability0: { level: 0, name: 'fireball' } } },
-      })
-      expect(callCountsByName()).toStrictEqual({ newdata: 1 })
-    })
+        abilities: { ability0: { level: 1, name: "fireball" } },
+        previously: { abilities: { ability0: { level: 0, name: "fireball" } } },
+      });
+      expect(callCountsByName()).toStrictEqual({ newdata: 1 });
+    });
 
-    it('does not fire any listener for buildings/draft/provider', () => {
+    it("does not fire any listener for buildings/draft/provider", () => {
       runPost({
         buildings: { radiant: { dota_goodguys_tower1_top: { health: 1500 } } },
         draft: { activeteam: 3 },
@@ -515,100 +515,100 @@ describe('global event emitter', () => {
           provider: { timestamp: 100 },
         },
         provider: { timestamp: 101 },
-      })
-      expect(callCountsByName()).toStrictEqual({ newdata: 1 })
-    })
-  })
+      });
+      expect(callCountsByName()).toStrictEqual({ newdata: 1 });
+    });
+  });
 
   describe('emitAll edge case — "added shows true at top level"', () => {
-    it('fires every listener under hero:* when added.hero === true', () => {
+    it("fires every listener under hero:* when added.hero === true", () => {
       runPost({
         added: { hero: true },
-        hero: { alive: true, name: 'npc_dota_hero_crystal_maiden', smoked: false },
-      })
-      expect(spies.get('hero:alive')).toStrictEqual([{ args: [true, 'tkn'] }])
-      expect(spies.get('hero:name')).toStrictEqual([
-        { args: ['npc_dota_hero_crystal_maiden', 'tkn'] },
-      ])
-      expect(spies.get('hero:smoked')).toStrictEqual([{ args: [false, 'tkn'] }])
-    })
+        hero: { alive: true, name: "npc_dota_hero_crystal_maiden", smoked: false },
+      });
+      expect(spies.get("hero:alive")).toStrictEqual([{ args: [true, "tkn"] }]);
+      expect(spies.get("hero:name")).toStrictEqual([
+        { args: ["npc_dota_hero_crystal_maiden", "tkn"] },
+      ]);
+      expect(spies.get("hero:smoked")).toStrictEqual([{ args: [false, "tkn"] }]);
+    });
 
-    it('does not fire listenerless leaves under added.hero === true', () => {
+    it("does not fire listenerless leaves under added.hero === true", () => {
       runPost({
         added: { hero: true },
         hero: { alive: true, health: 100, mana: 50 },
-      })
-      expect(callCount('hero:alive')).toBe(1)
-      expect(callCountsByName()).toStrictEqual({ 'hero:alive': 1, newdata: 1 })
-    })
+      });
+      expect(callCount("hero:alive")).toBe(1);
+      expect(callCountsByName()).toStrictEqual({ "hero:alive": 1, newdata: 1 });
+    });
 
-    it('isolates listener mutation from req.body while sharing it with child dispatch', () => {
-      events.on('hero', (data) => {
+    it("isolates listener mutation from req.body while sharing it with child dispatch", () => {
+      events.on("hero", (data) => {
         if (data !== null && !Array.isArray(data)) {
-          Object.assign(data, { alive: false })
+          Object.assign(data, { alive: false });
         }
-      })
+      });
       const body = {
         added: { hero: true },
         hero: { alive: true },
-      }
+      };
 
-      runPost(body)
+      runPost(body);
 
-      expect(spies.get('hero:alive')).toStrictEqual([{ args: [false, 'tkn'] }])
-      expect(body.hero.alive).toBeTruthy()
-    })
+      expect(spies.get("hero:alive")).toStrictEqual([{ args: [false, "tkn"] }]);
+      expect(body.hero.alive).toBeTruthy();
+    });
 
-    it('treats arrays as leaf payloads and isolates listener mutation', () => {
-      events.on('player:kill_list', (data) => {
+    it("treats arrays as leaf payloads and isolates listener mutation", () => {
+      events.on("player:kill_list", (data) => {
         if (Array.isArray(data)) {
-          data.push(3)
+          data.push(3);
         }
-      })
+      });
       const body = {
         added: { player: { kill_list: true } },
         player: { kill_list: [1, 2] },
-      }
+      };
 
-      runPost(body)
+      runPost(body);
 
-      expect(spies.get('player:kill_list')).toStrictEqual([{ args: [[1, 2, 3], 'tkn'] }])
-      expect(body.player.kill_list).toStrictEqual([1, 2])
-    })
-  })
+      expect(spies.get("player:kill_list")).toStrictEqual([{ args: [[1, 2, 3], "tkn"] }]);
+      expect(body.player.kill_list).toStrictEqual([1, 2]);
+    });
+  });
 
-  describe('null/undefined guards in recursiveEmit', () => {
-    it('does not fire when body[key] is null', () => {
+  describe("null/undefined guards in recursiveEmit", () => {
+    it("does not fire when body[key] is null", () => {
       runPost({
         hero: null,
         previously: { hero: { alive: true } },
-      })
-      expect(callCount('hero:alive')).toBe(0)
-    })
+      });
+      expect(callCount("hero:alive")).toBe(0);
+    });
 
-    it('handles empty previously/added objects', () => {
-      runPost({ added: {}, hero: { alive: true }, previously: {} })
-      expect(callCountsByName()).toStrictEqual({ newdata: 1 })
-    })
+    it("handles empty previously/added objects", () => {
+      runPost({ added: {}, hero: { alive: true }, previously: {} });
+      expect(callCountsByName()).toStrictEqual({ newdata: 1 });
+    });
 
-    it('handles POST with no previously/added at all', () => {
-      runPost({ hero: { alive: true } })
-      expect(callCountsByName()).toStrictEqual({ newdata: 1 })
-    })
-  })
+    it("handles POST with no previously/added at all", () => {
+      runPost({ hero: { alive: true } });
+      expect(callCountsByName()).toStrictEqual({ newdata: 1 });
+    });
+  });
 
-  describe('gameEnd fixture replay — regression baseline', () => {
-    it('produces stable per-listener call counts across the full 12-step game-end flow', () => {
+  describe("gameEnd fixture replay — regression baseline", () => {
+    it("produces stable per-listener call counts across the full 12-step game-end flow", () => {
       const steps = gameEnd({
-        matchId: 'mt',
-        steam32: '1',
-        steam64: '2',
-        token: 'tkn',
-        win_team: 'radiant',
-      })
+        matchId: "mt",
+        steam32: "1",
+        steam64: "2",
+        token: "tkn",
+        win_team: "radiant",
+      });
 
       for (const step of steps) {
-        runPost(step)
+        runPost(step);
       }
 
       // Snapshot: this is the contract. The recursiveEmit optimization must
@@ -627,120 +627,120 @@ describe('global event emitter', () => {
         "player:kill_list": 1,
         "player:kill_streak": 1,
       }
-    `)
-    })
-  })
+    `);
+    });
+  });
 
-  describe('non-mutation: dispatch middleware leaves req.body intact', () => {
+  describe("non-mutation: dispatch middleware leaves req.body intact", () => {
     it('preserves every "dead" subtree (items/abilities/buildings/draft/provider) byte-for-byte', () => {
       const body = {
         abilities: { ability0: { cooldown: 5, level: 1 } },
         buildings: { radiant: { dota_badguys_tower1_top: { health: 1500 } } },
         draft: { activeteam: 3, pick0_id: 1 },
-        items: { slot0: { cooldown: 0, name: 'magic_wand' } },
+        items: { slot0: { cooldown: 0, name: "magic_wand" } },
         previously: {
           abilities: { ability0: { cooldown: 0, level: 0 } },
           buildings: { radiant: { dota_badguys_tower1_top: { health: 1600 } } },
           draft: { activeteam: 2, pick0_id: 0 },
-          items: { slot0: { cooldown: 0, name: 'tango' } },
+          items: { slot0: { cooldown: 0, name: "tango" } },
           provider: { timestamp: 100 },
         },
         provider: { timestamp: 101 },
-      }
-      const snapshot = structuredClone(body)
-      runPost(body)
-      expect(body).toStrictEqual(snapshot)
-    })
+      };
+      const snapshot = structuredClone(body);
+      runPost(body);
+      expect(body).toStrictEqual(snapshot);
+    });
 
     it('preserves "live" subtrees (hero/map/player/event) byte-for-byte', () => {
       const body = {
-        hero: { alive: false, health: 0, id: 74, name: 'CM' },
-        map: { clock_time: 105, game_state: 'Y', game_time: 110, win_team: 'radiant' },
+        hero: { alive: false, health: 0, id: 74, name: "CM" },
+        map: { clock_time: 105, game_state: "Y", game_time: 110, win_team: "radiant" },
         player: { deaths: 0, gold: 700, kill_list: { v_0: 1 }, kill_streak: 1, kills: 1 },
         previously: {
           hero: { alive: true, health: 1500 },
-          map: { clock_time: 100, game_state: 'X', game_time: 105 },
+          map: { clock_time: 100, game_state: "X", game_time: 105 },
           player: { deaths: 0, gold: 600, kills: 0 },
         },
-      }
-      const snapshot = structuredClone(body)
-      runPost(body)
-      expect(body).toStrictEqual(snapshot)
-    })
-  })
+      };
+      const snapshot = structuredClone(body);
+      runPost(body);
+      expect(body).toStrictEqual(snapshot);
+    });
+  });
 
-  describe('downstream read path: client.gsi.* stays accessible (mirrors actual readers)', () => {
+  describe("downstream read path: client.gsi.* stays accessible (mirrors actual readers)", () => {
     // validateToken (runs before our middleware) sets client.gsi = req.body.
     // We simulate that here, then verify the field paths that real handlers read
     // are still reachable after processChanges/newData run.
-    it('items.teleport0.purchaser (newdata.ts:684 — hero slot detection)', () => {
+    it("items.teleport0.purchaser (newdata.ts:684 — hero slot detection)", () => {
       const body = {
         hero: { id: 74 },
-        items: { teleport0: { cooldown: 0, name: 'tp_scroll', purchaser: 3 } },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
-      expect(client.gsi?.items?.teleport0?.purchaser).toBe(3)
-    })
+        items: { teleport0: { cooldown: 0, name: "tp_scroll", purchaser: 3 } },
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
+      expect(client.gsi?.items?.teleport0?.purchaser).toBe(3);
+    });
 
-    it('items[team][player].slot0 spectator-mode path (newdata.ts:614)', () => {
+    it("items[team][player].slot0 spectator-mode path (newdata.ts:614)", () => {
       const body = {
         items: {
           team2: {
             player0: {
-              slot0: { name: 'tango' },
-              slot1: { name: 'magic_wand' },
+              slot0: { name: "tango" },
+              slot1: { name: "magic_wand" },
             },
           },
         },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
-      expect(client.gsi?.items?.team2?.player0?.slot0?.name).toBe('tango')
-    })
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
+      expect(client.gsi?.items?.team2?.player0?.slot0?.name).toBe("tango");
+    });
 
-    it('abilities.ability0 (newdata.ts:620)', () => {
+    it("abilities.ability0 (newdata.ts:620)", () => {
       const body = {
-        abilities: { ability0: { cooldown: 0, level: 1, name: 'invoker_quas' } },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
-      expect(client.gsi?.abilities?.ability0?.level).toBe(1)
-    })
+        abilities: { ability0: { cooldown: 0, level: 1, name: "invoker_quas" } },
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
+      expect(client.gsi?.abilities?.ability0?.level).toBe(1);
+    });
 
-    it('map.matchid (Draft Clip path, map.game_state.ts:57)', () => {
+    it("map.matchid (Draft Clip path, map.game_state.ts:57)", () => {
       const body = {
-        map: { game_state: 'DOTA_GAMERULES_STATE_PLAYER_DRAFT', matchid: '8817000000' },
-        previously: { map: { game_state: 'INIT' } },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
-      expect(client.gsi?.map?.matchid).toBe('8817000000')
+        map: { game_state: "DOTA_GAMERULES_STATE_PLAYER_DRAFT", matchid: "8817000000" },
+        previously: { map: { game_state: "INIT" } },
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
+      expect(client.gsi?.map?.matchid).toBe("8817000000");
       // also verify the listener that drives this feature still fires
-      expect(callCount('map:game_state')).toBe(1)
-    })
+      expect(callCount("map:game_state")).toBe(1);
+    });
 
-    it('map.game_time / clock_time (NeutralItemTimer.ts:42-45)', () => {
+    it("map.game_time / clock_time (NeutralItemTimer.ts:42-45)", () => {
       const body = {
         map: { clock_time: 1180, game_time: 1200 },
         previously: { map: { game_time: 100 } },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
-      expect(client.gsi?.map?.game_time).toBe(1200)
-      expect(client.gsi?.map?.clock_time).toBe(1180)
-    })
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
+      expect(client.gsi?.map?.game_time).toBe(1200);
+      expect(client.gsi?.map?.clock_time).toBe(1180);
+    });
 
-    it('hero fields used by midas/treads checks (checkMidas reads client.gsi)', () => {
+    it("hero fields used by midas/treads checks (checkMidas reads client.gsi)", () => {
       const body = {
         hero: { alive: true, health: 1500, id: 74, mana: 200, max_health: 1500 },
-        items: { slot0: { cooldown: 0, name: 'item_hand_of_midas' } },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
-      expect(client.gsi?.hero?.alive).toBeTruthy()
-      expect(client.gsi?.items?.slot0?.name).toBe('item_hand_of_midas')
-    })
+        items: { slot0: { cooldown: 0, name: "item_hand_of_midas" } },
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
+      expect(client.gsi?.hero?.alive).toBeTruthy();
+      expect(client.gsi?.items?.slot0?.name).toBe("item_hand_of_midas");
+    });
 
     it('full Packet shape with every "dead" subtree present is still queryable end-to-end', () => {
       const body = {
@@ -749,14 +749,14 @@ describe('global event emitter', () => {
         draft: { activeteam: 2 },
         events: [],
         hero: { alive: true, id: 74 },
-        items: { neutral0: { name: 'n' }, slot0: { name: 'a' } },
-        map: { game_state: 'X', matchid: 'm1' },
+        items: { neutral0: { name: "n" }, slot0: { name: "a" } },
+        map: { game_state: "X", matchid: "m1" },
         player: { gold: 600 },
-        provider: { appid: 570, name: 'Dota 2', timestamp: 1_700_000_000, version: 47 },
+        provider: { appid: 570, name: "Dota 2", timestamp: 1_700_000_000, version: 47 },
         wearables: { wearable0: 1234 },
-      }
-      const client = { gsi: createPacketStub(body) }
-      runPost(body)
+      };
+      const client = { gsi: createPacketStub(body) };
+      runPost(body);
       expect({
         abilityLevel: client.gsi?.abilities?.ability0?.level,
         appId: client.gsi.provider.appid,
@@ -769,9 +769,9 @@ describe('global event emitter', () => {
         appId: 570,
         draftTeam: 2,
         fortHealth: 4250,
-        neutralName: 'n',
+        neutralName: "n",
         wearable: 1234,
-      })
-    })
-  })
-})
+      });
+    });
+  });
+});

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import {
   clearSubscriptions,
@@ -8,140 +8,145 @@ import {
   runSubscriptionHealthCheck,
   seedSubscriptions,
   state,
-} from '../../__tests__/shared-mocks.ts'
+} from "../../__tests__/shared-mocks.ts";
 
 // The periodic healthcheck only scans CRITICAL types now. Secondary types
 // (predictions/polls) are still registered by initUserSubscriptions but the
 // 5-min sweep ignores them; tests reflect that scope.
-const CRITICAL = ['stream.online', 'stream.offline', 'user.update', 'channel.chat.message'] as const
+const CRITICAL = [
+  "stream.online",
+  "stream.offline",
+  "user.update",
+  "channel.chat.message",
+] as const;
 const SECONDARY = [
-  'channel.prediction.begin',
-  'channel.prediction.progress',
-  'channel.prediction.lock',
-  'channel.prediction.end',
-  'channel.poll.begin',
-  'channel.poll.progress',
-  'channel.poll.end',
-] as const
+  "channel.prediction.begin",
+  "channel.prediction.progress",
+  "channel.prediction.lock",
+  "channel.prediction.end",
+  "channel.poll.begin",
+  "channel.poll.progress",
+  "channel.poll.end",
+] as const;
 
 describe(runSubscriptionHealthCheck, () => {
   beforeEach(() => {
-    resetState()
-    clearSubscriptions()
+    resetState();
+    clearSubscriptions();
     // fetchState is process-wide; reset so a prior file's queued response can't leak in.
-    fetchState.queue = []
-    fetchState.calls = []
-  })
+    fetchState.queue = [];
+    fetchState.calls = [];
+  });
 
-  it('throws when no conduit ID is available', async () => {
-    state.conduitId = ''
-    state.accountIds = ['111']
-    await expect(runSubscriptionHealthCheck()).rejects.toThrow('No valid conduit ID')
-  })
+  it("throws when no conduit ID is available", async () => {
+    state.conduitId = "";
+    state.accountIds = ["111"];
+    await expect(runSubscriptionHealthCheck()).rejects.toThrow("No valid conduit ID");
+  });
 
-  it('throws when there are no user accounts', async () => {
-    state.accountIds = []
-    await expect(runSubscriptionHealthCheck()).rejects.toThrow('No user accounts found')
-  })
+  it("throws when there are no user accounts", async () => {
+    state.accountIds = [];
+    await expect(runSubscriptionHealthCheck()).rejects.toThrow("No user accounts found");
+  });
 
-  it('reports no issues when every critical subscription already exists', async () => {
-    state.accountIds = ['111']
-    seedSubscriptions('111', CRITICAL)
+  it("reports no issues when every critical subscription already exists", async () => {
+    state.accountIds = ["111"];
+    seedSubscriptions("111", CRITICAL);
 
-    const result = await runSubscriptionHealthCheck()
+    const result = await runSubscriptionHealthCheck();
 
-    expect(result.usersWithIssues).toBe(0)
-    expect(result.fixedSubscriptions).toBe(0)
-    expect(state.subscribeCalls).toHaveLength(0)
-  })
+    expect(result.usersWithIssues).toBe(0);
+    expect(result.fixedSubscriptions).toBe(0);
+    expect(state.subscribeCalls).toHaveLength(0);
+  });
 
-  it('ignores missing secondary subscriptions (predictions/polls)', async () => {
-    state.accountIds = ['111']
+  it("ignores missing secondary subscriptions (predictions/polls)", async () => {
+    state.accountIds = ["111"];
     // Critical present, all secondary missing -> sweep should do nothing.
-    seedSubscriptions('111', CRITICAL)
+    seedSubscriptions("111", CRITICAL);
 
-    const result = await runSubscriptionHealthCheck()
+    const result = await runSubscriptionHealthCheck();
 
-    expect(result.usersWithIssues).toBe(0)
-    expect(result.fixedSubscriptions).toBe(0)
-    const subscribedTypes = new Set(state.subscribeCalls.map((call) => call.type))
-    expect(SECONDARY.some((type) => subscribedTypes.has(type))).toBeFalsy()
-  })
+    expect(result.usersWithIssues).toBe(0);
+    expect(result.fixedSubscriptions).toBe(0);
+    const subscribedTypes = new Set(state.subscribeCalls.map((call) => call.type));
+    expect(SECONDARY.some((type) => subscribedTypes.has(type))).toBeFalsy();
+  });
 
-  it('fixes all missing critical subscriptions', async () => {
-    state.accountIds = ['111']
+  it("fixes all missing critical subscriptions", async () => {
+    state.accountIds = ["111"];
     // entry exists but has no types -> all critical missing
-    seedSubscriptions('111', [])
+    seedSubscriptions("111", []);
 
-    const result = await runSubscriptionHealthCheck()
+    const result = await runSubscriptionHealthCheck();
 
-    expect(result.usersWithIssues).toBe(1)
-    expect(result.criticalFixCount).toBe(CRITICAL.length)
-    expect(result.fixedSubscriptions).toBe(CRITICAL.length)
-    expect(result.errorCount).toBe(0)
-  })
+    expect(result.usersWithIssues).toBe(1);
+    expect(result.criticalFixCount).toBe(CRITICAL.length);
+    expect(result.fixedSubscriptions).toBe(CRITICAL.length);
+    expect(result.errorCount).toBe(0);
+  });
 
-  it('skips channel.chat.message subscriptions when the bot is banned', async () => {
-    state.isBanned = true
-    state.accountIds = ['111']
-    seedSubscriptions('111', [])
+  it("skips channel.chat.message subscriptions when the bot is banned", async () => {
+    state.isBanned = true;
+    state.accountIds = ["111"];
+    seedSubscriptions("111", []);
 
-    const result = await runSubscriptionHealthCheck()
+    const result = await runSubscriptionHealthCheck();
 
-    const subscribedTypes = state.subscribeCalls.map((c) => c.type)
-    expect(subscribedTypes).not.toContain('channel.chat.message')
-    expect(result.criticalFixCount).toBe(CRITICAL.length - 1)
-  })
+    const subscribedTypes = state.subscribeCalls.map((c) => c.type);
+    expect(subscribedTypes).not.toContain("channel.chat.message");
+    expect(result.criticalFixCount).toBe(CRITICAL.length - 1);
+  });
 
-  it('counts errors when a subscription reports failure without throwing', async () => {
-    state.accountIds = ['111']
-    seedSubscriptions('111', [])
-    state.subscribeResult = (_userId, type) => type !== 'stream.online'
+  it("counts errors when a subscription reports failure without throwing", async () => {
+    state.accountIds = ["111"];
+    seedSubscriptions("111", []);
+    state.subscribeResult = (_userId, type) => type !== "stream.online";
 
-    const result = await runSubscriptionHealthCheck()
+    const result = await runSubscriptionHealthCheck();
 
-    expect(result.errorCount).toBe(1)
-    expect(result.criticalFixCount).toBe(CRITICAL.length - 1)
-  })
+    expect(result.errorCount).toBe(1);
+    expect(result.criticalFixCount).toBe(CRITICAL.length - 1);
+  });
 
-  it('aggregates thrown errors into userErrors', async () => {
-    state.accountIds = ['111']
-    seedSubscriptions('111', [])
+  it("aggregates thrown errors into userErrors", async () => {
+    state.accountIds = ["111"];
+    seedSubscriptions("111", []);
     state.subscribeResult = () => {
-      throw new Error('twitch 500')
-    }
+      throw new Error("twitch 500");
+    };
 
-    const result = await runSubscriptionHealthCheck()
+    const result = await runSubscriptionHealthCheck();
 
-    expect(result.errorCount).toBe(CRITICAL.length)
-    expect(result.userErrors['twitch 500']).toBe(CRITICAL.length)
-    expect(result.fixedSubscriptions).toBe(0)
-  })
+    expect(result.errorCount).toBe(CRITICAL.length);
+    expect(result.userErrors["twitch 500"]).toBe(CRITICAL.length);
+    expect(result.fixedSubscriptions).toBe(0);
+  });
 
-  it('fetches existing subscriptions from the API when the cache is empty', async () => {
-    state.accountIds = ['111']
+  it("fetches existing subscriptions from the API when the cache is empty", async () => {
+    state.accountIds = ["111"];
     // eventSubMap empty (cleared in beforeEach) -> triggers the API fetch path.
     fetchState.queue = [
       {
         json: {
           data: [
             {
-              condition: { broadcaster_user_id: '111' },
-              id: 's1',
-              status: 'enabled',
-              type: 'stream.online',
+              condition: { broadcaster_user_id: "111" },
+              id: "s1",
+              status: "enabled",
+              type: "stream.online",
             },
           ],
           pagination: {},
         },
         status: 200,
       },
-    ]
+    ];
 
-    await runSubscriptionHealthCheck()
+    await runSubscriptionHealthCheck();
 
-    expect(fetchState.calls.some((u) => u.includes('eventsub/subscriptions'))).toBeTruthy()
+    expect(fetchState.calls.some((u) => u.includes("eventsub/subscriptions"))).toBeTruthy();
     // The fetched stream.online sub was loaded into the cache for that broadcaster.
-    expect(eventSubMap.get('111')?.['stream.online']).toMatchObject({ id: 's1' })
-  })
-})
+    expect(eventSubMap.get("111")?.["stream.online"]).toMatchObject({ id: "s1" });
+  });
+});

@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from "vite-plus/test";
 
-import { getSteamPlayerSummaries } from '../player-summaries.ts'
+import { getSteamPlayerSummaries } from "../player-summaries.ts";
 
 const { emit } = vi.hoisted(() => ({
   emit: vi.fn(
@@ -10,36 +10,36 @@ const { emit } = vi.hoisted(() => ({
       callback: (
         error: string | null,
         summaries: {
-          account_id: number
-          persona_name: string | null
-          country_code: string | null
-        }[]
-      ) => void
+          account_id: number;
+          persona_name: string | null;
+          country_code: string | null;
+        }[],
+      ) => void,
     ) => {
-      if (event !== 'getPlayerSummaries') {
-        throw new Error(`Unexpected event: ${event}`)
+      if (event !== "getPlayerSummaries") {
+        throw new Error(`Unexpected event: ${event}`);
       }
       callback(
         null,
         accountIds.map((accountId) => ({
           account_id: accountId,
-          country_code: accountId === 123 ? 'SE' : null,
+          country_code: accountId === 123 ? "SE" : null,
           persona_name: `Player ${accountId}`,
-        }))
-      )
-    }
+        })),
+      );
+    },
   ),
-}))
+}));
 
-vi.mock('../ws.ts', () => ({ steamSocket: { emit } }))
+vi.mock("../ws.ts", () => ({ steamSocket: { emit } }));
 
 describe(getSteamPlayerSummaries, () => {
-  it('maps Steam-service RPC results by account ID', async () => {
+  it("maps Steam-service RPC results by account ID", async () => {
     await expect(getSteamPlayerSummaries([123, 456])).resolves.toStrictEqual(
       new Map([
-        [123, { countryCode: 'SE', personaName: 'Player 123' }],
-        [456, { countryCode: null, personaName: 'Player 456' }],
-      ])
-    )
-  })
-})
+        [123, { countryCode: "SE", personaName: "Player 123" }],
+        [456, { countryCode: null, personaName: "Player 456" }],
+      ]),
+    );
+  });
+});
