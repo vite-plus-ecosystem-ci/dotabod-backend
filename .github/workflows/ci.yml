@@ -55,7 +55,8 @@ jobs:
       - name: Format, lint, typecheck + dead-code check
         run: pnpm run quality
       - name: Run tests
-        run: pnpm exec vitest run
+        # Ecosystem-ci smoke test: vitest is no longer a direct devDependency after migrate.
+        run: pnpm exec vp test run
       - name: Test constants update detection
         run: python -m unittest discover -s .github/scripts -p 'test_*.py' -v
       - name: Test deployment orchestration
